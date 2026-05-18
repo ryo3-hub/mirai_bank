@@ -7,6 +7,7 @@ import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
 import '../../category/domain/category_presets.dart';
 import '../application/goal_providers.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
 import '../domain/goal.dart';
 
 class GoalEditSheet extends ConsumerStatefulWidget {
@@ -168,24 +169,11 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
   Future<void> _delete() async {
     final initial = widget.initial;
     if (initial == null) return;
-    final ok = await showDialog<bool>(
+    final ok = await showDeleteConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('削除しますか？'),
-        content: const Text('この目標を削除します。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('キャンセル'),
-          ),
-          FilledButton.tonal(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('削除'),
-          ),
-        ],
-      ),
+      message: 'この目標を削除します。',
     );
-    if (ok != true || !mounted) return;
+    if (!ok || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     setState(() => _deleting = true);
@@ -303,7 +291,7 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
                 children: [
                   if (_isEdit) ...[
                     Expanded(
-                      child: OutlinedButton.icon(
+                      child: FilledButton.icon(
                         onPressed:
                             (_saving || _deleting) ? null : _delete,
                         icon: _deleting
@@ -315,9 +303,11 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
                               )
                             : const Icon(Icons.delete_outline),
                         label: const Text('削除'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor:
+                        style: FilledButton.styleFrom(
+                          backgroundColor:
                               Theme.of(context).colorScheme.error,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onError,
                         ),
                       ),
                     ),
