@@ -100,7 +100,6 @@ class _CategoryCard extends ConsumerWidget {
         ),
         trailing: IconButton(
           icon: const Icon(Icons.delete_outline),
-          color: Theme.of(context).colorScheme.error,
           tooltip: '削除',
           onPressed: () => _confirmDelete(context, ref),
         ),
