@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../infrastructure/database/database_provider.dart';
 import '../../history/application/work_session_providers.dart';
+import '../../history/domain/work_session.dart';
 import '../domain/goal.dart';
 import '../domain/goal_progress.dart';
 import '../infrastructure/goal_repository.dart';
@@ -25,13 +28,13 @@ GoalAchievementChecker goalAchievementChecker(Ref ref) {
 }
 
 @riverpod
-Stream<List<GoalProgress>> activeGoalsWithProgress(Ref ref) async* {
+Stream<List<GoalProgress>> activeGoalsWithProgress(Ref ref) {
   final goalRepo = ref.watch(goalRepositoryProvider);
   final sessionRepo = ref.watch(workSessionRepositoryProvider);
-
-  await for (final sessions in sessionRepo.watchAll()) {
-    final goals = await goalRepo.fetchActive();
-    yield [
+  return _combineLatest2<List<Goal>, List<WorkSession>, List<GoalProgress>>(
+    goalRepo.watchActive(),
+    sessionRepo.watchAll(),
+    (goals, sessions) => [
       for (final goal in goals)
         GoalProgress(
           goal: goal,
@@ -40,8 +43,54 @@ Stream<List<GoalProgress>> activeGoalsWithProgress(Ref ref) async* {
             sessions: sessions,
           ),
         ),
-    ];
+    ],
+  );
+}
+
+Stream<R> _combineLatest2<A, B, R>(
+  Stream<A> a,
+  Stream<B> b,
+  R Function(A, B) combine,
+) {
+  late StreamController<R> controller;
+  StreamSubscription<A>? subA;
+  StreamSubscription<B>? subB;
+  A? latestA;
+  B? latestB;
+  var hasA = false;
+  var hasB = false;
+
+  void emit() {
+    if (hasA && hasB) {
+      controller.add(combine(latestA as A, latestB as B));
+    }
   }
+
+  controller = StreamController<R>(
+    onListen: () {
+      subA = a.listen(
+        (v) {
+          latestA = v;
+          hasA = true;
+          emit();
+        },
+        onError: controller.addError,
+      );
+      subB = b.listen(
+        (v) {
+          latestB = v;
+          hasB = true;
+          emit();
+        },
+        onError: controller.addError,
+      );
+    },
+    onCancel: () async {
+      await subA?.cancel();
+      await subB?.cancel();
+    },
+  );
+  return controller.stream;
 }
 
 @riverpod
