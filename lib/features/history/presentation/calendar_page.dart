@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -47,9 +45,6 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
     final monthStart = DateTime(_focusedDay.year, _focusedDay.month, 1);
     final dailyAmountAsync = ref.watch(dailyAmountMapProvider(monthStart));
     final dailyAmount = dailyAmountAsync.value ?? const <DateTime, int>{};
-    final maxAmount = dailyAmount.values.isEmpty
-        ? 0
-        : dailyAmount.values.reduce(math.max);
 
     return Scaffold(
       appBar: AppBar(title: const Text('カレンダー')),
@@ -59,7 +54,6 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
             focusedDay: _focusedDay,
             selectedDay: _selectedDay,
             dailyAmount: dailyAmount,
-            maxAmount: maxAmount,
             onDaySelected: _onDaySelected,
             onPageChanged: _onPageChanged,
           ),
@@ -76,7 +70,6 @@ class _CalendarCard extends StatelessWidget {
     required this.focusedDay,
     required this.selectedDay,
     required this.dailyAmount,
-    required this.maxAmount,
     required this.onDaySelected,
     required this.onPageChanged,
   });
@@ -84,7 +77,6 @@ class _CalendarCard extends StatelessWidget {
   final DateTime focusedDay;
   final DateTime selectedDay;
   final Map<DateTime, int> dailyAmount;
-  final int maxAmount;
   final void Function(DateTime selected, DateTime focused) onDaySelected;
   final ValueChanged<DateTime> onPageChanged;
 
@@ -92,60 +84,139 @@ class _CalendarCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TableCalendar(
-      firstDay: DateTime(2020, 1, 1),
-      lastDay: DateTime(DateTime.now().year + 5, 12, 31),
-      focusedDay: focusedDay,
-      selectedDayPredicate: (day) => isSameDay(day, selectedDay),
-      onDaySelected: onDaySelected,
-      onPageChanged: onPageChanged,
-      calendarFormat: CalendarFormat.month,
-      availableCalendarFormats: const {CalendarFormat.month: 'Month'},
-      locale: 'ja_JP',
-      startingDayOfWeek: StartingDayOfWeek.monday,
-      headerStyle: const HeaderStyle(
-        formatButtonVisible: false,
-        titleCentered: true,
-      ),
-      rowHeight: 56,
-      calendarBuilders: CalendarBuilders<dynamic>(
-        defaultBuilder: (context, day, _) {
-          return _DayCell(
-            day: day,
-            amount: dailyAmount[_dateOnly(day)] ?? 0,
-            maxAmount: maxAmount,
-            isToday: false,
-            isSelected: false,
-          );
-        },
-        todayBuilder: (context, day, _) {
-          return _DayCell(
-            day: day,
-            amount: dailyAmount[_dateOnly(day)] ?? 0,
-            maxAmount: maxAmount,
-            isToday: true,
-            isSelected: false,
-          );
-        },
-        selectedBuilder: (context, day, _) {
-          return _DayCell(
-            day: day,
-            amount: dailyAmount[_dateOnly(day)] ?? 0,
-            maxAmount: maxAmount,
-            isToday: isSameDay(day, DateTime.now()),
-            isSelected: true,
-          );
-        },
-        outsideBuilder: (context, day, _) {
-          return _DayCell(
-            day: day,
-            amount: 0,
-            maxAmount: maxAmount,
-            isToday: false,
-            isSelected: false,
-            isOutside: true,
-          );
-        },
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _CalendarHeader(
+          month: focusedDay,
+          onPrev: () => onPageChanged(
+            DateTime(focusedDay.year, focusedDay.month - 1, 1),
+          ),
+          onNext: () => onPageChanged(
+            DateTime(focusedDay.year, focusedDay.month + 1, 1),
+          ),
+        ),
+        TableCalendar(
+          firstDay: DateTime(2020, 1, 1),
+          lastDay: DateTime(DateTime.now().year + 5, 12, 31),
+          focusedDay: focusedDay,
+          selectedDayPredicate: (day) => isSameDay(day, selectedDay),
+          onDaySelected: onDaySelected,
+          onPageChanged: onPageChanged,
+          calendarFormat: CalendarFormat.month,
+          availableCalendarFormats: const {CalendarFormat.month: 'Month'},
+          locale: 'ja_JP',
+          startingDayOfWeek: StartingDayOfWeek.sunday,
+          headerVisible: false,
+          rowHeight: 56,
+          daysOfWeekHeight: 28,
+          calendarBuilders: CalendarBuilders<dynamic>(
+            dowBuilder: (context, day) {
+              final label = DateFormat.E('ja').format(day);
+              final color = _weekdayColor(context, day.weekday);
+              return Center(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: color ??
+                        Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              );
+            },
+            defaultBuilder: (context, day, _) {
+              return _DayCell(
+                day: day,
+                amount: dailyAmount[_dateOnly(day)] ?? 0,
+                isToday: false,
+                isSelected: false,
+              );
+            },
+            todayBuilder: (context, day, _) {
+              return _DayCell(
+                day: day,
+                amount: dailyAmount[_dateOnly(day)] ?? 0,
+                isToday: true,
+                isSelected: false,
+              );
+            },
+            selectedBuilder: (context, day, _) {
+              return _DayCell(
+                day: day,
+                amount: dailyAmount[_dateOnly(day)] ?? 0,
+                isToday: isSameDay(day, DateTime.now()),
+                isSelected: true,
+              );
+            },
+            outsideBuilder: (context, day, _) {
+              return _DayCell(
+                day: day,
+                amount: 0,
+                isToday: false,
+                isSelected: false,
+                isOutside: true,
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CalendarHeader extends StatelessWidget {
+  const _CalendarHeader({
+    required this.month,
+    required this.onPrev,
+    required this.onNext,
+  });
+
+  final DateTime month;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final lastDay = DateTime(month.year, month.month + 1, 0).day;
+    final title = '${month.year}年${month.month}月';
+    final range = '${month.month}月1日〜${month.month}月$lastDay日';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            onPressed: onPrev,
+            tooltip: '前の月',
+          ),
+          Expanded(
+            child: Column(
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  range,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: onNext,
+            tooltip: '次の月',
+          ),
+        ],
       ),
     );
   }
@@ -155,7 +226,6 @@ class _DayCell extends StatelessWidget {
   const _DayCell({
     required this.day,
     required this.amount,
-    required this.maxAmount,
     required this.isToday,
     required this.isSelected,
     this.isOutside = false,
@@ -163,7 +233,6 @@ class _DayCell extends StatelessWidget {
 
   final DateTime day;
   final int amount;
-  final int maxAmount;
   final bool isToday;
   final bool isSelected;
   final bool isOutside;
@@ -171,80 +240,64 @@ class _DayCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final intensity = (maxAmount == 0 || amount == 0)
-        ? 0.0
-        : (amount / maxAmount).clamp(0.0, 1.0);
-    final bucket = _bucketFor(intensity);
-    final bgAlpha = switch (bucket) {
-      0 => 0.0,
-      1 => 0.18,
-      2 => 0.35,
-      3 => 0.55,
-      _ => 0.80,
-    };
-    final bgColor = bgAlpha == 0
-        ? Colors.transparent
-        : colorScheme.primary.withValues(alpha: bgAlpha);
-    final textColor = isOutside
-        ? colorScheme.outline.withValues(alpha: 0.6)
-        : (bucket >= 3 ? colorScheme.onPrimary : colorScheme.onSurface);
-    final amountColor = bucket >= 3
-        ? colorScheme.onPrimary.withValues(alpha: 0.9)
-        : colorScheme.onSurfaceVariant;
+    final weekendColor = _weekdayColor(context, day.weekday);
 
-    return Container(
-      margin: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-        border: isSelected
-            ? Border.all(color: colorScheme.primary, width: 2)
-            : isToday
-                ? Border.all(color: colorScheme.outline, width: 1)
-                : null,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+    final Color dayNumberColor;
+    if (isOutside) {
+      dayNumberColor =
+          (weekendColor ?? colorScheme.outline).withValues(alpha: 0.4);
+    } else {
+      dayNumberColor = weekendColor ?? colorScheme.onSurface;
+    }
+
+    final bgColor = isSelected
+        ? colorScheme.primary.withValues(alpha: 0.10)
+        : Colors.transparent;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: SizedBox.expand(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
           Text(
             '${day.day}',
             style: TextStyle(
-              fontSize: 13,
-              fontWeight: isToday || isSelected ? FontWeight.w700 : null,
-              color: textColor,
+              fontSize: 15,
+              fontWeight:
+                  (isToday || isSelected) ? FontWeight.w700 : FontWeight.w500,
+              color: dayNumberColor,
             ),
           ),
-          if (amount > 0)
+          if (amount > 0 && !isOutside)
             Padding(
-              padding: const EdgeInsets.only(top: 1),
+              padding: const EdgeInsets.only(top: 2),
               child: Text(
                 _abbreviateAmount(amount),
                 style: TextStyle(
-                  fontSize: 9,
-                  color: amountColor,
+                  fontSize: 10,
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w500,
                   height: 1.1,
                 ),
               ),
             ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  static int _bucketFor(double intensity) {
-    if (intensity <= 0) return 0;
-    if (intensity < 0.25) return 1;
-    if (intensity < 0.5) return 2;
-    if (intensity < 0.75) return 3;
-    return 4;
-  }
+  static final _formatter = NumberFormat('#,###');
 
   static String _abbreviateAmount(int amount) {
-    if (amount < 1000) return '$amount';
-    if (amount < 10000) {
-      final v = amount / 1000;
-      return '${v.toStringAsFixed(v < 10 ? 1 : 0)}k';
-    }
+    if (amount < 10000) return _formatter.format(amount);
     final v = amount / 10000;
     return '${v.toStringAsFixed(v < 10 ? 1 : 0)}万';
   }
@@ -351,4 +404,15 @@ class _EmptyDayView extends StatelessWidget {
       ),
     );
   }
+}
+
+Color? _weekdayColor(BuildContext context, int weekday) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  if (weekday == DateTime.saturday) {
+    return isDark ? const Color(0xFF64B5F6) : const Color(0xFF1976D2);
+  }
+  if (weekday == DateTime.sunday) {
+    return isDark ? const Color(0xFFE57373) : const Color(0xFFD32F2F);
+  }
+  return null;
 }
