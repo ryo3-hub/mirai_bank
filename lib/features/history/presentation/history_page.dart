@@ -35,6 +35,11 @@ class HistoryPage extends ConsumerWidget {
           );
         },
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => ManualRecordSheet.show(context),
+        tooltip: '手動で記録',
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }

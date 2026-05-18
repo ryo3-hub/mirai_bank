@@ -8,7 +8,6 @@ import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
 import '../../category/domain/category_presets.dart';
 import '../../category/presentation/category_picker_sheet.dart';
-import '../../history/presentation/manual_record_sheet.dart';
 import '../application/timer_providers.dart';
 import '../domain/active_timer.dart';
 import '../domain/amount_calculator.dart';
@@ -48,14 +47,6 @@ class HomePage extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               const DashboardGoalsSection(),
-              const SizedBox(height: 8),
-              Center(
-                child: TextButton.icon(
-                  onPressed: () => ManualRecordSheet.show(context),
-                  icon: const Icon(Icons.edit_note),
-                  label: const Text('過去の記録を手動で追加'),
-                ),
-              ),
             ],
           ),
         ),
