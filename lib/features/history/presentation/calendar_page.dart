@@ -109,6 +109,20 @@ class _CalendarCard extends StatelessWidget {
       ),
       rowHeight: 56,
       calendarBuilders: CalendarBuilders<dynamic>(
+        dowBuilder: (context, day) {
+          final label = DateFormat.E('ja').format(day);
+          final color = _weekdayColor(context, day.weekday);
+          return Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color ?? Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          );
+        },
         defaultBuilder: (context, day, _) {
           return _DayCell(
             day: day,
@@ -185,9 +199,15 @@ class _DayCell extends StatelessWidget {
     final bgColor = bgAlpha == 0
         ? Colors.transparent
         : colorScheme.primary.withValues(alpha: bgAlpha);
-    final textColor = isOutside
-        ? colorScheme.outline.withValues(alpha: 0.6)
-        : (bucket >= 3 ? colorScheme.onPrimary : colorScheme.onSurface);
+    final weekendColor = _weekdayColor(context, day.weekday);
+    final Color textColor;
+    if (bucket >= 3) {
+      textColor = colorScheme.onPrimary;
+    } else if (isOutside) {
+      textColor = (weekendColor ?? colorScheme.outline).withValues(alpha: 0.6);
+    } else {
+      textColor = weekendColor ?? colorScheme.onSurface;
+    }
     final amountColor = bucket >= 3
         ? colorScheme.onPrimary.withValues(alpha: 0.9)
         : colorScheme.onSurfaceVariant;
@@ -351,4 +371,15 @@ class _EmptyDayView extends StatelessWidget {
       ),
     );
   }
+}
+
+Color? _weekdayColor(BuildContext context, int weekday) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  if (weekday == DateTime.saturday) {
+    return isDark ? const Color(0xFF64B5F6) : const Color(0xFF1976D2);
+  }
+  if (weekday == DateTime.sunday) {
+    return isDark ? const Color(0xFFE57373) : const Color(0xFFD32F2F);
+  }
+  return null;
 }
