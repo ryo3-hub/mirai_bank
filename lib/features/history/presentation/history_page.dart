@@ -1,0 +1,263 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+import '../../../shared/utils/duration_formatter.dart';
+import '../../category/application/category_providers.dart';
+import '../../category/domain/category.dart';
+import '../application/manual_record_providers.dart';
+import '../application/session_list_providers.dart';
+import '../domain/day_session_group.dart';
+import '../domain/work_session.dart';
+import 'manual_record_sheet.dart';
+import 'widgets/session_card.dart';
+
+class HistoryPage extends ConsumerWidget {
+  const HistoryPage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final groupsAsync = ref.watch(groupedSessionListProvider);
+    final categoriesAsync = ref.watch(categoriesListProvider);
+    final categories = categoriesAsync.value ?? const <Category>[];
+    final categoryMap = {for (final c in categories) c.id: c};
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('履歴')),
+      body: groupsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(child: Text('読み込みに失敗しました: $e')),
+        data: (groups) {
+          if (groups.isEmpty) return const _EmptyState();
+          return _GroupedSessionList(
+            groups: groups,
+            categoryMap: categoryMap,
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => ManualRecordSheet.show(context),
+        icon: const Icon(Icons.add),
+        label: const Text('手動で記録'),
+      ),
+    );
+  }
+}
+
+class _GroupedSessionList extends ConsumerWidget {
+  const _GroupedSessionList({
+    required this.groups,
+    required this.categoryMap,
+  });
+
+  final List<DaySessionGroup> groups;
+  final Map<String, Category> categoryMap;
+
+  Future<bool> _confirmDelete(BuildContext context, WorkSession s) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('削除しますか？'),
+        content: const Text('この記録を削除します。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('キャンセル'),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('削除'),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return CustomScrollView(
+      slivers: [
+        for (final group in groups) ...[
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _DateHeaderDelegate(group: group),
+          ),
+          SliverList.separated(
+            itemCount: group.sessions.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 4),
+            itemBuilder: (context, index) {
+              final session = group.sessions[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Dismissible(
+                  key: ValueKey(session.id),
+                  direction: DismissDirection.endToStart,
+                  background: _DismissBackground(),
+                  confirmDismiss: (_) => _confirmDelete(context, session),
+                  onDismissed: (_) async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    try {
+                      await ref
+                          .read(manualRecordControllerProvider.notifier)
+                          .delete(session.id);
+                      messenger.showSnackBar(
+                        const SnackBar(content: Text('記録を削除しました')),
+                      );
+                    } catch (e) {
+                      messenger.showSnackBar(
+                        SnackBar(content: Text('削除に失敗しました: $e')),
+                      );
+                    }
+                  },
+                  child: SessionCard(
+                    session: session,
+                    category: categoryMap[session.categoryId],
+                    onTap: () => ManualRecordSheet.show(
+                      context,
+                      initial: session,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 8)),
+        ],
+        const SliverToBoxAdapter(child: SizedBox(height: 80)),
+      ],
+    );
+  }
+}
+
+class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _DateHeaderDelegate({required this.group});
+
+  final DaySessionGroup group;
+
+  static final _amountFormatter = NumberFormat('#,###');
+
+  @override
+  double get minExtent => 44;
+
+  @override
+  double get maxExtent => 44;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final theme = Theme.of(context);
+    return Container(
+      color: theme.colorScheme.surface,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      alignment: Alignment.center,
+      child: Row(
+        children: [
+          Text(
+            _headerLabel(group.date),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            DurationFormatter.hourMinute(group.totalDurationSec),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '${_amountFormatter.format(group.totalAmount)} 円',
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(_DateHeaderDelegate old) =>
+      old.group.date != group.date ||
+      old.group.totalAmount != group.totalAmount ||
+      old.group.totalDurationSec != group.totalDurationSec;
+
+  static String _headerLabel(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    if (date == today) return '今日';
+    if (date == yesterday) return '昨日';
+    if (date.year == today.year) {
+      return DateFormat('M月d日 (E)', 'ja').format(date);
+    }
+    return DateFormat('yyyy年M月d日 (E)', 'ja').format(date);
+  }
+}
+
+class _DismissBackground extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 2),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.error,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 24),
+      child: const Icon(Icons.delete, color: Colors.white),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.history_edu_outlined,
+                size: 48,
+                color: theme.colorScheme.outline,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'まだ記録がありません',
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'タイマーで計測するか、\n右下のボタンから手動で記録できます',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
