@@ -62,10 +62,10 @@ class GoalListPage extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => GoalEditSheet.show(context),
-        icon: const Icon(Icons.add),
-        label: const Text('目標を追加'),
+        tooltip: '目標を追加',
+        child: const Icon(Icons.add),
       ),
     );
   }

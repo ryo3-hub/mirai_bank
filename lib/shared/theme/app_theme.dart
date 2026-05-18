@@ -116,13 +116,29 @@ class AppTheme {
           minimumSize: const Size(0, 48),
         ),
       ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
         elevation: 0,
         highlightElevation: 0,
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
+        backgroundColor: Color(0xFF2DA44E), // GitHub green
+        foregroundColor: Colors.white,
+        shape: CircleBorder(),
+      ),
+      dialogTheme: DialogTheme(
+        backgroundColor: isLight ? Colors.white : colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        titleTextStyle: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: colorScheme.onSurface,
+        ),
+        contentTextStyle: TextStyle(
+          fontSize: 14,
+          height: 1.5,
+          color: colorScheme.onSurfaceVariant,
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(

@@ -8,8 +8,8 @@ import '../../category/domain/category.dart';
 import '../application/manual_record_providers.dart';
 import '../application/session_list_providers.dart';
 import '../domain/day_session_group.dart';
-import '../domain/work_session.dart';
 import 'manual_record_sheet.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
 import 'widgets/session_card.dart';
 
 class HistoryPage extends ConsumerWidget {
@@ -35,10 +35,10 @@ class HistoryPage extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => ManualRecordSheet.show(context),
-        icon: const Icon(Icons.add),
-        label: const Text('手動で記録'),
+        tooltip: '手動で記録',
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -53,25 +53,11 @@ class _GroupedSessionList extends ConsumerWidget {
   final List<DaySessionGroup> groups;
   final Map<String, Category> categoryMap;
 
-  Future<bool> _confirmDelete(BuildContext context, WorkSession s) async {
-    final ok = await showDialog<bool>(
+  Future<bool> _confirmDelete(BuildContext context) {
+    return showDeleteConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('削除しますか？'),
-        content: const Text('この記録を削除します。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('キャンセル'),
-          ),
-          FilledButton.tonal(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('削除'),
-          ),
-        ],
-      ),
+      message: 'この記録を削除します。',
     );
-    return ok == true;
   }
 
   @override
@@ -94,7 +80,7 @@ class _GroupedSessionList extends ConsumerWidget {
                   key: ValueKey(session.id),
                   direction: DismissDirection.endToStart,
                   background: _DismissBackground(),
-                  confirmDismiss: (_) => _confirmDelete(context, session),
+                  confirmDismiss: (_) => _confirmDelete(context),
                   onDismissed: (_) async {
                     final messenger = ScaffoldMessenger.of(context);
                     try {

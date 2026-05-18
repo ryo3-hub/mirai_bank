@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../application/category_providers.dart';
 import '../domain/category.dart';
 import '../domain/category_presets.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
 import 'category_edit_sheet.dart';
 
 class CategoryListPage extends ConsumerWidget {
@@ -35,10 +36,10 @@ class CategoryListPage extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => CategoryEditSheet.show(context),
-        icon: const Icon(Icons.add),
-        label: const Text('追加'),
+        tooltip: '追加',
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -72,24 +73,11 @@ class _CategoryCard extends ConsumerWidget {
   final Category category;
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final ok = await showDialog<bool>(
+    final ok = await showDeleteConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('削除しますか？'),
-        content: Text('「${category.name}」を削除します。\n過去の記録は残ります。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('キャンセル'),
-          ),
-          FilledButton.tonal(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('削除'),
-          ),
-        ],
-      ),
+      message: '「${category.name}」を削除します。\n過去の記録は残ります。',
     );
-    if (ok == true) {
+    if (ok) {
       await ref.read(categoryControllerProvider.notifier).delete(category.id);
     }
   }
