@@ -31,8 +31,6 @@ class HomePage extends ConsumerWidget {
             children: [
               const TodayAmountCard(),
               const SizedBox(height: 12),
-              const DashboardGoalsSection(),
-              const SizedBox(height: 16),
               activeTimerAsync.when(
                 loading: () => const Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
@@ -48,6 +46,8 @@ class HomePage extends ConsumerWidget {
                     ? const _TimerIdleCard()
                     : _TimerRunningCard(activeTimer: activeTimer),
               ),
+              const SizedBox(height: 12),
+              const DashboardGoalsSection(),
               const SizedBox(height: 8),
               Center(
                 child: TextButton.icon(
