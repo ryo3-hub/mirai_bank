@@ -13,7 +13,7 @@ import '../../../goals/domain/goal_progress.dart';
 class DashboardGoalsSection extends ConsumerWidget {
   const DashboardGoalsSection({super.key});
 
-  static const int _maxDisplay = 2;
+  static const int _maxDisplay = 5;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

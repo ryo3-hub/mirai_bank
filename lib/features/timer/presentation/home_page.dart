@@ -13,8 +13,7 @@ import '../application/timer_providers.dart';
 import '../domain/active_timer.dart';
 import '../domain/amount_calculator.dart';
 import 'widgets/dashboard_goals_section.dart';
-import 'widgets/dashboard_summary_row.dart';
-import 'widgets/dashboard_total_card.dart';
+import 'widgets/today_amount_card.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -30,12 +29,8 @@ class HomePage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const DashboardTotalCard(),
+              const TodayAmountCard(),
               const SizedBox(height: 12),
-              const DashboardSummaryRow(),
-              const SizedBox(height: 12),
-              const DashboardGoalsSection(),
-              const SizedBox(height: 16),
               activeTimerAsync.when(
                 loading: () => const Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),
@@ -51,6 +46,8 @@ class HomePage extends ConsumerWidget {
                     ? const _TimerIdleCard()
                     : _TimerRunningCard(activeTimer: activeTimer),
               ),
+              const SizedBox(height: 12),
+              const DashboardGoalsSection(),
               const SizedBox(height: 8),
               Center(
                 child: TextButton.icon(
