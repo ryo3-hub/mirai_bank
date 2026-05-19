@@ -41,6 +41,9 @@ dependencies:
   # Celebration
   confetti: ^0.7.0
 
+  # Local key-value storage (onboarding flag etc.)
+  shared_preferences: ^2.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

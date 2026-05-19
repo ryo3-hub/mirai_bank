@@ -7,6 +7,7 @@ import '../../../shared/utils/duration_formatter.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
 import '../../category/domain/category_presets.dart';
+import '../../category/presentation/category_edit_sheet.dart';
 import '../../category/presentation/category_picker_sheet.dart';
 import '../application/timer_providers.dart';
 import '../domain/active_timer.dart';
@@ -176,8 +177,14 @@ class _NoCategoryView extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            'カテゴリがありません。\n設定画面から作成してください。',
+            'カテゴリがありません',
             textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: () => CategoryEditSheet.show(context),
+            icon: const Icon(Icons.add),
+            label: const Text('カテゴリを追加'),
           ),
         ],
       ),

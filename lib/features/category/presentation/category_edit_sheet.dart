@@ -39,7 +39,7 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
     final initial = widget.initial;
     _nameController = TextEditingController(text: initial?.name ?? '');
     _rateController =
-        TextEditingController(text: initial?.hourlyRate.toString() ?? '2000');
+        TextEditingController(text: initial?.hourlyRate.toString() ?? '1000');
     _iconCode = initial?.iconCode ?? CategoryPresets.defaultIcon;
     _colorCode = initial?.colorCode ?? CategoryPresets.defaultColor;
   }
@@ -112,6 +112,8 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
                 controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'カテゴリ名',
+                  hintText: '例：プログラミング、英語、資格',
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
                   border: OutlineInputBorder(),
                 ),
                 maxLength: Category.nameMaxLength,

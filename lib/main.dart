@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app/app.dart';
-import 'features/category/application/category_providers.dart';
 import 'features/settings/application/setting_providers.dart';
 import 'shared/notification/notification_service.dart';
 
@@ -13,7 +12,6 @@ Future<void> main() async {
   await NotificationService.instance.init();
   final container = ProviderContainer();
   try {
-    await container.read(categoryRepositoryProvider).ensureDefaultCategory();
     final setting = await container.read(settingRepositoryProvider).fetch();
     if (setting.reminderEnabled) {
       await NotificationService.instance
