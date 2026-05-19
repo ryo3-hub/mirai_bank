@@ -50,7 +50,9 @@ class StatsTrendChartCard extends StatelessWidget {
       0,
       (m, b) => b.amount > m ? b.amount : m,
     );
-    final maxY = maxAmount == 0 ? 1000.0 : maxAmount * 1.15;
+    final rawMaxY = maxAmount == 0 ? 1000.0 : maxAmount * 1.15;
+    final interval = _yAxisInterval(rawMaxY);
+    final maxY = (rawMaxY / interval).ceil() * interval;
     final showEvery = _labelStep(buckets.length);
 
     return BarChartData(
@@ -60,7 +62,7 @@ class StatsTrendChartCard extends StatelessWidget {
       gridData: FlGridData(
         show: true,
         drawVerticalLine: false,
-        horizontalInterval: _horizontalInterval(maxY),
+        horizontalInterval: interval,
         getDrawingHorizontalLine: (_) => FlLine(
           color: theme.colorScheme.outlineVariant,
           strokeWidth: 1,
@@ -72,14 +74,14 @@ class StatsTrendChartCard extends StatelessWidget {
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 44,
-            interval: _horizontalInterval(maxY),
+            reservedSize: 56,
+            interval: interval,
             getTitlesWidget: (value, meta) {
               if (value == 0) return const SizedBox.shrink();
               return Padding(
                 padding: const EdgeInsets.only(right: 4),
                 child: Text(
-                  _abbreviateAmount(value),
+                  _amountFormatter.format(value.toInt()),
                   style: theme.textTheme.bodySmall?.copyWith(fontSize: 10),
                 ),
               );
@@ -163,25 +165,22 @@ class StatsTrendChartCard extends StatelessWidget {
     return 6;
   }
 
-  double _horizontalInterval(double maxY) {
+  /// Pick a "nice" interval so the Y axis has roughly 4–5 labels.
+  /// Candidates follow a 1-2-5 progression which gives clean readouts
+  /// (1,000 / 2,000 / 5,000 / 10,000 / ...).
+  static double _yAxisInterval(double maxY) {
     if (maxY <= 0) return 1;
-    final raw = maxY / 4;
-    if (raw < 100) return 100;
-    if (raw < 1000) return 500;
-    if (raw < 10000) return 1000;
-    if (raw < 100000) return 10000;
-    return 50000;
-  }
-
-  static String _abbreviateAmount(double value) {
-    final v = value.abs();
-    if (v >= 10000) {
-      return '${(value / 10000).toStringAsFixed(value % 10000 == 0 ? 0 : 1)}万';
+    const candidates = [
+      100.0, 200.0, 500.0,
+      1000.0, 2000.0, 5000.0,
+      10000.0, 20000.0, 50000.0,
+      100000.0, 200000.0, 500000.0,
+      1000000.0, 2000000.0, 5000000.0,
+    ];
+    for (final c in candidates) {
+      if (maxY / c <= 5) return c;
     }
-    if (v >= 1000) {
-      return '${(value / 1000).toStringAsFixed(value % 1000 == 0 ? 0 : 1)}k';
-    }
-    return value.toInt().toString();
+    return 10000000.0;
   }
 }
 
