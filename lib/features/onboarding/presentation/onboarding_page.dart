@@ -127,7 +127,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                         onFieldSubmitted: (_) => _rateFocus.requestFocus(),
                         decoration: const InputDecoration(
                           labelText: 'カテゴリ名',
-                          hintText: '勉強',
+                          hintText: '例：プログラミング、英語、資格',
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
                         ),
                         maxLength: Category.nameMaxLength,
                         validator: Category.validateName,
