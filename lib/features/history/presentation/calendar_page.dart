@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../../../shared/utils/weekday_color.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
 import '../application/calendar_providers.dart';
@@ -113,7 +114,7 @@ class _CalendarCard extends StatelessWidget {
           calendarBuilders: CalendarBuilders<dynamic>(
             dowBuilder: (context, day) {
               final label = DateFormat.E('ja').format(day);
-              final color = _weekdayColor(context, day.weekday);
+              final color = weekdayColor(context, day.weekday);
               return Center(
                 child: Text(
                   label,
@@ -240,7 +241,7 @@ class _DayCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final weekendColor = _weekdayColor(context, day.weekday);
+    final weekendColor = weekdayColor(context, day.weekday);
 
     final Color dayNumberColor;
     if (isOutside) {
@@ -406,13 +407,3 @@ class _EmptyDayView extends StatelessWidget {
   }
 }
 
-Color? _weekdayColor(BuildContext context, int weekday) {
-  final isDark = Theme.of(context).brightness == Brightness.dark;
-  if (weekday == DateTime.saturday) {
-    return isDark ? const Color(0xFF64B5F6) : const Color(0xFF1976D2);
-  }
-  if (weekday == DateTime.sunday) {
-    return isDark ? const Color(0xFFE57373) : const Color(0xFFD32F2F);
-  }
-  return null;
-}

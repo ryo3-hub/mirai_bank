@@ -3,11 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/mirai_date_picker_sheet.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
 import '../../category/domain/category_presets.dart';
 import '../application/goal_providers.dart';
-import '../../../shared/widgets/confirm_dialog.dart';
 import '../domain/goal.dart';
 
 class GoalEditSheet extends ConsumerStatefulWidget {
@@ -76,11 +77,12 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
   }
 
   Future<void> _pickStart() async {
-    final picked = await showDatePicker(
-      context: context,
+    final picked = await MiraiDatePickerSheet.show(
+      context,
       initialDate: _periodStart,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
+      title: '開始日を選択',
     );
     if (picked != null) {
       setState(() {
@@ -94,11 +96,12 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
   }
 
   Future<void> _pickEnd() async {
-    final picked = await showDatePicker(
-      context: context,
+    final picked = await MiraiDatePickerSheet.show(
+      context,
       initialDate: _periodEnd,
       firstDate: _periodStart,
       lastDate: DateTime(2100),
+      title: '終了日を選択',
     );
     if (picked != null) {
       setState(() {
