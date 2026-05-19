@@ -15,7 +15,7 @@ class MiraiBankApp extends ConsumerWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
-      routerConfig: AppRouter.router,
+      routerConfig: ref.watch(routerProvider),
       debugShowCheckedModeBanner: false,
       builder: (context, child) =>
           AchievementOverlay(child: child ?? const SizedBox.shrink()),

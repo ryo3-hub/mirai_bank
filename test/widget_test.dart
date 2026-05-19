@@ -14,9 +14,22 @@ import 'package:mirai_bank/features/settings/domain/app_setting.dart';
 import 'package:mirai_bank/features/timer/application/timer_providers.dart';
 
 List<Override> _stubOverrides() {
+  final now = DateTime(2026, 5, 19);
   return [
     activeTimerProvider.overrideWith((ref) => Stream.value(null)),
-    categoriesListProvider.overrideWith((ref) => Stream.value(<Category>[])),
+    categoriesListProvider.overrideWith(
+      (ref) => Stream.value(<Category>[
+        Category(
+          id: 'test-category',
+          name: '勉強',
+          hourlyRate: 2000,
+          colorCode: '#2E7D5B',
+          iconCode: 'school',
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]),
+    ),
     for (final period in SummaryPeriod.values)
       summaryProvider(period).overrideWith(
         (ref) => Stream.value(SessionSummary.empty),
