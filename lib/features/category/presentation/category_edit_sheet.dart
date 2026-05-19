@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/widgets/top_toast.dart';
 import '../application/category_providers.dart';
 import '../domain/category.dart';
 import '../domain/category_presets.dart';
@@ -56,7 +57,6 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
     FocusScope.of(context).unfocus();
     setState(() => _saving = true);
     final controller = ref.read(categoryControllerProvider.notifier);
-    final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final name = _nameController.text.trim();
     final rate = int.parse(_rateController.text.trim());
@@ -83,8 +83,10 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        messenger.showSnackBar(
-          SnackBar(content: Text('保存に失敗しました: $e')),
+        TopToast.show(
+          context,
+          message: '保存に失敗しました: $e',
+          isError: true,
         );
       }
     }

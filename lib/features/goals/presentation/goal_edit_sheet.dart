@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/mirai_date_picker_sheet.dart';
+import '../../../shared/widgets/top_toast.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
 import '../../category/domain/category_presets.dart';
@@ -126,7 +127,6 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
     if (!_validate()) return;
     FocusScope.of(context).unfocus();
     setState(() => _saving = true);
-    final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final controller = ref.read(goalControllerProvider.notifier);
     final amount = int.parse(_amountController.text.trim());
@@ -154,16 +154,19 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
         );
       }
       if (mounted) {
-        navigator.pop();
-        messenger.showSnackBar(
-          SnackBar(content: Text(_isEdit ? '目標を更新しました' : '目標を追加しました')),
+        TopToast.show(
+          context,
+          message: _isEdit ? '目標を更新しました' : '目標を追加しました',
         );
+        navigator.pop();
       }
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        messenger.showSnackBar(
-          SnackBar(content: Text('保存に失敗しました: $e')),
+        TopToast.show(
+          context,
+          message: '保存に失敗しました: $e',
+          isError: true,
         );
       }
     }
@@ -177,22 +180,21 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
       message: 'この目標を削除します。',
     );
     if (!ok || !mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     setState(() => _deleting = true);
     try {
       await ref.read(goalControllerProvider.notifier).delete(initial.id);
       if (mounted) {
+        TopToast.show(context, message: '目標を削除しました');
         navigator.pop();
-        messenger.showSnackBar(
-          const SnackBar(content: Text('目標を削除しました')),
-        );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _deleting = false);
-        messenger.showSnackBar(
-          SnackBar(content: Text('削除に失敗しました: $e')),
+        TopToast.show(
+          context,
+          message: '削除に失敗しました: $e',
+          isError: true,
         );
       }
     }
