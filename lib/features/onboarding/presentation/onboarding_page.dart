@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
 import '../../category/domain/category_presets.dart';
+import '../application/onboarding_state.dart';
 
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
@@ -16,7 +17,8 @@ class OnboardingPage extends ConsumerStatefulWidget {
 class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController(text: '勉強');
-  final _rateController = TextEditingController(text: '2000');
+  final _rateController = TextEditingController(text: '1000');
+  final _rateFocus = FocusNode();
   String _iconCode = CategoryPresets.defaultIcon;
   String _colorCode = CategoryPresets.defaultColor;
   bool _saving = false;
@@ -25,19 +27,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   void dispose() {
     _nameController.dispose();
     _rateController.dispose();
+    _rateFocus.dispose();
     super.dispose();
-  }
-
-  Future<void> _createCategory({
-    required String name,
-    required int hourlyRate,
-  }) async {
-    await ref.read(categoryControllerProvider.notifier).create(
-          name: name,
-          hourlyRate: hourlyRate,
-          colorCode: _colorCode,
-          iconCode: _iconCode,
-        );
   }
 
   Future<void> _onStart() async {
@@ -46,10 +37,13 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     setState(() => _saving = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await _createCategory(
-        name: _nameController.text.trim(),
-        hourlyRate: int.parse(_rateController.text.trim()),
-      );
+      await ref.read(categoryControllerProvider.notifier).create(
+            name: _nameController.text.trim(),
+            hourlyRate: int.parse(_rateController.text.trim()),
+            colorCode: _colorCode,
+            iconCode: _iconCode,
+          );
+      await ref.read(onboardingStateProvider.notifier).markCompleted();
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
@@ -61,10 +55,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   }
 
   Future<void> _onSkip() async {
+    FocusScope.of(context).unfocus();
     setState(() => _saving = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await _createCategory(name: '勉強', hourlyRate: 2000);
+      await ref.read(onboardingStateProvider.notifier).markCompleted();
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
@@ -78,101 +73,157 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboardVisible = keyboardInset > 0;
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
+      resizeToAvoidBottomInset: true,
+      body: Stack(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary
+                              .withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.savings_outlined,
+                          size: 32,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'ようこそ',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'まず、勉強カテゴリと時給を設定しましょう。\nあとから自由に変更できます。',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 32),
+                      TextFormField(
+                        controller: _nameController,
+                        textInputAction: TextInputAction.next,
+                        onFieldSubmitted: (_) => _rateFocus.requestFocus(),
+                        decoration: const InputDecoration(
+                          labelText: 'カテゴリ名',
+                          hintText: '例：プログラミング、英語、資格',
+                        ),
+                        maxLength: Category.nameMaxLength,
+                        validator: Category.validateName,
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _rateController,
+                        focusNode: _rateFocus,
+                        decoration: const InputDecoration(
+                          labelText: '時給（円）',
+                          helperText: '将来の自分にとっての時間価値を入力',
+                          suffixText: '円/h',
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        validator: Category.validateHourlyRate,
+                      ),
+                      const SizedBox(height: 24),
+                      _SectionLabel(text: 'アイコン'),
+                      const SizedBox(height: 8),
+                      _IconPicker(
+                        selected: _iconCode,
+                        color: CategoryPresets.colorFor(_colorCode),
+                        onChanged: (code) =>
+                            setState(() => _iconCode = code),
+                      ),
+                      const SizedBox(height: 24),
+                      _SectionLabel(text: 'カラー'),
+                      const SizedBox(height: 8),
+                      _ColorPicker(
+                        selected: _colorCode,
+                        onChanged: (code) =>
+                            setState(() => _colorCode = code),
+                      ),
+                      const SizedBox(height: 32),
+                      FilledButton(
+                        onPressed: _saving ? null : _onStart,
+                        child: _saving
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('始める'),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: _saving ? null : _onSkip,
+                        child: const Text('あとで設定する'),
+                      ),
+                    ],
                   ),
-                  child: Icon(
-                    Icons.savings_outlined,
-                    size: 32,
-                    color: theme.colorScheme.primary,
-                  ),
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  'ようこそ',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'まず、勉強カテゴリと時給を設定しましょう。\nあとから自由に変更できます。',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'カテゴリ名',
-                    hintText: '例：プログラミング、英語、資格',
-                  ),
-                  maxLength: Category.nameMaxLength,
-                  validator: Category.validateName,
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _rateController,
-                  decoration: const InputDecoration(
-                    labelText: '時給（円）',
-                    helperText: '将来の自分にとっての時間価値を入力',
-                    suffixText: '円/h',
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: Category.validateHourlyRate,
-                ),
-                const SizedBox(height: 24),
-                _SectionLabel(text: 'アイコン'),
-                const SizedBox(height: 8),
-                _IconPicker(
-                  selected: _iconCode,
-                  color: CategoryPresets.colorFor(_colorCode),
-                  onChanged: (code) => setState(() => _iconCode = code),
-                ),
-                const SizedBox(height: 24),
-                _SectionLabel(text: 'カラー'),
-                const SizedBox(height: 8),
-                _ColorPicker(
-                  selected: _colorCode,
-                  onChanged: (code) => setState(() => _colorCode = code),
-                ),
-                const SizedBox(height: 32),
-                FilledButton(
-                  onPressed: _saving ? null : _onStart,
-                  child: _saving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('始める'),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: _saving ? null : _onSkip,
-                  child: const Text('あとで設定する'),
-                ),
-              ],
+              ),
             ),
           ),
+          if (keyboardVisible)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: keyboardInset,
+              child: _KeyboardDoneBar(
+                onDone: () => FocusScope.of(context).unfocus(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KeyboardDoneBar extends StatelessWidget {
+  const _KeyboardDoneBar({required this.onDone});
+
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surfaceContainerHigh,
+      child: SizedBox(
+        height: 44,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: onDone,
+              child: const Text('完了'),
+            ),
+            const SizedBox(width: 4),
+          ],
         ),
       ),
     );

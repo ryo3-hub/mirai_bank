@@ -9,6 +9,7 @@ import 'package:mirai_bank/features/goals/application/goal_providers.dart';
 import 'package:mirai_bank/features/goals/domain/goal_progress.dart';
 import 'package:mirai_bank/features/history/application/summary_providers.dart';
 import 'package:mirai_bank/features/history/domain/session_summary.dart';
+import 'package:mirai_bank/features/onboarding/application/onboarding_state.dart';
 import 'package:mirai_bank/features/settings/application/setting_providers.dart';
 import 'package:mirai_bank/features/settings/domain/app_setting.dart';
 import 'package:mirai_bank/features/timer/application/timer_providers.dart';
@@ -40,7 +41,13 @@ List<Override> _stubOverrides() {
     appSettingProvider.overrideWith(
       (ref) => Stream.value(AppSetting.defaults),
     ),
+    onboardingStateProvider.overrideWith(_StubOnboardingState.new),
   ];
+}
+
+class _StubOnboardingState extends OnboardingState {
+  @override
+  Future<bool> build() async => true;
 }
 
 void main() {
