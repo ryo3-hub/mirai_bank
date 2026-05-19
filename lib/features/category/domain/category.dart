@@ -20,8 +20,8 @@ class Category {
   final DateTime? deletedAt;
 
   static const int nameMaxLength = 30;
-  static const int hourlyRateMin = 1;
-  static const int hourlyRateMax = 1000000;
+  static const int hourlyRateMin = 100;
+  static const int hourlyRateMax = 10000;
 
   static String? validateName(String? value) {
     if (value == null || value.trim().isEmpty) {
@@ -45,7 +45,7 @@ class Category {
       return '$hourlyRateMin円以上を入力してください';
     }
     if (parsed > hourlyRateMax) {
-      return '上限を超えています';
+      return '$hourlyRateMax円以下を入力してください';
     }
     return null;
   }

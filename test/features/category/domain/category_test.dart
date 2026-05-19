@@ -30,6 +30,10 @@ void main() {
     test('rejects values below minimum', () {
       expect(Category.validateHourlyRate('0'), isNotNull);
       expect(Category.validateHourlyRate('-100'), isNotNull);
+      expect(
+        Category.validateHourlyRate((Category.hourlyRateMin - 1).toString()),
+        isNotNull,
+      );
     });
 
     test('rejects values above maximum', () {
@@ -40,7 +44,10 @@ void main() {
     });
 
     test('accepts valid rates', () {
-      expect(Category.validateHourlyRate('1'), isNull);
+      expect(
+        Category.validateHourlyRate(Category.hourlyRateMin.toString()),
+        isNull,
+      );
       expect(Category.validateHourlyRate('2000'), isNull);
       expect(
         Category.validateHourlyRate(Category.hourlyRateMax.toString()),
