@@ -16,7 +16,7 @@ class OnboardingPage extends ConsumerStatefulWidget {
 
 class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: '勉強');
+  final _nameController = TextEditingController();
   final _rateController = TextEditingController(text: '1000');
   final _rateFocus = FocusNode();
   String _iconCode = CategoryPresets.defaultIcon;
@@ -113,7 +113,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'まず、勉強カテゴリと時給を設定しましょう。\nあとから自由に変更できます。',
+                        'まず、カテゴリと時給を設定しましょう。\nあとから自由に変更できます。',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           height: 1.5,
@@ -127,7 +127,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                         onFieldSubmitted: (_) => _rateFocus.requestFocus(),
                         decoration: const InputDecoration(
                           labelText: 'カテゴリ名',
-                          hintText: '例：プログラミング、英語、資格',
+                          hintText: '勉強',
                         ),
                         maxLength: Category.nameMaxLength,
                         validator: Category.validateName,
