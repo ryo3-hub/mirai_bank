@@ -112,6 +112,8 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
                 controller: _nameController,
                 decoration: const InputDecoration(
                   labelText: 'カテゴリ名',
+                  hintText: '例：プログラミング、英語、資格',
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
                   border: OutlineInputBorder(),
                 ),
                 maxLength: Category.nameMaxLength,
