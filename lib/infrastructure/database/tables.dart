@@ -53,6 +53,9 @@ class Goals extends Table {
   DateTimeColumn get periodStart => dateTime().nullable()();
   DateTimeColumn get periodEnd => dateTime().nullable()();
   DateTimeColumn get achievedAt => dateTime().nullable()();
+  /// ユーザーが任意に並び替えできる表示順。
+  /// 新規追加時はアクティブ目標の現在の最大値+1 を割り当て、末尾に追加される。
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 

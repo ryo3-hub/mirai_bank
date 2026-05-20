@@ -79,7 +79,7 @@ final achievedGoalsProvider = AutoDisposeStreamProvider<List<Goal>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AchievedGoalsRef = AutoDisposeStreamProviderRef<List<Goal>>;
-String _$goalControllerHash() => r'37a849e4872e7268223b307235a005045262f41e';
+String _$goalControllerHash() => r'40062caf7b70a99fc5ba14da695519826669d0d3';
 
 /// See also [GoalController].
 @ProviderFor(GoalController)

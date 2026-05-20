@@ -18,7 +18,26 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            // v2: Goals に sortOrder カラムを追加。既存目標は createdAt 昇順で
+            // sortOrder を 0,1,2,... と初期化する。
+            await m.addColumn(goals, goals.sortOrder);
+            final rows = await (select(goals)
+                  ..orderBy([(g) => OrderingTerm.asc(g.createdAt)]))
+                .get();
+            for (var i = 0; i < rows.length; i++) {
+              await (update(goals)..where((g) => g.id.equals(rows[i].id)))
+                  .write(GoalsCompanion(sortOrder: Value(i)));
+            }
+          }
+        },
+      );
 
   static QueryExecutor _openConnection() {
     return LazyDatabase(() async {

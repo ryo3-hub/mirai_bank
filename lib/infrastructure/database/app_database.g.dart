@@ -1305,6 +1305,14 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, GoalRow> {
   late final GeneratedColumn<DateTime> achievedAt = GeneratedColumn<DateTime>(
       'achieved_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _sortOrderMeta =
+      const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+      'sort_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -1326,6 +1334,7 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, GoalRow> {
         periodStart,
         periodEnd,
         achievedAt,
+        sortOrder,
         createdAt,
         updatedAt
       ];
@@ -1380,6 +1389,10 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, GoalRow> {
           achievedAt.isAcceptableOrUnknown(
               data['achieved_at']!, _achievedAtMeta));
     }
+    if (data.containsKey('sort_order')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -1415,6 +1428,8 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, GoalRow> {
           .read(DriftSqlType.dateTime, data['${effectivePrefix}period_end']),
       achievedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}achieved_at']),
+      sortOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -1436,6 +1451,10 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
   final DateTime? periodStart;
   final DateTime? periodEnd;
   final DateTime? achievedAt;
+
+  /// ユーザーが任意に並び替えできる表示順。
+  /// 新規追加時はアクティブ目標の現在の最大値+1 を割り当て、末尾に追加される。
+  final int sortOrder;
   final DateTime createdAt;
   final DateTime updatedAt;
   const GoalRow(
@@ -1446,6 +1465,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
       this.periodStart,
       this.periodEnd,
       this.achievedAt,
+      required this.sortOrder,
       required this.createdAt,
       required this.updatedAt});
   @override
@@ -1466,6 +1486,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
     if (!nullToAbsent || achievedAt != null) {
       map['achieved_at'] = Variable<DateTime>(achievedAt);
     }
+    map['sort_order'] = Variable<int>(sortOrder);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -1488,6 +1509,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
       achievedAt: achievedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(achievedAt),
+      sortOrder: Value(sortOrder),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -1504,6 +1526,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
       periodStart: serializer.fromJson<DateTime?>(json['periodStart']),
       periodEnd: serializer.fromJson<DateTime?>(json['periodEnd']),
       achievedAt: serializer.fromJson<DateTime?>(json['achievedAt']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -1519,6 +1542,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
       'periodStart': serializer.toJson<DateTime?>(periodStart),
       'periodEnd': serializer.toJson<DateTime?>(periodEnd),
       'achievedAt': serializer.toJson<DateTime?>(achievedAt),
+      'sortOrder': serializer.toJson<int>(sortOrder),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -1532,6 +1556,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
           Value<DateTime?> periodStart = const Value.absent(),
           Value<DateTime?> periodEnd = const Value.absent(),
           Value<DateTime?> achievedAt = const Value.absent(),
+          int? sortOrder,
           DateTime? createdAt,
           DateTime? updatedAt}) =>
       GoalRow(
@@ -1542,6 +1567,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
         periodStart: periodStart.present ? periodStart.value : this.periodStart,
         periodEnd: periodEnd.present ? periodEnd.value : this.periodEnd,
         achievedAt: achievedAt.present ? achievedAt.value : this.achievedAt,
+        sortOrder: sortOrder ?? this.sortOrder,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
       );
@@ -1559,6 +1585,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
       periodEnd: data.periodEnd.present ? data.periodEnd.value : this.periodEnd,
       achievedAt:
           data.achievedAt.present ? data.achievedAt.value : this.achievedAt,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -1574,6 +1601,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
           ..write('periodStart: $periodStart, ')
           ..write('periodEnd: $periodEnd, ')
           ..write('achievedAt: $achievedAt, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1582,7 +1610,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
 
   @override
   int get hashCode => Object.hash(id, type, targetAmount, categoryId,
-      periodStart, periodEnd, achievedAt, createdAt, updatedAt);
+      periodStart, periodEnd, achievedAt, sortOrder, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1594,6 +1622,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
           other.periodStart == this.periodStart &&
           other.periodEnd == this.periodEnd &&
           other.achievedAt == this.achievedAt &&
+          other.sortOrder == this.sortOrder &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1606,6 +1635,7 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
   final Value<DateTime?> periodStart;
   final Value<DateTime?> periodEnd;
   final Value<DateTime?> achievedAt;
+  final Value<int> sortOrder;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -1617,6 +1647,7 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
     this.periodStart = const Value.absent(),
     this.periodEnd = const Value.absent(),
     this.achievedAt = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1629,6 +1660,7 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
     this.periodStart = const Value.absent(),
     this.periodEnd = const Value.absent(),
     this.achievedAt = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -1645,6 +1677,7 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
     Expression<DateTime>? periodStart,
     Expression<DateTime>? periodEnd,
     Expression<DateTime>? achievedAt,
+    Expression<int>? sortOrder,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -1657,6 +1690,7 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
       if (periodStart != null) 'period_start': periodStart,
       if (periodEnd != null) 'period_end': periodEnd,
       if (achievedAt != null) 'achieved_at': achievedAt,
+      if (sortOrder != null) 'sort_order': sortOrder,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -1671,6 +1705,7 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
       Value<DateTime?>? periodStart,
       Value<DateTime?>? periodEnd,
       Value<DateTime?>? achievedAt,
+      Value<int>? sortOrder,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
       Value<int>? rowid}) {
@@ -1682,6 +1717,7 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
       periodStart: periodStart ?? this.periodStart,
       periodEnd: periodEnd ?? this.periodEnd,
       achievedAt: achievedAt ?? this.achievedAt,
+      sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -1712,6 +1748,9 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
     if (achievedAt.present) {
       map['achieved_at'] = Variable<DateTime>(achievedAt.value);
     }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1734,6 +1773,7 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
           ..write('periodStart: $periodStart, ')
           ..write('periodEnd: $periodEnd, ')
           ..write('achievedAt: $achievedAt, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -3121,6 +3161,7 @@ typedef $$GoalsTableCreateCompanionBuilder = GoalsCompanion Function({
   Value<DateTime?> periodStart,
   Value<DateTime?> periodEnd,
   Value<DateTime?> achievedAt,
+  Value<int> sortOrder,
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<int> rowid,
@@ -3133,6 +3174,7 @@ typedef $$GoalsTableUpdateCompanionBuilder = GoalsCompanion Function({
   Value<DateTime?> periodStart,
   Value<DateTime?> periodEnd,
   Value<DateTime?> achievedAt,
+  Value<int> sortOrder,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<int> rowid,
@@ -3182,6 +3224,9 @@ class $$GoalsTableFilterComposer extends Composer<_$AppDatabase, $GoalsTable> {
 
   ColumnFilters<DateTime> get achievedAt => $composableBuilder(
       column: $table.achievedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -3238,6 +3283,9 @@ class $$GoalsTableOrderingComposer
   ColumnOrderings<DateTime> get achievedAt => $composableBuilder(
       column: $table.achievedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -3291,6 +3339,9 @@ class $$GoalsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get achievedAt => $composableBuilder(
       column: $table.achievedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -3349,6 +3400,7 @@ class $$GoalsTableTableManager extends RootTableManager<
             Value<DateTime?> periodStart = const Value.absent(),
             Value<DateTime?> periodEnd = const Value.absent(),
             Value<DateTime?> achievedAt = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -3361,6 +3413,7 @@ class $$GoalsTableTableManager extends RootTableManager<
             periodStart: periodStart,
             periodEnd: periodEnd,
             achievedAt: achievedAt,
+            sortOrder: sortOrder,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,
@@ -3373,6 +3426,7 @@ class $$GoalsTableTableManager extends RootTableManager<
             Value<DateTime?> periodStart = const Value.absent(),
             Value<DateTime?> periodEnd = const Value.absent(),
             Value<DateTime?> achievedAt = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
             required DateTime createdAt,
             required DateTime updatedAt,
             Value<int> rowid = const Value.absent(),
@@ -3385,6 +3439,7 @@ class $$GoalsTableTableManager extends RootTableManager<
             periodStart: periodStart,
             periodEnd: periodEnd,
             achievedAt: achievedAt,
+            sortOrder: sortOrder,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,
