@@ -78,6 +78,15 @@ class _GoalProgressRow extends StatelessWidget {
   final Category? category;
 
   static final _formatter = NumberFormat('#,###');
+  static final _dateFormatter = DateFormat('M/d');
+
+  String _periodLabel(Goal goal) {
+    if (goal.type == GoalType.cumulative) return '累計';
+    final start = goal.periodStart;
+    final end = goal.periodEnd;
+    if (start == null || end == null) return '期間';
+    return '${_dateFormatter.format(start)} 〜 ${_dateFormatter.format(end)}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,12 +134,27 @@ class _GoalProgressRow extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            '${_formatter.format(progress.currentAmount)} / '
-            '${_formatter.format(goal.targetAmount)} 円',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${_formatter.format(progress.currentAmount)} / '
+                  '${_formatter.format(goal.targetAmount)} 円',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _periodLabel(goal),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ],
       ),
