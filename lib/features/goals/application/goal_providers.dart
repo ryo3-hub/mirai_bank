@@ -128,9 +128,4 @@ class GoalController extends _$GoalController {
   Future<void> delete(String id) {
     return ref.read(goalRepositoryProvider).delete(id);
   }
-
-  /// アクティブな目標を [orderedIds] の順に並び替える。
-  Future<void> reorder(List<String> orderedIds) {
-    return ref.read(goalRepositoryProvider).reorder(orderedIds);
-  }
 }

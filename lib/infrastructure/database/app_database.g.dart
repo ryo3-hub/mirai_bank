@@ -1305,14 +1305,6 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, GoalRow> {
   late final GeneratedColumn<DateTime> achievedAt = GeneratedColumn<DateTime>(
       'achieved_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
-  static const VerificationMeta _sortOrderMeta =
-      const VerificationMeta('sortOrder');
-  @override
-  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
-      'sort_order', aliasedName, false,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultValue: const Constant(0));
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -1334,7 +1326,6 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, GoalRow> {
         periodStart,
         periodEnd,
         achievedAt,
-        sortOrder,
         createdAt,
         updatedAt
       ];
@@ -1389,10 +1380,6 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, GoalRow> {
           achievedAt.isAcceptableOrUnknown(
               data['achieved_at']!, _achievedAtMeta));
     }
-    if (data.containsKey('sort_order')) {
-      context.handle(_sortOrderMeta,
-          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
-    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -1428,8 +1415,6 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, GoalRow> {
           .read(DriftSqlType.dateTime, data['${effectivePrefix}period_end']),
       achievedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}achieved_at']),
-      sortOrder: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -1451,10 +1436,6 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
   final DateTime? periodStart;
   final DateTime? periodEnd;
   final DateTime? achievedAt;
-
-  /// ユーザーが任意に並び替えできる表示順。
-  /// 新規追加時はアクティブ目標の現在の最大値+1 を割り当て、末尾に追加される。
-  final int sortOrder;
   final DateTime createdAt;
   final DateTime updatedAt;
   const GoalRow(
@@ -1465,7 +1446,6 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
       this.periodStart,
       this.periodEnd,
       this.achievedAt,
-      required this.sortOrder,
       required this.createdAt,
       required this.updatedAt});
   @override
@@ -1486,7 +1466,6 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
     if (!nullToAbsent || achievedAt != null) {
       map['achieved_at'] = Variable<DateTime>(achievedAt);
     }
-    map['sort_order'] = Variable<int>(sortOrder);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -1509,7 +1488,6 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
       achievedAt: achievedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(achievedAt),
-      sortOrder: Value(sortOrder),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -1526,7 +1504,6 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
       periodStart: serializer.fromJson<DateTime?>(json['periodStart']),
       periodEnd: serializer.fromJson<DateTime?>(json['periodEnd']),
       achievedAt: serializer.fromJson<DateTime?>(json['achievedAt']),
-      sortOrder: serializer.fromJson<int>(json['sortOrder']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -1542,7 +1519,6 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
       'periodStart': serializer.toJson<DateTime?>(periodStart),
       'periodEnd': serializer.toJson<DateTime?>(periodEnd),
       'achievedAt': serializer.toJson<DateTime?>(achievedAt),
-      'sortOrder': serializer.toJson<int>(sortOrder),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -1556,7 +1532,6 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
           Value<DateTime?> periodStart = const Value.absent(),
           Value<DateTime?> periodEnd = const Value.absent(),
           Value<DateTime?> achievedAt = const Value.absent(),
-          int? sortOrder,
           DateTime? createdAt,
           DateTime? updatedAt}) =>
       GoalRow(
@@ -1567,7 +1542,6 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
         periodStart: periodStart.present ? periodStart.value : this.periodStart,
         periodEnd: periodEnd.present ? periodEnd.value : this.periodEnd,
         achievedAt: achievedAt.present ? achievedAt.value : this.achievedAt,
-        sortOrder: sortOrder ?? this.sortOrder,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
       );
@@ -1585,7 +1559,6 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
       periodEnd: data.periodEnd.present ? data.periodEnd.value : this.periodEnd,
       achievedAt:
           data.achievedAt.present ? data.achievedAt.value : this.achievedAt,
-      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -1601,7 +1574,6 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
           ..write('periodStart: $periodStart, ')
           ..write('periodEnd: $periodEnd, ')
           ..write('achievedAt: $achievedAt, ')
-          ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1610,7 +1582,7 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
 
   @override
   int get hashCode => Object.hash(id, type, targetAmount, categoryId,
-      periodStart, periodEnd, achievedAt, sortOrder, createdAt, updatedAt);
+      periodStart, periodEnd, achievedAt, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1622,7 +1594,6 @@ class GoalRow extends DataClass implements Insertable<GoalRow> {
           other.periodStart == this.periodStart &&
           other.periodEnd == this.periodEnd &&
           other.achievedAt == this.achievedAt &&
-          other.sortOrder == this.sortOrder &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1635,7 +1606,6 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
   final Value<DateTime?> periodStart;
   final Value<DateTime?> periodEnd;
   final Value<DateTime?> achievedAt;
-  final Value<int> sortOrder;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -1647,7 +1617,6 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
     this.periodStart = const Value.absent(),
     this.periodEnd = const Value.absent(),
     this.achievedAt = const Value.absent(),
-    this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1660,7 +1629,6 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
     this.periodStart = const Value.absent(),
     this.periodEnd = const Value.absent(),
     this.achievedAt = const Value.absent(),
-    this.sortOrder = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -1677,7 +1645,6 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
     Expression<DateTime>? periodStart,
     Expression<DateTime>? periodEnd,
     Expression<DateTime>? achievedAt,
-    Expression<int>? sortOrder,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -1690,7 +1657,6 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
       if (periodStart != null) 'period_start': periodStart,
       if (periodEnd != null) 'period_end': periodEnd,
       if (achievedAt != null) 'achieved_at': achievedAt,
-      if (sortOrder != null) 'sort_order': sortOrder,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -1705,7 +1671,6 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
       Value<DateTime?>? periodStart,
       Value<DateTime?>? periodEnd,
       Value<DateTime?>? achievedAt,
-      Value<int>? sortOrder,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
       Value<int>? rowid}) {
@@ -1717,7 +1682,6 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
       periodStart: periodStart ?? this.periodStart,
       periodEnd: periodEnd ?? this.periodEnd,
       achievedAt: achievedAt ?? this.achievedAt,
-      sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -1748,9 +1712,6 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
     if (achievedAt.present) {
       map['achieved_at'] = Variable<DateTime>(achievedAt.value);
     }
-    if (sortOrder.present) {
-      map['sort_order'] = Variable<int>(sortOrder.value);
-    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1773,7 +1734,6 @@ class GoalsCompanion extends UpdateCompanion<GoalRow> {
           ..write('periodStart: $periodStart, ')
           ..write('periodEnd: $periodEnd, ')
           ..write('achievedAt: $achievedAt, ')
-          ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -1813,14 +1773,6 @@ class $SettingsTable extends Settings
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant('21:00'));
-  static const VerificationMeta _reminderWeekdaysCsvMeta =
-      const VerificationMeta('reminderWeekdaysCsv');
-  @override
-  late final GeneratedColumn<String> reminderWeekdaysCsv =
-      GeneratedColumn<String>('reminder_weekdays_csv', aliasedName, false,
-          type: DriftSqlType.string,
-          requiredDuringInsert: false,
-          defaultValue: const Constant('1,2,3,4,5,6,7'));
   static const VerificationMeta _achievementNotificationEnabledMeta =
       const VerificationMeta('achievementNotificationEnabled');
   @override
@@ -1833,13 +1785,8 @@ class $SettingsTable extends Settings
               'CHECK ("achievement_notification_enabled" IN (0, 1))'),
           defaultValue: const Constant(true));
   @override
-  List<GeneratedColumn> get $columns => [
-        id,
-        reminderEnabled,
-        reminderTime,
-        reminderWeekdaysCsv,
-        achievementNotificationEnabled
-      ];
+  List<GeneratedColumn> get $columns =>
+      [id, reminderEnabled, reminderTime, achievementNotificationEnabled];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1865,12 +1812,6 @@ class $SettingsTable extends Settings
           reminderTime.isAcceptableOrUnknown(
               data['reminder_time']!, _reminderTimeMeta));
     }
-    if (data.containsKey('reminder_weekdays_csv')) {
-      context.handle(
-          _reminderWeekdaysCsvMeta,
-          reminderWeekdaysCsv.isAcceptableOrUnknown(
-              data['reminder_weekdays_csv']!, _reminderWeekdaysCsvMeta));
-    }
     if (data.containsKey('achievement_notification_enabled')) {
       context.handle(
           _achievementNotificationEnabledMeta,
@@ -1893,9 +1834,6 @@ class $SettingsTable extends Settings
           .read(DriftSqlType.bool, data['${effectivePrefix}reminder_enabled'])!,
       reminderTime: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}reminder_time'])!,
-      reminderWeekdaysCsv: attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}reminder_weekdays_csv'])!,
       achievementNotificationEnabled: attachedDatabase.typeMapping.read(
           DriftSqlType.bool,
           data['${effectivePrefix}achievement_notification_enabled'])!,
@@ -1912,16 +1850,11 @@ class SettingRow extends DataClass implements Insertable<SettingRow> {
   final int id;
   final bool reminderEnabled;
   final String reminderTime;
-
-  /// リマインダー通知する曜日のCSV（DateTime.weekday 形式: 1=月 .. 7=日）。
-  /// デフォルトは毎日（"1,2,3,4,5,6,7"）。
-  final String reminderWeekdaysCsv;
   final bool achievementNotificationEnabled;
   const SettingRow(
       {required this.id,
       required this.reminderEnabled,
       required this.reminderTime,
-      required this.reminderWeekdaysCsv,
       required this.achievementNotificationEnabled});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1929,7 +1862,6 @@ class SettingRow extends DataClass implements Insertable<SettingRow> {
     map['id'] = Variable<int>(id);
     map['reminder_enabled'] = Variable<bool>(reminderEnabled);
     map['reminder_time'] = Variable<String>(reminderTime);
-    map['reminder_weekdays_csv'] = Variable<String>(reminderWeekdaysCsv);
     map['achievement_notification_enabled'] =
         Variable<bool>(achievementNotificationEnabled);
     return map;
@@ -1940,7 +1872,6 @@ class SettingRow extends DataClass implements Insertable<SettingRow> {
       id: Value(id),
       reminderEnabled: Value(reminderEnabled),
       reminderTime: Value(reminderTime),
-      reminderWeekdaysCsv: Value(reminderWeekdaysCsv),
       achievementNotificationEnabled: Value(achievementNotificationEnabled),
     );
   }
@@ -1952,8 +1883,6 @@ class SettingRow extends DataClass implements Insertable<SettingRow> {
       id: serializer.fromJson<int>(json['id']),
       reminderEnabled: serializer.fromJson<bool>(json['reminderEnabled']),
       reminderTime: serializer.fromJson<String>(json['reminderTime']),
-      reminderWeekdaysCsv:
-          serializer.fromJson<String>(json['reminderWeekdaysCsv']),
       achievementNotificationEnabled:
           serializer.fromJson<bool>(json['achievementNotificationEnabled']),
     );
@@ -1965,7 +1894,6 @@ class SettingRow extends DataClass implements Insertable<SettingRow> {
       'id': serializer.toJson<int>(id),
       'reminderEnabled': serializer.toJson<bool>(reminderEnabled),
       'reminderTime': serializer.toJson<String>(reminderTime),
-      'reminderWeekdaysCsv': serializer.toJson<String>(reminderWeekdaysCsv),
       'achievementNotificationEnabled':
           serializer.toJson<bool>(achievementNotificationEnabled),
     };
@@ -1975,13 +1903,11 @@ class SettingRow extends DataClass implements Insertable<SettingRow> {
           {int? id,
           bool? reminderEnabled,
           String? reminderTime,
-          String? reminderWeekdaysCsv,
           bool? achievementNotificationEnabled}) =>
       SettingRow(
         id: id ?? this.id,
         reminderEnabled: reminderEnabled ?? this.reminderEnabled,
         reminderTime: reminderTime ?? this.reminderTime,
-        reminderWeekdaysCsv: reminderWeekdaysCsv ?? this.reminderWeekdaysCsv,
         achievementNotificationEnabled: achievementNotificationEnabled ??
             this.achievementNotificationEnabled,
       );
@@ -1994,9 +1920,6 @@ class SettingRow extends DataClass implements Insertable<SettingRow> {
       reminderTime: data.reminderTime.present
           ? data.reminderTime.value
           : this.reminderTime,
-      reminderWeekdaysCsv: data.reminderWeekdaysCsv.present
-          ? data.reminderWeekdaysCsv.value
-          : this.reminderWeekdaysCsv,
       achievementNotificationEnabled:
           data.achievementNotificationEnabled.present
               ? data.achievementNotificationEnabled.value
@@ -2010,7 +1933,6 @@ class SettingRow extends DataClass implements Insertable<SettingRow> {
           ..write('id: $id, ')
           ..write('reminderEnabled: $reminderEnabled, ')
           ..write('reminderTime: $reminderTime, ')
-          ..write('reminderWeekdaysCsv: $reminderWeekdaysCsv, ')
           ..write(
               'achievementNotificationEnabled: $achievementNotificationEnabled')
           ..write(')'))
@@ -2018,8 +1940,8 @@ class SettingRow extends DataClass implements Insertable<SettingRow> {
   }
 
   @override
-  int get hashCode => Object.hash(id, reminderEnabled, reminderTime,
-      reminderWeekdaysCsv, achievementNotificationEnabled);
+  int get hashCode => Object.hash(
+      id, reminderEnabled, reminderTime, achievementNotificationEnabled);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2027,7 +1949,6 @@ class SettingRow extends DataClass implements Insertable<SettingRow> {
           other.id == this.id &&
           other.reminderEnabled == this.reminderEnabled &&
           other.reminderTime == this.reminderTime &&
-          other.reminderWeekdaysCsv == this.reminderWeekdaysCsv &&
           other.achievementNotificationEnabled ==
               this.achievementNotificationEnabled);
 }
@@ -2036,35 +1957,29 @@ class SettingsCompanion extends UpdateCompanion<SettingRow> {
   final Value<int> id;
   final Value<bool> reminderEnabled;
   final Value<String> reminderTime;
-  final Value<String> reminderWeekdaysCsv;
   final Value<bool> achievementNotificationEnabled;
   const SettingsCompanion({
     this.id = const Value.absent(),
     this.reminderEnabled = const Value.absent(),
     this.reminderTime = const Value.absent(),
-    this.reminderWeekdaysCsv = const Value.absent(),
     this.achievementNotificationEnabled = const Value.absent(),
   });
   SettingsCompanion.insert({
     this.id = const Value.absent(),
     this.reminderEnabled = const Value.absent(),
     this.reminderTime = const Value.absent(),
-    this.reminderWeekdaysCsv = const Value.absent(),
     this.achievementNotificationEnabled = const Value.absent(),
   });
   static Insertable<SettingRow> custom({
     Expression<int>? id,
     Expression<bool>? reminderEnabled,
     Expression<String>? reminderTime,
-    Expression<String>? reminderWeekdaysCsv,
     Expression<bool>? achievementNotificationEnabled,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (reminderEnabled != null) 'reminder_enabled': reminderEnabled,
       if (reminderTime != null) 'reminder_time': reminderTime,
-      if (reminderWeekdaysCsv != null)
-        'reminder_weekdays_csv': reminderWeekdaysCsv,
       if (achievementNotificationEnabled != null)
         'achievement_notification_enabled': achievementNotificationEnabled,
     });
@@ -2074,13 +1989,11 @@ class SettingsCompanion extends UpdateCompanion<SettingRow> {
       {Value<int>? id,
       Value<bool>? reminderEnabled,
       Value<String>? reminderTime,
-      Value<String>? reminderWeekdaysCsv,
       Value<bool>? achievementNotificationEnabled}) {
     return SettingsCompanion(
       id: id ?? this.id,
       reminderEnabled: reminderEnabled ?? this.reminderEnabled,
       reminderTime: reminderTime ?? this.reminderTime,
-      reminderWeekdaysCsv: reminderWeekdaysCsv ?? this.reminderWeekdaysCsv,
       achievementNotificationEnabled:
           achievementNotificationEnabled ?? this.achievementNotificationEnabled,
     );
@@ -2098,10 +2011,6 @@ class SettingsCompanion extends UpdateCompanion<SettingRow> {
     if (reminderTime.present) {
       map['reminder_time'] = Variable<String>(reminderTime.value);
     }
-    if (reminderWeekdaysCsv.present) {
-      map['reminder_weekdays_csv'] =
-          Variable<String>(reminderWeekdaysCsv.value);
-    }
     if (achievementNotificationEnabled.present) {
       map['achievement_notification_enabled'] =
           Variable<bool>(achievementNotificationEnabled.value);
@@ -2115,7 +2024,6 @@ class SettingsCompanion extends UpdateCompanion<SettingRow> {
           ..write('id: $id, ')
           ..write('reminderEnabled: $reminderEnabled, ')
           ..write('reminderTime: $reminderTime, ')
-          ..write('reminderWeekdaysCsv: $reminderWeekdaysCsv, ')
           ..write(
               'achievementNotificationEnabled: $achievementNotificationEnabled')
           ..write(')'))
@@ -3213,7 +3121,6 @@ typedef $$GoalsTableCreateCompanionBuilder = GoalsCompanion Function({
   Value<DateTime?> periodStart,
   Value<DateTime?> periodEnd,
   Value<DateTime?> achievedAt,
-  Value<int> sortOrder,
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<int> rowid,
@@ -3226,7 +3133,6 @@ typedef $$GoalsTableUpdateCompanionBuilder = GoalsCompanion Function({
   Value<DateTime?> periodStart,
   Value<DateTime?> periodEnd,
   Value<DateTime?> achievedAt,
-  Value<int> sortOrder,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<int> rowid,
@@ -3276,9 +3182,6 @@ class $$GoalsTableFilterComposer extends Composer<_$AppDatabase, $GoalsTable> {
 
   ColumnFilters<DateTime> get achievedAt => $composableBuilder(
       column: $table.achievedAt, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get sortOrder => $composableBuilder(
-      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -3335,9 +3238,6 @@ class $$GoalsTableOrderingComposer
   ColumnOrderings<DateTime> get achievedAt => $composableBuilder(
       column: $table.achievedAt, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get sortOrder => $composableBuilder(
-      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
-
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -3391,9 +3291,6 @@ class $$GoalsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get achievedAt => $composableBuilder(
       column: $table.achievedAt, builder: (column) => column);
-
-  GeneratedColumn<int> get sortOrder =>
-      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -3452,7 +3349,6 @@ class $$GoalsTableTableManager extends RootTableManager<
             Value<DateTime?> periodStart = const Value.absent(),
             Value<DateTime?> periodEnd = const Value.absent(),
             Value<DateTime?> achievedAt = const Value.absent(),
-            Value<int> sortOrder = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -3465,7 +3361,6 @@ class $$GoalsTableTableManager extends RootTableManager<
             periodStart: periodStart,
             periodEnd: periodEnd,
             achievedAt: achievedAt,
-            sortOrder: sortOrder,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,
@@ -3478,7 +3373,6 @@ class $$GoalsTableTableManager extends RootTableManager<
             Value<DateTime?> periodStart = const Value.absent(),
             Value<DateTime?> periodEnd = const Value.absent(),
             Value<DateTime?> achievedAt = const Value.absent(),
-            Value<int> sortOrder = const Value.absent(),
             required DateTime createdAt,
             required DateTime updatedAt,
             Value<int> rowid = const Value.absent(),
@@ -3491,7 +3385,6 @@ class $$GoalsTableTableManager extends RootTableManager<
             periodStart: periodStart,
             periodEnd: periodEnd,
             achievedAt: achievedAt,
-            sortOrder: sortOrder,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,
@@ -3554,14 +3447,12 @@ typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
   Value<int> id,
   Value<bool> reminderEnabled,
   Value<String> reminderTime,
-  Value<String> reminderWeekdaysCsv,
   Value<bool> achievementNotificationEnabled,
 });
 typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
   Value<int> id,
   Value<bool> reminderEnabled,
   Value<String> reminderTime,
-  Value<String> reminderWeekdaysCsv,
   Value<bool> achievementNotificationEnabled,
 });
 
@@ -3583,10 +3474,6 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<String> get reminderTime => $composableBuilder(
       column: $table.reminderTime, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get reminderWeekdaysCsv => $composableBuilder(
-      column: $table.reminderWeekdaysCsv,
-      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get achievementNotificationEnabled => $composableBuilder(
       column: $table.achievementNotificationEnabled,
@@ -3613,10 +3500,6 @@ class $$SettingsTableOrderingComposer
       column: $table.reminderTime,
       builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get reminderWeekdaysCsv => $composableBuilder(
-      column: $table.reminderWeekdaysCsv,
-      builder: (column) => ColumnOrderings(column));
-
   ColumnOrderings<bool> get achievementNotificationEnabled =>
       $composableBuilder(
           column: $table.achievementNotificationEnabled,
@@ -3640,9 +3523,6 @@ class $$SettingsTableAnnotationComposer
 
   GeneratedColumn<String> get reminderTime => $composableBuilder(
       column: $table.reminderTime, builder: (column) => column);
-
-  GeneratedColumn<String> get reminderWeekdaysCsv => $composableBuilder(
-      column: $table.reminderWeekdaysCsv, builder: (column) => column);
 
   GeneratedColumn<bool> get achievementNotificationEnabled =>
       $composableBuilder(
@@ -3676,28 +3556,24 @@ class $$SettingsTableTableManager extends RootTableManager<
             Value<int> id = const Value.absent(),
             Value<bool> reminderEnabled = const Value.absent(),
             Value<String> reminderTime = const Value.absent(),
-            Value<String> reminderWeekdaysCsv = const Value.absent(),
             Value<bool> achievementNotificationEnabled = const Value.absent(),
           }) =>
               SettingsCompanion(
             id: id,
             reminderEnabled: reminderEnabled,
             reminderTime: reminderTime,
-            reminderWeekdaysCsv: reminderWeekdaysCsv,
             achievementNotificationEnabled: achievementNotificationEnabled,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<bool> reminderEnabled = const Value.absent(),
             Value<String> reminderTime = const Value.absent(),
-            Value<String> reminderWeekdaysCsv = const Value.absent(),
             Value<bool> achievementNotificationEnabled = const Value.absent(),
           }) =>
               SettingsCompanion.insert(
             id: id,
             reminderEnabled: reminderEnabled,
             reminderTime: reminderTime,
-            reminderWeekdaysCsv: reminderWeekdaysCsv,
             achievementNotificationEnabled: achievementNotificationEnabled,
           ),
           withReferenceMapper: (p0) => p0

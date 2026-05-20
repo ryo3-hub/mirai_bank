@@ -30,10 +30,35 @@ class GoalListPage extends ConsumerWidget {
           if (active.isEmpty && achieved.isEmpty) {
             return const _EmptyState();
           }
-          return _GoalListBody(
-            active: active,
-            achieved: achieved,
-            categoryMap: categoryMap,
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
+            children: [
+              if (active.isNotEmpty) ...[
+                _SectionLabel(label: 'アクティブ', count: active.length),
+                const SizedBox(height: 4),
+                for (final progress in active)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: GoalCard(
+                      progress: progress,
+                      category: progress.goal.categoryId == null
+                          ? null
+                          : categoryMap[progress.goal.categoryId],
+                      onTap: () => GoalEditSheet.show(
+                        context,
+                        initial: progress.goal,
+                      ),
+                    ),
+                  ),
+              ],
+              if (achieved.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _AchievedSection(
+                  goals: achieved,
+                  categoryMap: categoryMap,
+                ),
+              ],
+            ],
           );
         },
       ),
@@ -42,73 +67,6 @@ class GoalListPage extends ConsumerWidget {
         tooltip: '目標を追加',
         child: const Icon(Icons.add),
       ),
-    );
-  }
-}
-
-class _GoalListBody extends ConsumerWidget {
-  const _GoalListBody({
-    required this.active,
-    required this.achieved,
-    required this.categoryMap,
-  });
-
-  final List<GoalProgress> active;
-  final List<Goal> achieved;
-  final Map<String, Category> categoryMap;
-
-  Future<void> _onReorder(WidgetRef ref, int oldIndex, int newIndex) {
-    // ReorderableListView の newIndex は「移動後の挿入先」を指すので、
-    // 下方向への移動は -1 補正してリスト操作と整合させる。
-    final reordered = [...active];
-    final adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
-    final item = reordered.removeAt(oldIndex);
-    reordered.insert(adjustedNewIndex, item);
-    final orderedIds = reordered.map((p) => p.goal.id).toList();
-    return ref.read(goalControllerProvider.notifier).reorder(orderedIds);
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (active.isEmpty) {
-      // 達成済みのみの場合は並び替え不要なので通常 ListView。
-      return ListView(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
-        children: [
-          _AchievedSection(goals: achieved, categoryMap: categoryMap),
-        ],
-      );
-    }
-    return ReorderableListView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
-      itemCount: active.length,
-      onReorder: (oldIndex, newIndex) =>
-          _onReorder(ref, oldIndex, newIndex),
-      header: _SectionLabel(label: 'アクティブ', count: active.length),
-      footer: achieved.isEmpty
-          ? null
-          : Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: _AchievedSection(
-                goals: achieved,
-                categoryMap: categoryMap,
-              ),
-            ),
-      itemBuilder: (context, index) {
-        final progress = active[index];
-        return Padding(
-          key: ValueKey(progress.goal.id),
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: GoalCard(
-            progress: progress,
-            category: progress.goal.categoryId == null
-                ? null
-                : categoryMap[progress.goal.categoryId],
-            onTap: () =>
-                GoalEditSheet.show(context, initial: progress.goal),
-          ),
-        );
-      },
     );
   }
 }
@@ -136,19 +94,6 @@ class _SectionLabel extends StatelessWidget {
             '$count件',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-          const Spacer(),
-          Icon(
-            Icons.drag_indicator,
-            size: 16,
-            color: Theme.of(context).colorScheme.outline,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '長押しで並び替え',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
                 ),
           ),
         ],

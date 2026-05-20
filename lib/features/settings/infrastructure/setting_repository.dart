@@ -8,7 +8,6 @@ abstract interface class SettingRepository {
   Future<void> update({
     bool? reminderEnabled,
     String? reminderTime,
-    Set<int>? reminderWeekdays,
     bool? achievementNotificationEnabled,
   });
 }

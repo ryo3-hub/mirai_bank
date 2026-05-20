@@ -39,7 +39,7 @@ final appSettingProvider = AutoDisposeStreamProvider<AppSetting>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AppSettingRef = AutoDisposeStreamProviderRef<AppSetting>;
-String _$settingControllerHash() => r'09a26ea392f6161dfe6db527e79a708bb302e30d';
+String _$settingControllerHash() => r'a3a6d61ad675e96da8d0e032a88cf724339f5a69';
 
 /// See also [SettingController].
 @ProviderFor(SettingController)

@@ -21,7 +21,6 @@ class Goal {
     this.periodStart,
     this.periodEnd,
     this.achievedAt,
-    this.sortOrder = 0,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -33,7 +32,6 @@ class Goal {
   final DateTime? periodStart;
   final DateTime? periodEnd;
   final DateTime? achievedAt;
-  final int sortOrder;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -77,7 +75,6 @@ class Goal {
     bool clearPeriod = false,
     DateTime? achievedAt,
     bool clearAchievedAt = false,
-    int? sortOrder,
     DateTime? updatedAt,
   }) {
     return Goal(
@@ -88,7 +85,6 @@ class Goal {
       periodStart: clearPeriod ? null : (periodStart ?? this.periodStart),
       periodEnd: clearPeriod ? null : (periodEnd ?? this.periodEnd),
       achievedAt: clearAchievedAt ? null : (achievedAt ?? this.achievedAt),
-      sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

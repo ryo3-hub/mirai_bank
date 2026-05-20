@@ -10,10 +10,7 @@ class NotificationService {
   static final NotificationService instance = NotificationService._();
 
   static const int _timerNotificationId = 1001;
-  // Legacy single-id reminder（v1 互換、cancelDailyReminder で清掃する）。
-  static const int _legacyReminderNotificationId = 1002;
-  // 曜日ごとに別 ID を使う：基底 + DateTime.weekday (1..7)
-  static const int _reminderNotificationIdBase = 1100;
+  static const int _reminderNotificationId = 1002;
   static const int _achievementNotificationIdBase = 2000;
   static const int _streakNotificationIdBase = 3000;
 
@@ -153,71 +150,50 @@ class NotificationService {
     }
   }
 
-  /// 指定された曜日にリマインダーをスケジュールする。
-  /// [weekdays] は DateTime.weekday の値（1=月 .. 7=日）の集合。
-  /// 空集合の場合は何もスケジュールしない（実質 OFF）。
-  /// 内部で 7 曜日分の既存スケジュールを全てキャンセルしてから再登録する。
-  Future<void> scheduleDailyReminder(
-    TimeOfDay time, {
-    required Set<int> weekdays,
-  }) async {
+  Future<void> scheduleDailyReminder(TimeOfDay time) async {
     if (!_initialized) return;
     try {
-      // 既存の全曜日スケジュール + legacy 単発 ID をクリーンアップ
-      await cancelDailyReminder();
-      if (weekdays.isEmpty) return;
-      for (final weekday in weekdays) {
-        final scheduled = _nextOccurrenceOfWeekday(weekday, time);
-        await _plugin.zonedSchedule(
-          _reminderNotificationIdBase + weekday,
-          '今日の学習を続けましょう',
-          '少しの時間でも、未来への投資になります',
-          scheduled,
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              _reminderChannelId,
-              _reminderChannelName,
-              channelDescription: _reminderChannelDescription,
-              importance: Importance.defaultImportance,
-              priority: Priority.defaultPriority,
-            ),
-            iOS: DarwinNotificationDetails(),
-          ),
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
-        );
+      final now = tz.TZDateTime.now(tz.local);
+      var scheduled = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day,
+        time.hour,
+        time.minute,
+      );
+      if (!scheduled.isAfter(now)) {
+        scheduled = scheduled.add(const Duration(days: 1));
       }
+      await _plugin.zonedSchedule(
+        _reminderNotificationId,
+        '今日の学習を続けましょう',
+        '少しの時間でも、未来への投資になります',
+        scheduled,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _reminderChannelId,
+            _reminderChannelName,
+            channelDescription: _reminderChannelDescription,
+            importance: Importance.defaultImportance,
+            priority: Priority.defaultPriority,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
     } catch (e, st) {
       debugPrint('scheduleDailyReminder failed: $e\n$st');
     }
   }
 
-  /// 指定された [weekday] (1=月 .. 7=日) の次の [time] を返す。
-  tz.TZDateTime _nextOccurrenceOfWeekday(int weekday, TimeOfDay time) {
-    final now = tz.TZDateTime.now(tz.local);
-    var candidate = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      time.hour,
-      time.minute,
-    );
-    while (candidate.weekday != weekday || !candidate.isAfter(now)) {
-      candidate = candidate.add(const Duration(days: 1));
-    }
-    return candidate;
-  }
-
   Future<void> cancelDailyReminder() async {
     if (!_initialized) return;
     try {
-      await _plugin.cancel(_legacyReminderNotificationId);
-      for (var d = 1; d <= 7; d++) {
-        await _plugin.cancel(_reminderNotificationIdBase + d);
-      }
+      await _plugin.cancel(_reminderNotificationId);
     } catch (e, st) {
       debugPrint('cancelDailyReminder failed: $e\n$st');
     }
