@@ -79,7 +79,13 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
           ),
         );
       }
-      if (mounted) navigator.pop();
+      if (mounted) {
+        TopToast.show(
+          context,
+          message: initial == null ? 'カテゴリを追加しました' : 'カテゴリを更新しました',
+        );
+        navigator.pop();
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);

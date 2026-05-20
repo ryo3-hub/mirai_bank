@@ -84,6 +84,37 @@ State management is currently plain `StatefulWidget` with `setState`. As the app
 - Represent loading/error/data states with `AsyncValue` from Riverpod; never silently swallow exceptions
 - Show user-facing error messages through a consistent UI pattern (e.g., `SnackBar` or inline error widget)
 
+### Notifications (Toasts)
+ユーザー向けの通知は `lib/shared/widgets/top_toast.dart` の `TopToast.show()` を使い、画面上部に統一して表示する。`SnackBar` は使わない。
+
+#### いつ出すか — 統一ルール
+
+ユーザーが明示的に CRUD アクションを行ったとき（作成・編集・削除）は **成功トーストを出す**。エラー時は **常にエラートースト** (`isError: true`) を出す。
+
+例外：金額アニメ（`AmountFlash`）や派手な達成演出など、他の視覚的フィードバックが代替として走る場合は成功トーストを省略する（演出の重複を避けるため）。
+
+具体的には：
+
+| 操作 | 成功時 | 失敗時 |
+|---|---|---|
+| カテゴリ 追加 / 編集 / 削除 | ✅ トースト | ✅ エラートースト |
+| 目標 追加 / 更新 / 削除 | ✅ トースト | ✅ エラートースト |
+| 履歴 編集 / スワイプ削除 | ✅ トースト | ✅ エラートースト |
+| 履歴 新規追加 | ⚡ `AmountFlash` のみ（トースト省略） | ✅ エラートースト |
+| タイマー 開始 / 停止 | ⚡ `AmountFlash`（停止時のみ）、開始時はトーストなし | ✅ エラートースト |
+
+#### 呼び出しパターン
+
+```dart
+// 成功
+TopToast.show(context, message: '○○しました');
+
+// エラー
+TopToast.show(context, message: '○○に失敗しました: $e', isError: true);
+```
+
+ボトムシート内で `navigator.pop()` する場合は **pop の前に** `TopToast.show()` を呼ぶ。トーストは root overlay に挿入されるためシートが閉じても残るが、シートの context が破棄される前に登録するのが安全。
+
 ### Theming & Styling
 - Never hardcode colors or text styles; always read from `Theme.of(context)` or your design token constants
 - Define light and dark `ThemeData` from the start so dark-mode support is not a retrofit
