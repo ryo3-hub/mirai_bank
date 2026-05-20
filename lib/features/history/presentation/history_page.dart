@@ -28,11 +28,14 @@ class HistoryPage extends ConsumerWidget {
       body: groupsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('読み込みに失敗しました: $e')),
-        data: (groups) {
-          if (groups.isEmpty) return const _EmptyState();
+        data: (data) {
+          if (data.groups.isEmpty) return const _EmptyState();
           return _GroupedSessionList(
-            groups: groups,
+            groups: data.groups,
             categoryMap: categoryMap,
+            isTruncated: data.isTruncated,
+            totalCount: data.totalCount,
+            displayedCount: data.displayedCount,
           );
         },
       ),
@@ -49,10 +52,16 @@ class _GroupedSessionList extends ConsumerWidget {
   const _GroupedSessionList({
     required this.groups,
     required this.categoryMap,
+    required this.isTruncated,
+    required this.totalCount,
+    required this.displayedCount,
   });
 
   final List<DaySessionGroup> groups;
   final Map<String, Category> categoryMap;
+  final bool isTruncated;
+  final int totalCount;
+  final int displayedCount;
 
   Future<bool> _confirmDelete(BuildContext context) {
     return showDeleteConfirmDialog(
@@ -114,8 +123,56 @@ class _GroupedSessionList extends ConsumerWidget {
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 8)),
         ],
+        if (isTruncated)
+          SliverToBoxAdapter(
+            child: _TruncationNotice(
+              totalCount: totalCount,
+              displayedCount: displayedCount,
+            ),
+          ),
         const SliverToBoxAdapter(child: SizedBox(height: 80)),
       ],
+    );
+  }
+}
+
+class _TruncationNotice extends StatelessWidget {
+  const _TruncationNotice({
+    required this.totalCount,
+    required this.displayedCount,
+  });
+
+  final int totalCount;
+  final int displayedCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+      child: Column(
+        children: [
+          Icon(
+            Icons.history,
+            size: 20,
+            color: theme.colorScheme.outline,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '直近 $displayedCount 件を表示中（全 $totalCount 件）',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'それ以前の記録はカレンダー・統計から確認できます',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
