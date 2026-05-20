@@ -57,5 +57,36 @@ dev_dependencies:
   riverpod_lint: ^2.3.13
   custom_lint: ^0.6.7
 
+  # Splash screen generation
+  flutter_native_splash: ^2.4.1
+
 flutter:
   uses-material-design: true
+
+# Splash screen configuration.
+# After editing this section (or after regenerating the logo via
+# `python3 tool/generate_logo.py`) run:
+#   dart run flutter_native_splash:create
+flutter_native_splash:
+  # Light mode: pure white background to match the in-app light theme.
+  color: "#FFFFFF"
+  # Dark mode: deep indigo (close to ColorScheme.fromSeed dark surface).
+  color_dark: "#1E1B4B"
+
+  # Logo (transparent PNG). Light variant uses Indigo on transparent;
+  # dark variant uses white on transparent.
+  image: assets/splash/logo.png
+  image_dark: assets/splash/logo_dark.png
+
+  # Android 12+ uses a separate splash; mirror the colors above and
+  # use the same logos as the icon.
+  android_12:
+    color: "#FFFFFF"
+    color_dark: "#1E1B4B"
+    image: assets/splash/logo.png
+    image_dark: assets/splash/logo_dark.png
+
+  # Platforms to generate native assets for.
+  android: true
+  ios: true
+  web: false
