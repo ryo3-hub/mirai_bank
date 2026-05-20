@@ -18,7 +18,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -35,6 +35,11 @@ class AppDatabase extends _$AppDatabase {
               await (update(goals)..where((g) => g.id.equals(rows[i].id)))
                   .write(GoalsCompanion(sortOrder: Value(i)));
             }
+          }
+          if (from < 3) {
+            // v3: Settings に reminderWeekdaysCsv カラムを追加。
+            // 既存ユーザーはデフォルト「毎日」("1,2,3,4,5,6,7") で初期化される。
+            await m.addColumn(settings, settings.reminderWeekdaysCsv);
           }
         },
       );

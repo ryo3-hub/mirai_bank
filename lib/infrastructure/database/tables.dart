@@ -68,6 +68,10 @@ class Settings extends Table {
   IntColumn get id => integer().withDefault(const Constant(1))();
   BoolColumn get reminderEnabled => boolean().withDefault(const Constant(false))();
   TextColumn get reminderTime => text().withDefault(const Constant('21:00'))();
+  /// リマインダー通知する曜日のCSV（DateTime.weekday 形式: 1=月 .. 7=日）。
+  /// デフォルトは毎日（"1,2,3,4,5,6,7"）。
+  TextColumn get reminderWeekdaysCsv =>
+      text().withDefault(const Constant('1,2,3,4,5,6,7'))();
   BoolColumn get achievementNotificationEnabled =>
       boolean().withDefault(const Constant(true))();
 

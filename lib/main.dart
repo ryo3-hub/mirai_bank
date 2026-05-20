@@ -14,8 +14,10 @@ Future<void> main() async {
   try {
     final setting = await container.read(settingRepositoryProvider).fetch();
     if (setting.reminderEnabled) {
-      await NotificationService.instance
-          .scheduleDailyReminder(setting.reminderTimeOfDay);
+      await NotificationService.instance.scheduleDailyReminder(
+        setting.reminderTimeOfDay,
+        weekdays: setting.reminderWeekdays,
+      );
     }
   } catch (e, st) {
     debugPrint('Bootstrap error: $e\n$st');
