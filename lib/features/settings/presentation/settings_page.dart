@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/widgets/top_toast.dart';
 import '../application/setting_providers.dart';
 import '../domain/app_setting.dart';
 
@@ -73,14 +74,15 @@ class _NotificationSection extends ConsumerWidget {
   final AppSetting setting;
 
   Future<void> _toggleReminder(BuildContext context, WidgetRef ref, bool value) async {
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(settingControllerProvider.notifier).setReminderEnabled(
             enabled: value,
             time: setting.reminderTimeOfDay,
           );
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('$e')));
+      if (context.mounted) {
+        TopToast.show(context, message: '$e', isError: true);
+      }
     }
   }
 

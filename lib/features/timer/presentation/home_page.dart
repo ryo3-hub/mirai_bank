@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../shared/achievement/amount_flash.dart';
 import '../../../shared/utils/duration_formatter.dart';
+import '../../../shared/widgets/top_toast.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
 import '../../category/domain/category_presets.dart';
@@ -82,15 +83,16 @@ class _TimerIdleCardState extends ConsumerState<_TimerIdleCard> {
     final category = _selected;
     if (category == null) return;
     setState(() => _starting = true);
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref
           .read(timerControllerProvider.notifier)
           .start(categoryId: category.id);
     } catch (e) {
       if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(content: Text('開始に失敗しました: $e')),
+        TopToast.show(
+          context,
+          message: '開始に失敗しました: $e',
+          isError: true,
         );
       }
     } finally {
@@ -277,7 +279,6 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
   Future<void> _stop() async {
     setState(() => _stopping = true);
     FocusScope.of(context).unfocus();
-    final messenger = ScaffoldMessenger.of(context);
     try {
       final session = await ref
           .read(timerControllerProvider.notifier)
@@ -287,8 +288,10 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
       }
     } catch (e) {
       if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(content: Text('停止に失敗しました: $e')),
+        TopToast.show(
+          context,
+          message: '停止に失敗しました: $e',
+          isError: true,
         );
         setState(() => _stopping = false);
       }

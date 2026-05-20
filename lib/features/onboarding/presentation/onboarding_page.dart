@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/widgets/top_toast.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category_presets.dart';
 import '../../category/presentation/widgets/category_form_widgets.dart';
@@ -34,7 +35,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
     setState(() => _saving = true);
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(categoryControllerProvider.notifier).create(
             name: _nameController.text.trim(),
@@ -46,8 +46,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        messenger.showSnackBar(
-          SnackBar(content: Text('保存に失敗しました: $e')),
+        TopToast.show(
+          context,
+          message: '保存に失敗しました: $e',
+          isError: true,
         );
       }
     }
@@ -56,14 +58,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   Future<void> _onSkip() async {
     FocusScope.of(context).unfocus();
     setState(() => _saving = true);
-    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(onboardingStateProvider.notifier).markCompleted();
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        messenger.showSnackBar(
-          SnackBar(content: Text('初期化に失敗しました: $e')),
+        TopToast.show(
+          context,
+          message: '初期化に失敗しました: $e',
+          isError: true,
         );
       }
     }

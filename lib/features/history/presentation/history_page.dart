@@ -10,6 +10,7 @@ import '../application/session_list_providers.dart';
 import '../domain/day_session_group.dart';
 import 'manual_record_sheet.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/top_toast.dart';
 import 'widgets/session_card.dart';
 
 class HistoryPage extends ConsumerWidget {
@@ -82,18 +83,21 @@ class _GroupedSessionList extends ConsumerWidget {
                   background: _DismissBackground(),
                   confirmDismiss: (_) => _confirmDelete(context),
                   onDismissed: (_) async {
-                    final messenger = ScaffoldMessenger.of(context);
                     try {
                       await ref
                           .read(manualRecordControllerProvider.notifier)
                           .delete(session.id);
-                      messenger.showSnackBar(
-                        const SnackBar(content: Text('記録を削除しました')),
-                      );
+                      if (context.mounted) {
+                        TopToast.show(context, message: '記録を削除しました');
+                      }
                     } catch (e) {
-                      messenger.showSnackBar(
-                        SnackBar(content: Text('削除に失敗しました: $e')),
-                      );
+                      if (context.mounted) {
+                        TopToast.show(
+                          context,
+                          message: '削除に失敗しました: $e',
+                          isError: true,
+                        );
+                      }
                     }
                   },
                   child: SessionCard(

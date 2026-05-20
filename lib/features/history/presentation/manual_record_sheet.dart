@@ -11,6 +11,7 @@ import '../../category/domain/category_presets.dart';
 import '../../category/presentation/category_picker_sheet.dart';
 import '../application/manual_record_providers.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/top_toast.dart';
 import '../domain/work_session.dart';
 
 class ManualRecordSheet extends ConsumerStatefulWidget {
@@ -137,7 +138,6 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
     if (!_validate()) return;
     FocusScope.of(context).unfocus();
     setState(() => _saving = true);
-    final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final controller = ref.read(manualRecordControllerProvider.notifier);
     final categoryId = _selectedCategory!.id;
@@ -163,24 +163,25 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
         createdAmount = session.amount;
       }
       if (mounted) {
-        navigator.pop();
         if (createdAmount != null) {
           final ctx = AppRouter.rootNavigatorKey.currentContext;
           if (ctx != null) {
             // ignore: use_build_context_synchronously
             AmountFlash.show(ctx, createdAmount);
           }
+          TopToast.show(context, message: '記録を追加しました');
         } else {
-          messenger.showSnackBar(
-            const SnackBar(content: Text('記録を更新しました')),
-          );
+          TopToast.show(context, message: '記録を更新しました');
         }
+        navigator.pop();
       }
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        messenger.showSnackBar(
-          SnackBar(content: Text('保存に失敗しました: $e')),
+        TopToast.show(
+          context,
+          message: '保存に失敗しました: $e',
+          isError: true,
         );
       }
     }
@@ -194,7 +195,6 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
       message: 'この記録を削除します。',
     );
     if (!ok || !mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     setState(() => _deleting = true);
     try {
@@ -202,16 +202,16 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
           .read(manualRecordControllerProvider.notifier)
           .delete(initial.id);
       if (mounted) {
+        TopToast.show(context, message: '記録を削除しました');
         navigator.pop();
-        messenger.showSnackBar(
-          const SnackBar(content: Text('記録を削除しました')),
-        );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _deleting = false);
-        messenger.showSnackBar(
-          SnackBar(content: Text('削除に失敗しました: $e')),
+        TopToast.show(
+          context,
+          message: '削除に失敗しました: $e',
+          isError: true,
         );
       }
     }

@@ -6,6 +6,7 @@ import '../application/category_providers.dart';
 import '../domain/category.dart';
 import '../domain/category_presets.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/top_toast.dart';
 import 'category_edit_sheet.dart';
 
 class CategoryListPage extends ConsumerWidget {
@@ -77,8 +78,20 @@ class _CategoryCard extends ConsumerWidget {
       context: context,
       message: '「${category.name}」を削除します。\n過去の記録は残ります。',
     );
-    if (ok) {
+    if (!ok) return;
+    try {
       await ref.read(categoryControllerProvider.notifier).delete(category.id);
+      if (context.mounted) {
+        TopToast.show(context, message: 'カテゴリを削除しました');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        TopToast.show(
+          context,
+          message: '削除に失敗しました: $e',
+          isError: true,
+        );
+      }
     }
   }
 
