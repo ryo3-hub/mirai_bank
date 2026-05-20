@@ -24,7 +24,7 @@ class _AchievementOverlayState extends ConsumerState<AchievementOverlay> {
     if (_presenting) return;
     _presenting = true;
     try {
-      while (true) {
+      while (mounted) {
         final queue = ref.read(achievementQueueProvider);
         if (queue.isEmpty) break;
         final navContext = AppRouter.rootNavigatorKey.currentContext;
@@ -33,6 +33,7 @@ class _AchievementOverlayState extends ConsumerState<AchievementOverlay> {
         // valid across awaits as long as the app is alive.
         // ignore: use_build_context_synchronously
         await _present(navContext, queue.first);
+        if (!mounted) break;
         ref.read(achievementQueueProvider.notifier).dequeueFirst();
         await Future<void>.delayed(const Duration(milliseconds: 200));
       }

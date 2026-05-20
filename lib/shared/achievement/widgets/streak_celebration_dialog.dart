@@ -34,7 +34,7 @@ class _StreakCelebrationDialogState extends State<StreakCelebrationDialog>
     );
     _scale.forward();
     _autoDismiss = Timer(const Duration(milliseconds: 3500), () {
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
     });
   }
 
@@ -111,7 +111,8 @@ class _StreakCelebrationDialogState extends State<StreakCelebrationDialog>
             SizedBox(
               width: double.infinity,
               child: FilledButton.tonal(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () =>
+                    Navigator.of(context, rootNavigator: true).pop(),
                 child: const Text('閉じる'),
               ),
             ),

@@ -131,7 +131,7 @@ class _GoalAchievementDialogState extends State<GoalAchievementDialog>
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: _close,
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
@@ -142,28 +142,40 @@ class _GoalAchievementDialogState extends State<GoalAchievementDialog>
             ),
           ),
         ),
-        Align(
-          alignment: Alignment.topCenter,
-          child: ConfettiWidget(
-            confettiController: _confetti,
-            blastDirection: math.pi / 2,
-            blastDirectionality: BlastDirectionality.explosive,
-            shouldLoop: false,
-            numberOfParticles: 30,
-            emissionFrequency: 0.05,
-            maxBlastForce: 22,
-            minBlastForce: 8,
-            gravity: 0.4,
-            colors: const [
-              Colors.amber,
-              Colors.pinkAccent,
-              Colors.lightBlueAccent,
-              Colors.lightGreen,
-              Colors.deepOrangeAccent,
-            ],
+        // Confetti は IgnorePointer で包んでヒットテストを通過させる。
+        // 包まないと topCenter の Align が画面全体を覆い、barrier タップや
+        // 「閉じる」周辺の入力を吸ってしまい、pop 後に黒幕が残ったように
+        // 見える事象が出る（issue #49）。
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConfettiWidget(
+                confettiController: _confetti,
+                blastDirection: math.pi / 2,
+                blastDirectionality: BlastDirectionality.explosive,
+                shouldLoop: false,
+                numberOfParticles: 30,
+                emissionFrequency: 0.05,
+                maxBlastForce: 22,
+                minBlastForce: 8,
+                gravity: 0.4,
+                colors: const [
+                  Colors.amber,
+                  Colors.pinkAccent,
+                  Colors.lightBlueAccent,
+                  Colors.lightGreen,
+                  Colors.deepOrangeAccent,
+                ],
+              ),
+            ),
           ),
         ),
       ],
     );
+  }
+
+  void _close() {
+    Navigator.of(context, rootNavigator: true).pop();
   }
 }
