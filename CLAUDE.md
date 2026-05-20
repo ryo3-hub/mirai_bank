@@ -46,6 +46,12 @@ The project follows standard Flutter conventions:
 
 State management is currently plain `StatefulWidget` with `setState`. As the app grows, introduce a state management solution (e.g., Riverpod, Bloc, or Provider) before adding complex features.
 
+## Documentation
+
+- **仕様書**: `docs/specs/` 配下に画面ごとのマークダウン。バリデーション・リスト上限・通知パターン等の現状仕様の正。実装変更時はここも追従させる。インデックスは [`docs/specs/README.md`](docs/specs/README.md)。
+- **開発初期チケット**: `docs/001_` 〜 `011_` は過去の開発履歴。新仕様の正は `docs/specs/` 側。
+- **README.md**: プロジェクト全体のエントリ。仕様書はここには書かない。
+
 ## Ticket & Todo Management
 
 チケットは `docs/` 配下のマークダウンファイルで管理する（`001_` 〜 の連番ファイル）。
