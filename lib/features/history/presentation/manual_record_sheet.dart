@@ -319,6 +319,7 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
                 border: OutlineInputBorder(),
               ),
               maxLines: 2,
+              maxLength: WorkSession.memoMaxLength,
             ),
             const SizedBox(height: 24),
             if (_isEdit)

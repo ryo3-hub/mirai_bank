@@ -39,6 +39,18 @@ class WorkSession {
   final DateTime updatedAt;
   final DateTime? deletedAt;
 
+  static const int memoMaxLength = 100;
+
+  /// Memo は任意項目。null・空文字は OK。
+  /// 100 文字超は将来のクラウド DB 移行を見据えて拒否する。
+  static String? validateMemo(String? value) {
+    if (value == null) return null;
+    if (value.length > memoMaxLength) {
+      return 'メモは$memoMaxLength文字以内で入力してください';
+    }
+    return null;
+  }
+
   WorkSession copyWith({
     String? categoryId,
     DateTime? startTime,
