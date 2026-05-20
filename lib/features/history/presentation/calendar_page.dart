@@ -255,6 +255,8 @@ class _DayCell extends StatelessWidget {
         ? colorScheme.primary.withValues(alpha: 0.10)
         : Colors.transparent;
 
+    final showAmount = amount > 0 && !isOutside;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
       child: DecoratedBox(
@@ -266,28 +268,34 @@ class _DayCell extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-          Text(
-            '${day.day}',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight:
-                  (isToday || isSelected) ? FontWeight.w700 : FontWeight.w500,
-              color: dayNumberColor,
-            ),
-          ),
-          if (amount > 0 && !isOutside)
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                _abbreviateAmount(amount),
+              Text(
+                '${day.day}',
                 style: TextStyle(
-                  fontSize: 10,
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w500,
-                  height: 1.1,
+                  fontSize: 15,
+                  fontWeight: (isToday || isSelected)
+                      ? FontWeight.w700
+                      : FontWeight.w500,
+                  color: dayNumberColor,
                 ),
               ),
-            ),
+              const SizedBox(height: 2),
+              // Reserve the amount slot regardless of whether an amount
+              // is displayed, so the day number stays vertically centered
+              // at the same position across all cells.
+              SizedBox(
+                height: 13,
+                child: showAmount
+                    ? Text(
+                        _abbreviateAmount(amount),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                          height: 1.1,
+                        ),
+                      )
+                    : null,
+              ),
             ],
           ),
         ),
