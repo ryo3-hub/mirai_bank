@@ -59,31 +59,37 @@ class GoalCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (category != null)
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 9,
-                          backgroundColor: color,
-                          foregroundColor: Colors.white,
-                          child: Icon(
-                            CategoryPresets.iconFor(category!.iconCode),
-                            size: 10,
+                  // Category cluster wrapped in Expanded so a long name
+                  // ellipsizes instead of pushing the 達成 badge off-screen.
+                  Expanded(
+                    child: category != null
+                        ? Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 9,
+                                backgroundColor: color,
+                                foregroundColor: Colors.white,
+                                child: Icon(
+                                  CategoryPresets.iconFor(category!.iconCode),
+                                  size: 10,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  category!.name,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            '全カテゴリ',
+                            style: theme.textTheme.bodySmall,
                           ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          category!.name,
-                          style: theme.textTheme.bodySmall,
-                        ),
-                      ],
-                    )
-                  else
-                    Text(
-                      '全カテゴリ',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  const Spacer(),
+                  ),
                   if (goal.isAchieved)
                     Row(
                       children: [
