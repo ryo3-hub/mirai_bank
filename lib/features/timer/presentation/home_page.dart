@@ -234,6 +234,8 @@ class _CategorySelector extends StatelessWidget {
                   Text(
                     category.name,
                     style: Theme.of(context).textTheme.titleMedium,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                   Text(
                     '${_rateFormatter.format(category.hourlyRate)} 円/h',
@@ -397,6 +399,8 @@ class _RunningCategoryHeader extends StatelessWidget {
           child: Text(
             category.name,
             style: Theme.of(context).textTheme.titleMedium,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
         ),
         Container(

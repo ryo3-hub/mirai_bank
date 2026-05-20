@@ -403,15 +403,23 @@ class _CategorySelectField extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Text(selected.name),
-              ] else
-                Text(
-                  '全カテゴリ',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                Expanded(
+                  child: Text(
+                    selected.name,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
-              const Spacer(),
+              ] else
+                Expanded(
+                  child: Text(
+                    '全カテゴリ',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 8),
               const Icon(Icons.unfold_more, size: 20),
             ],
           ),

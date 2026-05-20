@@ -416,13 +416,21 @@ class _CategoryField extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text(category!.name),
-              ] else
-                Text(
-                  '選択してください',
-                  style: TextStyle(color: theme.colorScheme.outline),
+                Expanded(
+                  child: Text(
+                    category!.name,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
                 ),
-              const Spacer(),
+              ] else
+                Expanded(
+                  child: Text(
+                    '選択してください',
+                    style: TextStyle(color: theme.colorScheme.outline),
+                  ),
+                ),
+              const SizedBox(width: 8),
               const Icon(Icons.unfold_more, size: 20),
             ],
           ),
