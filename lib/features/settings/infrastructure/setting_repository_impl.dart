@@ -36,6 +36,7 @@ class SettingRepositoryImpl implements SettingRepository {
   Future<void> update({
     bool? reminderEnabled,
     String? reminderTime,
+    Set<int>? reminderWeekdays,
     bool? achievementNotificationEnabled,
   }) async {
     await _ensureRow();
@@ -47,6 +48,9 @@ class SettingRepositoryImpl implements SettingRepository {
         reminderTime: reminderTime == null
             ? const Value.absent()
             : Value(reminderTime),
+        reminderWeekdaysCsv: reminderWeekdays == null
+            ? const Value.absent()
+            : Value(AppSetting.formatWeekdays(reminderWeekdays)),
         achievementNotificationEnabled: achievementNotificationEnabled == null
             ? const Value.absent()
             : Value(achievementNotificationEnabled),
@@ -66,6 +70,7 @@ class SettingRepositoryImpl implements SettingRepository {
     return AppSetting(
       reminderEnabled: row.reminderEnabled,
       reminderTime: row.reminderTime,
+      reminderWeekdays: AppSetting.parseWeekdays(row.reminderWeekdaysCsv),
       achievementNotificationEnabled: row.achievementNotificationEnabled,
     );
   }
