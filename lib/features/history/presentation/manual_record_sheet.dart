@@ -169,6 +169,7 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
             // ignore: use_build_context_synchronously
             AmountFlash.show(ctx, createdAmount);
           }
+          TopToast.show(context, message: '記録を追加しました');
         } else {
           TopToast.show(context, message: '記録を更新しました');
         }
