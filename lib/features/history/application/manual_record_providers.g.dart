@@ -7,7 +7,7 @@ part of 'manual_record_providers.dart';
 // **************************************************************************
 
 String _$manualRecordControllerHash() =>
-    r'1d43206f1b3fb8e42f362f75ed3df29058fd338f';
+    r'3ab8450172fa2cdff911c84b1ab1b0ca40ba4a28';
 
 /// See also [ManualRecordController].
 @ProviderFor(ManualRecordController)

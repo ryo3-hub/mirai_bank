@@ -43,7 +43,7 @@ final goalAchievementCheckerProvider =
 // ignore: unused_element
 typedef GoalAchievementCheckerRef = ProviderRef<GoalAchievementChecker>;
 String _$activeGoalsWithProgressHash() =>
-    r'5d3868a334a7ab9bac4037b60dd0363e1253c86c';
+    r'934c29bdd689779053f7d3617760e91cf37bd94e';
 
 /// See also [activeGoalsWithProgress].
 @ProviderFor(activeGoalsWithProgress)
