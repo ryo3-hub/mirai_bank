@@ -53,6 +53,9 @@ class Goals extends Table {
   DateTimeColumn get periodStart => dateTime().nullable()();
   DateTimeColumn get periodEnd => dateTime().nullable()();
   DateTimeColumn get achievedAt => dateTime().nullable()();
+  /// ユーザーが任意に並び替えできる表示順。
+  /// 新規追加時はアクティブ目標の現在の最大値+1 を割り当て、末尾に追加される。
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -65,6 +68,10 @@ class Settings extends Table {
   IntColumn get id => integer().withDefault(const Constant(1))();
   BoolColumn get reminderEnabled => boolean().withDefault(const Constant(false))();
   TextColumn get reminderTime => text().withDefault(const Constant('21:00'))();
+  /// リマインダー通知する曜日のCSV（DateTime.weekday 形式: 1=月 .. 7=日）。
+  /// デフォルトは毎日（"1,2,3,4,5,6,7"）。
+  TextColumn get reminderWeekdaysCsv =>
+      text().withDefault(const Constant('1,2,3,4,5,6,7'))();
   BoolColumn get achievementNotificationEnabled =>
       boolean().withDefault(const Constant(true))();
 
