@@ -17,7 +17,10 @@ class GoalRepositoryImpl implements GoalRepository {
   Stream<List<Goal>> watchActive() {
     return (_db.select(_table)
           ..where((g) => g.achievedAt.isNull())
-          ..orderBy([(g) => OrderingTerm.asc(g.createdAt)]))
+          ..orderBy([
+            (g) => OrderingTerm.asc(g.sortOrder),
+            (g) => OrderingTerm.asc(g.createdAt),
+          ]))
         .watch()
         .map((rows) => rows.map(_toEntity).toList(growable: false));
   }
@@ -35,7 +38,10 @@ class GoalRepositoryImpl implements GoalRepository {
   Future<List<Goal>> fetchActive() async {
     final rows = await (_db.select(_table)
           ..where((g) => g.achievedAt.isNull())
-          ..orderBy([(g) => OrderingTerm.asc(g.createdAt)]))
+          ..orderBy([
+            (g) => OrderingTerm.asc(g.sortOrder),
+            (g) => OrderingTerm.asc(g.createdAt),
+          ]))
         .get();
     return rows.map(_toEntity).toList(growable: false);
   }
@@ -58,6 +64,8 @@ class GoalRepositoryImpl implements GoalRepository {
   }) async {
     final now = DateTime.now();
     final id = _uuid.v4();
+    // 新規目標はアクティブ目標の末尾に追加する（最大 sortOrder + 1）。
+    final nextSortOrder = await _computeNextSortOrder();
     await _db.into(_table).insert(
           GoalsCompanion(
             id: Value(id),
@@ -66,6 +74,7 @@ class GoalRepositoryImpl implements GoalRepository {
             categoryId: Value(categoryId),
             periodStart: Value(periodStart),
             periodEnd: Value(periodEnd),
+            sortOrder: Value(nextSortOrder),
             createdAt: Value(now),
             updatedAt: Value(now),
           ),
@@ -77,9 +86,20 @@ class GoalRepositoryImpl implements GoalRepository {
       categoryId: categoryId,
       periodStart: periodStart,
       periodEnd: periodEnd,
+      sortOrder: nextSortOrder,
       createdAt: now,
       updatedAt: now,
     );
+  }
+
+  Future<int> _computeNextSortOrder() async {
+    final maxExp = _table.sortOrder.max();
+    final query = _db.selectOnly(_table)
+      ..where(_table.achievedAt.isNull())
+      ..addColumns([maxExp]);
+    final row = await query.getSingleOrNull();
+    final current = row?.read(maxExp);
+    return (current ?? -1) + 1;
   }
 
   @override
@@ -114,6 +134,20 @@ class GoalRepositoryImpl implements GoalRepository {
     );
   }
 
+  @override
+  Future<void> reorder(List<String> orderedIds) async {
+    final now = DateTime.now();
+    await _db.transaction(() async {
+      for (var i = 0; i < orderedIds.length; i++) {
+        await (_db.update(_table)..where((g) => g.id.equals(orderedIds[i])))
+            .write(GoalsCompanion(
+          sortOrder: Value(i),
+          updatedAt: Value(now),
+        ));
+      }
+    });
+  }
+
   Goal _toEntity(GoalRow row) {
     return Goal(
       id: row.id,
@@ -123,6 +157,7 @@ class GoalRepositoryImpl implements GoalRepository {
       periodStart: row.periodStart,
       periodEnd: row.periodEnd,
       achievedAt: row.achievedAt,
+      sortOrder: row.sortOrder,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     );

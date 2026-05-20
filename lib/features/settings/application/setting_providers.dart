@@ -28,6 +28,7 @@ class SettingController extends _$SettingController {
   Future<void> setReminderEnabled({
     required bool enabled,
     required TimeOfDay time,
+    required Set<int> weekdays,
   }) async {
     if (enabled) {
       final granted = await NotificationService.instance.requestPermissions();
@@ -35,7 +36,10 @@ class SettingController extends _$SettingController {
         await ref.read(settingRepositoryProvider).update(reminderEnabled: false);
         throw StateError('通知の許可が得られませんでした');
       }
-      await NotificationService.instance.scheduleDailyReminder(time);
+      await NotificationService.instance.scheduleDailyReminder(
+        time,
+        weekdays: weekdays,
+      );
     } else {
       await NotificationService.instance.cancelDailyReminder();
     }
@@ -51,7 +55,21 @@ class SettingController extends _$SettingController {
         .update(reminderTime: formatted);
     final current = await ref.read(settingRepositoryProvider).fetch();
     if (current.reminderEnabled) {
-      await NotificationService.instance.scheduleDailyReminder(time);
+      await NotificationService.instance.scheduleDailyReminder(
+        time,
+        weekdays: current.reminderWeekdays,
+      );
+    }
+  }
+
+  Future<void> setReminderWeekdays(Set<int> weekdays) async {
+    await ref.read(settingRepositoryProvider).update(reminderWeekdays: weekdays);
+    final current = await ref.read(settingRepositoryProvider).fetch();
+    if (current.reminderEnabled) {
+      await NotificationService.instance.scheduleDailyReminder(
+        current.reminderTimeOfDay,
+        weekdays: weekdays,
+      );
     }
   }
 

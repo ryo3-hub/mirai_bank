@@ -10,6 +10,7 @@ import '../../category/domain/category.dart';
 import '../../category/domain/category_presets.dart';
 import '../../category/presentation/category_edit_sheet.dart';
 import '../../category/presentation/category_picker_sheet.dart';
+import '../../history/domain/work_session.dart';
 import '../application/timer_providers.dart';
 import '../domain/active_timer.dart';
 import '../domain/amount_calculator.dart';
@@ -352,6 +353,7 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
                 fillColor: colorScheme.surface,
               ),
               maxLines: 2,
+              maxLength: WorkSession.memoMaxLength,
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
