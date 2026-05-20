@@ -60,29 +60,44 @@ class StatsSummaryCard extends StatelessWidget {
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const Spacer(),
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundColor:
-                        CategoryPresets.colorFor(top.colorCode),
-                    foregroundColor: Colors.white,
-                    child: Icon(
-                      CategoryPresets.iconFor(top.iconCode),
-                      size: 14,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    top.name,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${NumberFormat('#,###').format(stats.breakdown.first.amount)} 円',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                  const SizedBox(width: 12),
+                  // Right-aligned cluster: avatar + name + amount.
+                  // Wrapping in Expanded lets the inner Row size to the
+                  // remaining width; Flexible around the name lets it
+                  // ellipsize gracefully instead of overflowing.
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        CircleAvatar(
+                          radius: 12,
+                          backgroundColor:
+                              CategoryPresets.colorFor(top.colorCode),
+                          foregroundColor: Colors.white,
+                          child: Icon(
+                            CategoryPresets.iconFor(top.iconCode),
+                            size: 14,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            top.name,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${NumberFormat('#,###').format(stats.breakdown.first.amount)} 円',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
