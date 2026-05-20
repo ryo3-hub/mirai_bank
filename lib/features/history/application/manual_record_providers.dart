@@ -15,10 +15,11 @@ class ManualRecordController extends _$ManualRecordController {
 
   Future<WorkSession> create({
     required String categoryId,
-    required DateTime date,
-    required int durationSec,
+    required DateTime startTime,
+    required DateTime endTime,
     String? memo,
   }) async {
+    final durationSec = endTime.difference(startTime).inSeconds;
     final category =
         await ref.read(categoryRepositoryProvider).findById(categoryId);
     if (category == null) {
@@ -28,8 +29,6 @@ class ManualRecordController extends _$ManualRecordController {
       durationSec: durationSec,
       hourlyRate: category.hourlyRate,
     );
-    final endTime = _anchorTime(date);
-    final startTime = endTime.subtract(Duration(seconds: durationSec));
     final session = await ref.read(workSessionRepositoryProvider).create(
           categoryId: categoryId,
           startTime: startTime,
@@ -46,10 +45,11 @@ class ManualRecordController extends _$ManualRecordController {
   Future<void> updateRecord({
     required WorkSession session,
     required String categoryId,
-    required DateTime date,
-    required int durationSec,
+    required DateTime startTime,
+    required DateTime endTime,
     String? memo,
   }) async {
+    final durationSec = endTime.difference(startTime).inSeconds;
     final category =
         await ref.read(categoryRepositoryProvider).findById(categoryId);
     if (category == null) {
@@ -59,8 +59,6 @@ class ManualRecordController extends _$ManualRecordController {
       durationSec: durationSec,
       hourlyRate: category.hourlyRate,
     );
-    final endTime = _anchorTime(date);
-    final startTime = endTime.subtract(Duration(seconds: durationSec));
     final updated = WorkSession(
       id: session.id,
       categoryId: categoryId,
@@ -81,9 +79,6 @@ class ManualRecordController extends _$ManualRecordController {
   Future<void> delete(String sessionId) {
     return ref.read(workSessionRepositoryProvider).softDelete(sessionId);
   }
-
-  DateTime _anchorTime(DateTime date) =>
-      DateTime(date.year, date.month, date.day, 12);
 
   String? _normalizeMemo(String? memo) {
     if (memo == null) return null;

@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../app/router.dart';
 import '../../../shared/achievement/amount_flash.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/top_toast.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
 import '../../category/domain/category_presets.dart';
 import '../../category/presentation/category_picker_sheet.dart';
 import '../application/manual_record_providers.dart';
-import '../../../shared/widgets/confirm_dialog.dart';
-import '../../../shared/widgets/top_toast.dart';
 import '../domain/work_session.dart';
 
 class ManualRecordSheet extends ConsumerStatefulWidget {
@@ -36,11 +35,11 @@ class ManualRecordSheet extends ConsumerStatefulWidget {
 class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
   Category? _selectedCategory;
   late DateTime _selectedDate;
-  late final TextEditingController _hourController;
-  late final TextEditingController _minuteController;
+  late TimeOfDay _startTime;
+  late TimeOfDay _endTime;
   late final TextEditingController _memoController;
   String? _categoryError;
-  String? _durationError;
+  String? _timeRangeError;
   bool _saving = false;
   bool _deleting = false;
 
@@ -56,24 +55,22 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
         initial.endTime.month,
         initial.endTime.day,
       );
-      final h = initial.durationSec ~/ 3600;
-      final m = (initial.durationSec % 3600) ~/ 60;
-      _hourController = TextEditingController(text: h.toString());
-      _minuteController = TextEditingController(text: m.toString());
+      _startTime = TimeOfDay.fromDateTime(initial.startTime);
+      _endTime = TimeOfDay.fromDateTime(initial.endTime);
       _memoController = TextEditingController(text: initial.memo ?? '');
     } else {
       final now = DateTime.now();
       _selectedDate = DateTime(now.year, now.month, now.day);
-      _hourController = TextEditingController(text: '1');
-      _minuteController = TextEditingController(text: '0');
+      // Default: 1-hour window ending at the previous full hour.
+      final end = now.hour;
+      _startTime = TimeOfDay(hour: (end - 1).clamp(0, 23), minute: 0);
+      _endTime = TimeOfDay(hour: end.clamp(0, 23), minute: 0);
       _memoController = TextEditingController();
     }
   }
 
   @override
   void dispose() {
-    _hourController.dispose();
-    _minuteController.dispose();
     _memoController.dispose();
     super.dispose();
   }
@@ -106,14 +103,46 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
     }
   }
 
-  int? _parseDurationSec() {
-    final h = int.tryParse(_hourController.text.trim());
-    final m = int.tryParse(_minuteController.text.trim());
-    if (h == null && m == null) return null;
-    final hours = h ?? 0;
-    final minutes = m ?? 0;
-    if (hours < 0 || minutes < 0 || minutes >= 60) return null;
-    return hours * 3600 + minutes * 60;
+  Future<void> _pickStartTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _startTime,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child ?? const SizedBox.shrink(),
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        _startTime = picked;
+        _timeRangeError = null;
+      });
+    }
+  }
+
+  Future<void> _pickEndTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _endTime,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child ?? const SizedBox.shrink(),
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        _endTime = picked;
+        _timeRangeError = null;
+      });
+    }
+  }
+
+  int _toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
+
+  int? _computeDurationSec() {
+    final diff = _toMinutes(_endTime) - _toMinutes(_startTime);
+    if (diff <= 0) return null;
+    return diff * 60;
   }
 
   bool _validate() {
@@ -124,14 +153,18 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
     } else {
       setState(() => _categoryError = null);
     }
-    final duration = _parseDurationSec();
-    if (duration == null || duration <= 0) {
-      setState(() => _durationError = '1分以上の時間を入力してください');
+    final duration = _computeDurationSec();
+    if (duration == null) {
+      setState(() => _timeRangeError = '終了時刻は開始時刻より後にしてください');
       ok = false;
     } else {
-      setState(() => _durationError = null);
+      setState(() => _timeRangeError = null);
     }
     return ok;
+  }
+
+  DateTime _combineDateTime(DateTime date, TimeOfDay time) {
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
   }
 
   Future<void> _save() async {
@@ -141,7 +174,8 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
     final navigator = Navigator.of(context);
     final controller = ref.read(manualRecordControllerProvider.notifier);
     final categoryId = _selectedCategory!.id;
-    final durationSec = _parseDurationSec()!;
+    final startTime = _combineDateTime(_selectedDate, _startTime);
+    final endTime = _combineDateTime(_selectedDate, _endTime);
     final memo = _memoController.text;
     try {
       int? createdAmount;
@@ -149,15 +183,15 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
         await controller.updateRecord(
           session: widget.initial!,
           categoryId: categoryId,
-          date: _selectedDate,
-          durationSec: durationSec,
+          startTime: startTime,
+          endTime: endTime,
           memo: memo,
         );
       } else {
         final session = await controller.create(
           categoryId: categoryId,
-          date: _selectedDate,
-          durationSec: durationSec,
+          startTime: startTime,
+          endTime: endTime,
           memo: memo,
         );
         createdAmount = session.amount;
@@ -270,10 +304,12 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
               onTap: _pickDate,
             ),
             const SizedBox(height: 16),
-            _DurationField(
-              hourController: _hourController,
-              minuteController: _minuteController,
-              errorText: _durationError,
+            _TimeRangeField(
+              startTime: _startTime,
+              endTime: _endTime,
+              errorText: _timeRangeError,
+              onPickStart: _pickStartTime,
+              onPickEnd: _pickEndTime,
             ),
             const SizedBox(height: 16),
             TextField(
@@ -426,52 +462,47 @@ class _DateField extends StatelessWidget {
   }
 }
 
-class _DurationField extends StatelessWidget {
-  const _DurationField({
-    required this.hourController,
-    required this.minuteController,
+class _TimeRangeField extends StatelessWidget {
+  const _TimeRangeField({
+    required this.startTime,
+    required this.endTime,
+    required this.onPickStart,
+    required this.onPickEnd,
     this.errorText,
   });
 
-  final TextEditingController hourController;
-  final TextEditingController minuteController;
+  final TimeOfDay startTime;
+  final TimeOfDay endTime;
+  final VoidCallback onPickStart;
+  final VoidCallback onPickEnd;
   final String? errorText;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '作業時間',
-          style: Theme.of(context).textTheme.labelLarge,
+          '時間帯',
+          style: theme.textTheme.labelLarge,
         ),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
-              child: TextField(
-                controller: hourController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: '時',
-                  border: OutlineInputBorder(),
-                  suffixText: 'h',
-                ),
+              child: _TimeButton(
+                label: '開始',
+                time: startTime,
+                onTap: onPickStart,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: TextField(
-                controller: minuteController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: '分',
-                  border: OutlineInputBorder(),
-                  suffixText: 'm',
-                ),
+              child: _TimeButton(
+                label: '終了',
+                time: endTime,
+                onTap: onPickEnd,
               ),
             ),
           ],
@@ -481,12 +512,56 @@ class _DurationField extends StatelessWidget {
           Text(
             errorText!,
             style: TextStyle(
-              color: Theme.of(context).colorScheme.error,
+              color: theme.colorScheme.error,
               fontSize: 12,
             ),
           ),
         ],
       ],
+    );
+  }
+}
+
+class _TimeButton extends StatelessWidget {
+  const _TimeButton({
+    required this.label,
+    required this.time,
+    required this.onTap,
+  });
+
+  final String label;
+  final TimeOfDay time;
+  final VoidCallback onTap;
+
+  String _format(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Text(
+                _format(time),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+              const Spacer(),
+              const Icon(Icons.access_time, size: 18),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
