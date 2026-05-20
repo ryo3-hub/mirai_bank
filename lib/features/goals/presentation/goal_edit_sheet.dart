@@ -292,9 +292,9 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
                 ],
               ],
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  if (_isEdit) ...[
+              if (_isEdit)
+                Row(
+                  children: [
                     Expanded(
                       child: FilledButton.icon(
                         onPressed:
@@ -317,31 +317,33 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
                       ),
                     ),
                     const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed:
+                            (_saving || _deleting) ? null : _save,
+                        child: _saving
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('保存'),
+                      ),
+                    ),
                   ],
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: (_saving || _deleting)
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                      child: const Text('キャンセル'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed:
-                          (_saving || _deleting) ? null : _save,
-                      child: _saving
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('保存'),
-                    ),
-                  ),
-                ],
-              ),
+                )
+              else
+                FilledButton(
+                  onPressed: (_saving || _deleting) ? null : _save,
+                  child: _saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('保存'),
+                ),
             ],
           ),
         ),

@@ -135,29 +135,15 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
                 onChanged: (code) => setState(() => _colorCode = code),
               ),
               const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed:
-                          _saving ? null : () => Navigator.of(context).pop(),
-                      child: const Text('キャンセル'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: _saving ? null : _onSave,
-                      child: _saving
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('保存'),
-                    ),
-                  ),
-                ],
+              FilledButton(
+                onPressed: _saving ? null : _onSave,
+                child: _saving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('保存'),
               ),
             ],
           ),
