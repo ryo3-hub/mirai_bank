@@ -60,6 +60,9 @@ dev_dependencies:
   # Splash screen generation
   flutter_native_splash: ^2.4.1
 
+  # App launcher icon generation
+  flutter_launcher_icons: ^0.14.1
+
 flutter:
   uses-material-design: true
 
@@ -90,3 +93,18 @@ flutter_native_splash:
   android: true
   ios: true
   web: false
+
+# App launcher icon configuration.
+# After editing this section (or regenerating icons via
+# `python3 tool/generate_logo.py`) run:
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "assets/icon/icon.png"
+  # iOS: must be opaque PNG (no alpha) — icon.png is generated with solid BG.
+  ios: true
+  remove_alpha_ios: true
+  # Android: legacy + adaptive icons.
+  android: "launcher_icon"
+  adaptive_icon_background: "#4F46E5"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  min_sdk_android: 21
