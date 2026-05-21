@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/widgets/reorder_proxy_decorator.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
 import '../application/goal_providers.dart';
@@ -123,6 +124,7 @@ class _GoalListBodyState extends ConsumerState<_GoalListBody> {
     return ReorderableListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
       itemCount: displayList.length,
+      proxyDecorator: roundedReorderProxy,
       onReorderStart: (_) => HapticFeedback.mediumImpact(),
       onReorder: _onReorder,
       header: _SectionLabel(label: 'アクティブ', count: displayList.length),
