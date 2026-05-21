@@ -13,10 +13,16 @@ class AppShell extends StatelessWidget {
     _Destination(icon: Icons.settings_outlined, label: '設定'),
   ];
 
+  /// 設定タブの index。タブを押したときに毎回ルートを初期位置にリセットする
+  /// タブを表す（issue #69）。
+  static const _resetOnTapIndices = <int>{3};
+
   void _onTap(int index) {
+    final isSameTab = index == navigationShell.currentIndex;
+    final shouldReset = isSameTab || _resetOnTapIndices.contains(index);
     navigationShell.goBranch(
       index,
-      initialLocation: index == navigationShell.currentIndex,
+      initialLocation: shouldReset,
     );
   }
 
