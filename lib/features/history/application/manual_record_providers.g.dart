@@ -7,9 +7,15 @@ part of 'manual_record_providers.dart';
 // **************************************************************************
 
 String _$manualRecordControllerHash() =>
-    r'3ab8450172fa2cdff911c84b1ab1b0ca40ba4a28';
+    r'95df9811eeef12d351588fc24b576b69d845e5cf';
 
-/// See also [ManualRecordController].
+/// 履歴セッションに対する操作。
+///
+/// issue #85 で履歴の手動追加 / 編集 UI を撤去したため、現状は **削除**
+/// （スワイプ削除）でのみ使われる。新規セッションの作成はタイマー
+/// 経路に一本化された。
+///
+/// Copied from [ManualRecordController].
 @ProviderFor(ManualRecordController)
 final manualRecordControllerProvider =
     AutoDisposeNotifierProvider<ManualRecordController, void>.internal(

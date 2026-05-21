@@ -9,8 +9,6 @@ import '../../category/domain/category.dart';
 import '../../category/domain/category_presets.dart';
 import '../application/calendar_providers.dart';
 import '../domain/daily_stats.dart';
-import '../domain/work_session.dart';
-import 'manual_record_sheet.dart';
 import 'widgets/session_card.dart';
 
 class CalendarPage extends ConsumerStatefulWidget {
@@ -437,7 +435,6 @@ class _DaySessionsView extends ConsumerWidget {
                   return SessionCard(
                     session: session,
                     category: categoryMap[session.categoryId],
-                    onTap: () => _editSession(context, session),
                   );
                 },
               );
@@ -446,10 +443,6 @@ class _DaySessionsView extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  void _editSession(BuildContext context, WorkSession session) {
-    ManualRecordSheet.show(context, initial: session);
   }
 }
 
