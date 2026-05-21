@@ -1,7 +1,23 @@
-# カテゴリ追加・編集シート
+# カテゴリ追加・編集シート + カテゴリ管理ページ
 
 ## 概要
 学習カテゴリを作成・編集するボトムシート。設定 > カテゴリ管理から、またはホームの「カテゴリを追加」ボタンから開かれる。
+
+## カテゴリ管理ページ（CategoryListPage）
+
+`/settings/categories` に対応。`ReorderableListView.builder` で一覧表示し、
+長押し → ドラッグ&ドロップでユーザーが任意の順序に並び替え可能（issue #58）。
+
+- ヘッダー: 「カテゴリ N件 / 長押しで並び替え」ガイド
+- 並び順は `Category.sortOrder` で永続化（DB schemaVersion v4 で追加）
+- 新規追加カテゴリはアクティブカテゴリの末尾（max sortOrder + 1）に挿入される
+- 触覚フィードバック: `onReorderStart` = `HapticFeedback.selectionClick()`、
+  `onReorder` = `HapticFeedback.lightImpact()`
+- カテゴリピッカー（タイマー / 手動入力時）も同じ並び順で表示される
+  （`watchAll` を通すので自動で反映）
+- FAB「カテゴリを追加」（円形、GitHub Green、CategoryEditSheet を開く）
+- 各カテゴリカード: アイコン / 名前 / 時給 / 削除 IconButton
+- 削除前に `showDeleteConfirmDialog` で確認
 
 ## UI 構成
 ```

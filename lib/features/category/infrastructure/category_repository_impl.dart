@@ -17,7 +17,10 @@ class CategoryRepositoryImpl implements CategoryRepository {
   SimpleSelectStatement<$CategoriesTable, CategoryRow> _activeQuery() {
     return _db.select(_table)
       ..where((c) => c.deletedAt.isNull())
-      ..orderBy([(c) => OrderingTerm.asc(c.createdAt)]);
+      ..orderBy([
+        (c) => OrderingTerm.asc(c.sortOrder),
+        (c) => OrderingTerm.asc(c.createdAt),
+      ]);
   }
 
   @override
@@ -50,6 +53,8 @@ class CategoryRepositoryImpl implements CategoryRepository {
   }) async {
     final now = DateTime.now();
     final id = _uuid.v4();
+    // 新規カテゴリはアクティブカテゴリの末尾に追加する（最大 sortOrder + 1）。
+    final nextSortOrder = await _computeNextSortOrder();
     await _db.into(_table).insert(
           CategoriesCompanion(
             id: Value(id),
@@ -57,6 +62,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
             hourlyRate: Value(hourlyRate),
             colorCode: Value(colorCode),
             iconCode: Value(iconCode),
+            sortOrder: Value(nextSortOrder),
             createdAt: Value(now),
             updatedAt: Value(now),
           ),
@@ -67,9 +73,20 @@ class CategoryRepositoryImpl implements CategoryRepository {
       hourlyRate: hourlyRate,
       colorCode: colorCode,
       iconCode: iconCode,
+      sortOrder: nextSortOrder,
       createdAt: now,
       updatedAt: now,
     );
+  }
+
+  Future<int> _computeNextSortOrder() async {
+    final maxExp = _table.sortOrder.max();
+    final query = _db.selectOnly(_table)
+      ..where(_table.deletedAt.isNull())
+      ..addColumns([maxExp]);
+    final row = await query.getSingleOrNull();
+    final current = row?.read(maxExp);
+    return (current ?? -1) + 1;
   }
 
   @override
@@ -109,6 +126,20 @@ class CategoryRepositoryImpl implements CategoryRepository {
     );
   }
 
+  @override
+  Future<void> reorder(List<String> orderedIds) async {
+    final now = DateTime.now();
+    await _db.transaction(() async {
+      for (var i = 0; i < orderedIds.length; i++) {
+        await (_db.update(_table)..where((c) => c.id.equals(orderedIds[i])))
+            .write(CategoriesCompanion(
+          sortOrder: Value(i),
+          updatedAt: Value(now),
+        ));
+      }
+    });
+  }
+
   Category _toEntity(CategoryRow row) {
     return Category(
       id: row.id,
@@ -116,6 +147,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
       hourlyRate: row.hourlyRate,
       colorCode: row.colorCode,
       iconCode: row.iconCode,
+      sortOrder: row.sortOrder,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       deletedAt: row.deletedAt,

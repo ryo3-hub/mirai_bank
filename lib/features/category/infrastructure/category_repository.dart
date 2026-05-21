@@ -19,4 +19,8 @@ abstract interface class CategoryRepository {
   Future<void> softDelete(String id);
 
   Future<void> ensureDefaultCategory();
+
+  /// `orderedIds` の並び順に従ってアクティブカテゴリの
+  /// sortOrder を 0..N に更新する。
+  Future<void> reorder(List<String> orderedIds);
 }

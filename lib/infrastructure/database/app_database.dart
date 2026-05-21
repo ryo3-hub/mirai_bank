@@ -18,7 +18,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -40,6 +40,19 @@ class AppDatabase extends _$AppDatabase {
             // v3: Settings に reminderWeekdaysCsv カラムを追加。
             // 既存ユーザーはデフォルト「毎日」("1,2,3,4,5,6,7") で初期化される。
             await m.addColumn(settings, settings.reminderWeekdaysCsv);
+          }
+          if (from < 4) {
+            // v4: Categories に sortOrder カラムを追加。既存カテゴリは
+            // createdAt 昇順で sortOrder を 0,1,2,... と初期化する。
+            await m.addColumn(categories, categories.sortOrder);
+            final rows = await (select(categories)
+                  ..orderBy([(c) => OrderingTerm.asc(c.createdAt)]))
+                .get();
+            for (var i = 0; i < rows.length; i++) {
+              await (update(categories)
+                    ..where((c) => c.id.equals(rows[i].id)))
+                  .write(CategoriesCompanion(sortOrder: Value(i)));
+            }
           }
         },
       );
