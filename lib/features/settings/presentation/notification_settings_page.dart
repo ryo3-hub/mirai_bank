@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/utils/weekday_color.dart';
 import '../../../shared/widgets/mirai_time_picker_sheet.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../application/setting_providers.dart';
@@ -133,14 +134,16 @@ class _WeekdayPicker extends StatelessWidget {
   final bool warn;
   final ValueChanged<int> onToggle;
 
+  // 日曜始まりの並び（issue #88）。値は DateTime.weekday 形式
+  // （1=月 .. 7=日）のまま、表示順だけ変更。
   static const _labels = <(int, String)>[
+    (7, '日'),
     (1, '月'),
     (2, '火'),
     (3, '水'),
     (4, '木'),
     (5, '金'),
     (6, '土'),
-    (7, '日'),
   ];
 
   @override
@@ -165,6 +168,7 @@ class _WeekdayPicker extends StatelessWidget {
               if (i > 0) const SizedBox(width: 4),
               Expanded(
                 child: _WeekdayCell(
+                  weekday: _labels[i].$1,
                   label: _labels[i].$2,
                   isSelected: selected.contains(_labels[i].$1),
                   enabled: enabled,
@@ -190,12 +194,14 @@ class _WeekdayPicker extends StatelessWidget {
 
 class _WeekdayCell extends StatelessWidget {
   const _WeekdayCell({
+    required this.weekday,
     required this.label,
     required this.isSelected,
     required this.enabled,
     required this.onTap,
   });
 
+  final int weekday;
   final String label;
   final bool isSelected;
   final bool enabled;
@@ -205,6 +211,9 @@ class _WeekdayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    // 土・日はそれぞれ青・赤、平日は primary 色を選択時の強調色に使う。
+    final accent = weekdayColor(context, weekday) ?? colorScheme.primary;
+
     final Color bg;
     final Color fg;
     final Color border;
@@ -213,9 +222,10 @@ class _WeekdayCell extends StatelessWidget {
       fg = colorScheme.onSurfaceVariant.withValues(alpha: 0.5);
       border = colorScheme.outlineVariant.withValues(alpha: 0.5);
     } else if (isSelected) {
-      bg = colorScheme.primary;
-      fg = colorScheme.onPrimary;
-      border = colorScheme.primary;
+      // 選択時は白背景 + アクセント色の枠線とテキスト（塗りつぶしはしない）
+      bg = colorScheme.surface;
+      fg = accent;
+      border = accent;
     } else {
       bg = colorScheme.surface;
       fg = colorScheme.onSurfaceVariant;
@@ -227,18 +237,18 @@ class _WeekdayCell extends StatelessWidget {
       label: label,
       child: InkWell(
         onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          height: 36,
+          height: 44,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: bg,
-            border: Border.all(color: border, width: 1),
-            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: border, width: isSelected ? 1.5 : 1),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             label,
-            style: theme.textTheme.labelMedium?.copyWith(
+            style: theme.textTheme.labelLarge?.copyWith(
               color: fg,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
             ),
