@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../app/router.dart';
 import '../../../shared/achievement/amount_flash.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/mirai_date_picker_sheet.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
@@ -98,11 +99,12 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final picked = await showDatePicker(
-      context: context,
+    final picked = await MiraiDatePickerSheet.show(
+      context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2020),
+      firstDate: DateTime(2020, 1, 1),
       lastDate: today,
+      title: '日付を選択',
     );
     if (picked != null) {
       setState(() => _selectedDate = picked);
