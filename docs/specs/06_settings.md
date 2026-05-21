@@ -1,7 +1,8 @@
 # 設定画面
 
 ## 概要
-カテゴリ管理・目標設定・通知設定にアクセスするための画面。
+カテゴリ管理・目標設定・通知設定にアクセスするための画面。設定項目はすべて
+子ページに分離してあり、本ページ自体は遷移メニュー（ListTile 集）のみ。
 
 ## UI 構成
 ```
@@ -12,30 +13,10 @@
   - ListTile「目標設定」 → /settings/goals
   - Divider
   - SectionHeader「通知」
-  - SwitchListTile「学習リマインダー」
-  - ListTile「リマインダー時刻」（リマインダー有効時のみタップ可能）
-  - SwitchListTile「達成通知」
+  - ListTile「通知設定」 → /settings/notifications
 ```
 
-## 通知セクション
-
-### 学習リマインダー
-- スイッチで ON/OFF
-- ON: `NotificationService.scheduleDailyReminder(time)` で毎日通知をスケジュール
-- OFF: 通知キャンセル
-
-### リマインダー時刻
-- 現在の時刻を表示（例: 9:00 PM）
-- タップで `showTimePicker` を開いて変更
-- リマインダー OFF のときはグレーアウト
-
-### 達成通知
-- スイッチで ON/OFF
-- ON: 目標達成時に通知 + アニメ
-- OFF: 静かに記録のみ
-
-## 入力フィールド
-このページ自体には TextField はない。各 SwitchListTile / ListTile への操作のみ。
+本ページに直接の入力フィールドはなく、各 ListTile タップで子ページに遷移する。
 
 ## 子画面
 
@@ -51,11 +32,37 @@
 - FAB「目標を追加」（円形、GitHub Green、GoalEditSheet を開く）
 - 各目標カード（GoalCard）: 種別 / カテゴリ / 進捗バー / % / 金額
 
+### 通知設定（/settings/notifications）
+- `NotificationSettingsPage`
+- 構成：
+  - SwitchListTile「学習リマインダー」（指定時刻に通知）
+  - ListTile「リマインダー時刻」（リマインダー有効時のみタップ可能、`showTimePicker`）
+  - 通知する曜日（FilterChip 月〜日。リマインダー有効時のみ操作可能。0 件選択時は赤の警告文）
+  - SwitchListTile「達成通知」（目標達成・連続学習の節目で通知）
+
+#### 学習リマインダー
+- スイッチ ON: `NotificationService.scheduleDailyReminder(time, weekdays)` で通知をスケジュール
+- スイッチ OFF: 通知キャンセル
+
+#### リマインダー時刻
+- 現在の時刻を表示（例: 9:00 PM）
+- タップで `showTimePicker` を開いて変更
+- リマインダー OFF のときはグレーアウト
+
+#### 通知する曜日
+- 月〜日の `FilterChip`、複数選択可
+- リマインダー OFF のときは操作不可
+- 1 つも選んでいないと「曜日を 1 つ以上選んでください」エラー文を表示
+
+#### 達成通知
+- スイッチ ON: 目標達成時に通知 + アニメ
+- スイッチ OFF: 静かに記録のみ
+
 ## リスト表示の上限
 - カテゴリ管理 / 目標設定どちらも **全件表示**（ScrollList ベース）
 
 ## 状態
-- **Loading**: `appSettingProvider` 読み込み中は LinearProgressIndicator
+- **Loading**: 通知設定ページで `appSettingProvider` 読み込み中は `CircularProgressIndicator`
 - **Error**: 「設定の読み込みに失敗: $e」
 
 ## 通知（トースト）
@@ -63,14 +70,17 @@
 |---|---|---|
 | リマインダー ON/OFF 切替 | なし | エラートースト |
 | リマインダー時刻変更 | なし | なし（即時 DB 保存） |
+| 曜日切替 | なし | なし |
 | 達成通知 ON/OFF | なし | なし |
 
 カテゴリ削除 / 目標削除のトーストは各シート側参照（[07_categories.md](07_categories.md) / [08_goals.md](08_goals.md)）。
 
 ## 関連ファイル
 - `lib/features/settings/presentation/settings_page.dart`
+- `lib/features/settings/presentation/notification_settings_page.dart`
 - `lib/features/settings/application/setting_providers.dart`
 - `lib/features/settings/domain/app_setting.dart`
 - `lib/features/category/presentation/category_list_page.dart`
 - `lib/features/goals/presentation/goal_list_page.dart`
 - `lib/shared/notification/notification_service.dart`
+- `lib/app/router.dart`
