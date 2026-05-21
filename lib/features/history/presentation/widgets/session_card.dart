@@ -79,7 +79,8 @@ class SessionCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          DurationFormatter.hourMinute(session.durationSec),
+                          DurationFormatter.hourMinuteSecond(
+                              session.durationSec),
                           style: theme.textTheme.bodySmall,
                         ),
                       ],

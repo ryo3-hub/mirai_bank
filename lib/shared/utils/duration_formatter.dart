@@ -22,4 +22,19 @@ class DurationFormatter {
     if (m == 0) return '$h時間';
     return '$h時間$m分';
   }
+
+  /// Human-readable duration in Japanese including seconds, e.g.
+  /// "1時間30分45秒", "30分5秒", "45秒". 履歴で秒単位まで見せたいとき用。
+  /// 0 の単位はスキップする（例: 3605秒 → "1時間5秒"）。
+  static String hourMinuteSecond(int totalSeconds) {
+    final s = totalSeconds < 0 ? 0 : totalSeconds;
+    final h = s ~/ 3600;
+    final m = (s % 3600) ~/ 60;
+    final sec = s % 60;
+    final parts = <String>[];
+    if (h > 0) parts.add('$h時間');
+    if (m > 0) parts.add('$m分');
+    if (sec > 0 || parts.isEmpty) parts.add('$sec秒');
+    return parts.join();
+  }
 }
