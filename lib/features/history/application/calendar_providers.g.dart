@@ -6,7 +6,7 @@ part of 'calendar_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$dailyAmountMapHash() => r'892c2c6863387aafee11bef66466dc055da9f93d';
+String _$dailyStatsMapHash() => r'015cfb7bb547828d4d674e4709a7357fae8d14aa';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -29,27 +29,28 @@ class _SystemHash {
   }
 }
 
-/// See also [dailyAmountMap].
-@ProviderFor(dailyAmountMap)
-const dailyAmountMapProvider = DailyAmountMapFamily();
+/// See also [dailyStatsMap].
+@ProviderFor(dailyStatsMap)
+const dailyStatsMapProvider = DailyStatsMapFamily();
 
-/// See also [dailyAmountMap].
-class DailyAmountMapFamily extends Family<AsyncValue<Map<DateTime, int>>> {
-  /// See also [dailyAmountMap].
-  const DailyAmountMapFamily();
+/// See also [dailyStatsMap].
+class DailyStatsMapFamily
+    extends Family<AsyncValue<Map<DateTime, DailyStats>>> {
+  /// See also [dailyStatsMap].
+  const DailyStatsMapFamily();
 
-  /// See also [dailyAmountMap].
-  DailyAmountMapProvider call(
+  /// See also [dailyStatsMap].
+  DailyStatsMapProvider call(
     DateTime month,
   ) {
-    return DailyAmountMapProvider(
+    return DailyStatsMapProvider(
       month,
     );
   }
 
   @override
-  DailyAmountMapProvider getProviderOverride(
-    covariant DailyAmountMapProvider provider,
+  DailyStatsMapProvider getProviderOverride(
+    covariant DailyStatsMapProvider provider,
   ) {
     return call(
       provider.month,
@@ -68,33 +69,33 @@ class DailyAmountMapFamily extends Family<AsyncValue<Map<DateTime, int>>> {
       _allTransitiveDependencies;
 
   @override
-  String? get name => r'dailyAmountMapProvider';
+  String? get name => r'dailyStatsMapProvider';
 }
 
-/// See also [dailyAmountMap].
-class DailyAmountMapProvider
-    extends AutoDisposeStreamProvider<Map<DateTime, int>> {
-  /// See also [dailyAmountMap].
-  DailyAmountMapProvider(
+/// See also [dailyStatsMap].
+class DailyStatsMapProvider
+    extends AutoDisposeStreamProvider<Map<DateTime, DailyStats>> {
+  /// See also [dailyStatsMap].
+  DailyStatsMapProvider(
     DateTime month,
   ) : this._internal(
-          (ref) => dailyAmountMap(
-            ref as DailyAmountMapRef,
+          (ref) => dailyStatsMap(
+            ref as DailyStatsMapRef,
             month,
           ),
-          from: dailyAmountMapProvider,
-          name: r'dailyAmountMapProvider',
+          from: dailyStatsMapProvider,
+          name: r'dailyStatsMapProvider',
           debugGetCreateSourceHash:
               const bool.fromEnvironment('dart.vm.product')
                   ? null
-                  : _$dailyAmountMapHash,
-          dependencies: DailyAmountMapFamily._dependencies,
+                  : _$dailyStatsMapHash,
+          dependencies: DailyStatsMapFamily._dependencies,
           allTransitiveDependencies:
-              DailyAmountMapFamily._allTransitiveDependencies,
+              DailyStatsMapFamily._allTransitiveDependencies,
           month: month,
         );
 
-  DailyAmountMapProvider._internal(
+  DailyStatsMapProvider._internal(
     super._createNotifier, {
     required super.name,
     required super.dependencies,
@@ -108,12 +109,13 @@ class DailyAmountMapProvider
 
   @override
   Override overrideWith(
-    Stream<Map<DateTime, int>> Function(DailyAmountMapRef provider) create,
+    Stream<Map<DateTime, DailyStats>> Function(DailyStatsMapRef provider)
+        create,
   ) {
     return ProviderOverride(
       origin: this,
-      override: DailyAmountMapProvider._internal(
-        (ref) => create(ref as DailyAmountMapRef),
+      override: DailyStatsMapProvider._internal(
+        (ref) => create(ref as DailyStatsMapRef),
         from: from,
         name: null,
         dependencies: null,
@@ -125,13 +127,13 @@ class DailyAmountMapProvider
   }
 
   @override
-  AutoDisposeStreamProviderElement<Map<DateTime, int>> createElement() {
-    return _DailyAmountMapProviderElement(this);
+  AutoDisposeStreamProviderElement<Map<DateTime, DailyStats>> createElement() {
+    return _DailyStatsMapProviderElement(this);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is DailyAmountMapProvider && other.month == month;
+    return other is DailyStatsMapProvider && other.month == month;
   }
 
   @override
@@ -145,18 +147,19 @@ class DailyAmountMapProvider
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-mixin DailyAmountMapRef on AutoDisposeStreamProviderRef<Map<DateTime, int>> {
+mixin DailyStatsMapRef
+    on AutoDisposeStreamProviderRef<Map<DateTime, DailyStats>> {
   /// The parameter `month` of this provider.
   DateTime get month;
 }
 
-class _DailyAmountMapProviderElement
-    extends AutoDisposeStreamProviderElement<Map<DateTime, int>>
-    with DailyAmountMapRef {
-  _DailyAmountMapProviderElement(super.provider);
+class _DailyStatsMapProviderElement
+    extends AutoDisposeStreamProviderElement<Map<DateTime, DailyStats>>
+    with DailyStatsMapRef {
+  _DailyStatsMapProviderElement(super.provider);
 
   @override
-  DateTime get month => (origin as DailyAmountMapProvider).month;
+  DateTime get month => (origin as DailyStatsMapProvider).month;
 }
 
 String _$sessionsOnDayHash() => r'592854fcefa46d1e777842e17e1efe76f654093e';
