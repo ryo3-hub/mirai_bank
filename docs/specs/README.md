@@ -28,6 +28,6 @@
 - 編集モードでは削除と保存ボタンを横並びで表示
 
 ### 色（テーマ）
-- Primary: Indigo `#4F46E5`
+- Primary: Sky `#0EA5E9` (Tailwind sky-500, issue #87 で Indigo `#4F46E5` から変更)
 - FAB: GitHub Green `#2DA44E` + 円形
 - 削除: `colorScheme.error` の赤フィルド
