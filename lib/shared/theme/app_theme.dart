@@ -143,16 +143,30 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: scaffoldColor,
-        indicatorColor: colorScheme.secondaryContainer,
+        // 丸い indicator は使わず、アイコン色だけで選択状態を表現する。
+        indicatorColor: Colors.transparent,
+        overlayColor: WidgetStateProperty.all(Colors.transparent),
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        labelTextStyle: WidgetStateProperty.all(
-          TextStyle(
+        iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            size: 24,
+            color: selected
+                ? colorScheme.primary
+                : colorScheme.onSurfaceVariant,
+          );
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
+          final selected = states.contains(WidgetState.selected);
+          return TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: colorScheme.onSurface,
-          ),
-        ),
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            color: selected
+                ? colorScheme.primary
+                : colorScheme.onSurfaceVariant,
+          );
+        }),
       ),
       dividerTheme: DividerThemeData(
         color: borderColor,
