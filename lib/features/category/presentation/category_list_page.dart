@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/reorder_proxy_decorator.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../application/category_providers.dart';
 import '../domain/category.dart';
@@ -97,6 +98,7 @@ class _CategoryReorderableListState
     return ReorderableListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
       itemCount: displayList.length,
+      proxyDecorator: roundedReorderProxy,
       onReorderStart: (_) => HapticFeedback.mediumImpact(),
       onReorder: _onReorder,
       header: _SectionLabel(count: displayList.length),
