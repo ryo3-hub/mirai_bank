@@ -74,7 +74,7 @@ class _CategoryReorderableListState
   }
 
   Future<void> _onReorder(int oldIndex, int newIndex) {
-    HapticFeedback.lightImpact();
+    HapticFeedback.heavyImpact();
     // ReorderableListView の newIndex は「移動後の挿入先」を指すので、
     // 下方向への移動は -1 補正してリスト操作と整合させる。
     final adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
@@ -97,7 +97,7 @@ class _CategoryReorderableListState
     return ReorderableListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
       itemCount: displayList.length,
-      onReorderStart: (_) => HapticFeedback.selectionClick(),
+      onReorderStart: (_) => HapticFeedback.mediumImpact(),
       onReorder: _onReorder,
       header: _SectionLabel(count: displayList.length),
       itemBuilder: (context, index) {
