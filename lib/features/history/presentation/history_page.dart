@@ -8,7 +8,6 @@ import '../../category/domain/category.dart';
 import '../application/manual_record_providers.dart';
 import '../application/session_list_providers.dart';
 import '../domain/day_session_group.dart';
-import 'manual_record_sheet.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/top_toast.dart';
 import 'widgets/session_card.dart';
@@ -38,11 +37,6 @@ class HistoryPage extends ConsumerWidget {
             displayedCount: data.displayedCount,
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => ManualRecordSheet.show(context),
-        tooltip: '手動で記録',
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -112,10 +106,6 @@ class _GroupedSessionList extends ConsumerWidget {
                   child: SessionCard(
                     session: session,
                     category: categoryMap[session.categoryId],
-                    onTap: () => ManualRecordSheet.show(
-                      context,
-                      initial: session,
-                    ),
                   ),
                 ),
               );
@@ -296,7 +286,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'タイマーで計測するか、\n右下のボタンから手動で記録できます',
+              'ホームのタイマーで計測すると\nここに記録が並びます',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
