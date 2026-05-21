@@ -47,7 +47,7 @@ class GoalListPage extends ConsumerWidget {
   }
 }
 
-class _GoalListBody extends ConsumerWidget {
+class _GoalListBody extends ConsumerStatefulWidget {
   const _GoalListBody({
     required this.active,
     required this.achieved,
@@ -58,21 +58,60 @@ class _GoalListBody extends ConsumerWidget {
   final List<Goal> achieved;
   final Map<String, Category> categoryMap;
 
-  Future<void> _onReorder(WidgetRef ref, int oldIndex, int newIndex) {
-    HapticFeedback.lightImpact();
-    // ReorderableListView の newIndex は「移動後の挿入先」を指すので、
-    // 下方向への移動は -1 補正してリスト操作と整合させる。
-    final reordered = [...active];
-    final adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
-    final item = reordered.removeAt(oldIndex);
-    reordered.insert(adjustedNewIndex, item);
-    final orderedIds = reordered.map((p) => p.goal.id).toList();
-    return ref.read(goalControllerProvider.notifier).reorder(orderedIds);
+  @override
+  ConsumerState<_GoalListBody> createState() => _GoalListBodyState();
+}
+
+/// 並び替え時のちらつきを抑えるため、ID の並び順だけローカル state で管理し、
+/// 各 GoalProgress のデータは provider 経由で最新を参照する（issue #70）。
+class _GoalListBodyState extends ConsumerState<_GoalListBody> {
+  late List<String> _localOrder;
+
+  @override
+  void initState() {
+    super.initState();
+    _localOrder = widget.active.map((p) => p.goal.id).toList();
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (active.isEmpty) {
+  void didUpdateWidget(_GoalListBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newIds = widget.active.map((p) => p.goal.id).toSet();
+    // 親から渡された一覧で消えた ID は削除、新しく増えた ID は末尾に追加。
+    // それ以外は _localOrder の順序を維持して provider 更新によるちらつきを防ぐ。
+    _localOrder.removeWhere((id) => !newIds.contains(id));
+    for (final p in widget.active) {
+      if (!_localOrder.contains(p.goal.id)) {
+        _localOrder.add(p.goal.id);
+      }
+    }
+  }
+
+  Future<void> _onReorder(int oldIndex, int newIndex) {
+    HapticFeedback.lightImpact();
+    // ReorderableListView の newIndex は「移動後の挿入先」を指すので、
+    // 下方向への移動は -1 補正してリスト操作と整合させる。
+    final adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    setState(() {
+      final id = _localOrder.removeAt(oldIndex);
+      _localOrder.insert(adjustedNewIndex, id);
+    });
+    return ref
+        .read(goalControllerProvider.notifier)
+        .reorder(List<String>.from(_localOrder));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final achieved = widget.achieved;
+    final categoryMap = widget.categoryMap;
+    final activeMap = {for (final p in widget.active) p.goal.id: p};
+    final displayList = _localOrder
+        .map((id) => activeMap[id])
+        .whereType<GoalProgress>()
+        .toList();
+
+    if (displayList.isEmpty) {
       // 達成済みのみの場合は並び替え不要なので通常 ListView。
       return ListView(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
@@ -83,11 +122,10 @@ class _GoalListBody extends ConsumerWidget {
     }
     return ReorderableListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
-      itemCount: active.length,
+      itemCount: displayList.length,
       onReorderStart: (_) => HapticFeedback.selectionClick(),
-      onReorder: (oldIndex, newIndex) =>
-          _onReorder(ref, oldIndex, newIndex),
-      header: _SectionLabel(label: 'アクティブ', count: active.length),
+      onReorder: _onReorder,
+      header: _SectionLabel(label: 'アクティブ', count: displayList.length),
       footer: achieved.isEmpty
           ? null
           : Padding(
@@ -98,7 +136,7 @@ class _GoalListBody extends ConsumerWidget {
               ),
             ),
       itemBuilder: (context, index) {
-        final progress = active[index];
+        final progress = displayList[index];
         return Padding(
           key: ValueKey(progress.goal.id),
           padding: const EdgeInsets.symmetric(vertical: 4),

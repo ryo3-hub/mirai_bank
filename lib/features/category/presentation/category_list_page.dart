@@ -39,33 +39,69 @@ class CategoryListPage extends ConsumerWidget {
   }
 }
 
-class _CategoryReorderableList extends ConsumerWidget {
+class _CategoryReorderableList extends ConsumerStatefulWidget {
   const _CategoryReorderableList({required this.categories});
 
   final List<Category> categories;
 
-  Future<void> _onReorder(WidgetRef ref, int oldIndex, int newIndex) {
-    HapticFeedback.lightImpact();
-    // ReorderableListView の newIndex は「移動後の挿入先」を指すので、
-    // 下方向への移動は -1 補正してリスト操作と整合させる。
-    final reordered = [...categories];
-    final adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
-    final item = reordered.removeAt(oldIndex);
-    reordered.insert(adjustedNewIndex, item);
-    final orderedIds = reordered.map((c) => c.id).toList();
-    return ref.read(categoryControllerProvider.notifier).reorder(orderedIds);
+  @override
+  ConsumerState<_CategoryReorderableList> createState() =>
+      _CategoryReorderableListState();
+}
+
+/// 並び替え時のちらつきを抑えるため、ID 順序だけローカル state で管理する
+/// （issue #70）。Category データそのものは widget.categories から最新を参照。
+class _CategoryReorderableListState
+    extends ConsumerState<_CategoryReorderableList> {
+  late List<String> _localOrder;
+
+  @override
+  void initState() {
+    super.initState();
+    _localOrder = widget.categories.map((c) => c.id).toList();
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void didUpdateWidget(_CategoryReorderableList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newIds = widget.categories.map((c) => c.id).toSet();
+    _localOrder.removeWhere((id) => !newIds.contains(id));
+    for (final c in widget.categories) {
+      if (!_localOrder.contains(c.id)) {
+        _localOrder.add(c.id);
+      }
+    }
+  }
+
+  Future<void> _onReorder(int oldIndex, int newIndex) {
+    HapticFeedback.lightImpact();
+    // ReorderableListView の newIndex は「移動後の挿入先」を指すので、
+    // 下方向への移動は -1 補正してリスト操作と整合させる。
+    final adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    setState(() {
+      final id = _localOrder.removeAt(oldIndex);
+      _localOrder.insert(adjustedNewIndex, id);
+    });
+    return ref
+        .read(categoryControllerProvider.notifier)
+        .reorder(List<String>.from(_localOrder));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final byId = {for (final c in widget.categories) c.id: c};
+    final displayList = _localOrder
+        .map((id) => byId[id])
+        .whereType<Category>()
+        .toList();
     return ReorderableListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
-      itemCount: categories.length,
+      itemCount: displayList.length,
       onReorderStart: (_) => HapticFeedback.selectionClick(),
-      onReorder: (oldIndex, newIndex) => _onReorder(ref, oldIndex, newIndex),
-      header: _SectionLabel(count: categories.length),
+      onReorder: _onReorder,
+      header: _SectionLabel(count: displayList.length),
       itemBuilder: (context, index) {
-        final category = categories[index];
+        final category = displayList[index];
         return Padding(
           key: ValueKey(category.id),
           padding: const EdgeInsets.symmetric(vertical: 4),
