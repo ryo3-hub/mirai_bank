@@ -6,6 +6,7 @@ import '../../../app/router.dart';
 import '../../../shared/achievement/amount_flash.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/mirai_date_picker_sheet.dart';
+import '../../../shared/widgets/mirai_time_picker_sheet.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
@@ -112,13 +113,10 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
   }
 
   Future<void> _pickStartTime() async {
-    final picked = await showTimePicker(
-      context: context,
+    final picked = await MiraiTimePickerSheet.show(
+      context,
       initialTime: _startTime,
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: child ?? const SizedBox.shrink(),
-      ),
+      title: '開始時刻を選択',
     );
     if (picked != null) {
       setState(() {
@@ -129,13 +127,10 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
   }
 
   Future<void> _pickEndTime() async {
-    final picked = await showTimePicker(
-      context: context,
+    final picked = await MiraiTimePickerSheet.show(
+      context,
       initialTime: _endTime,
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: child ?? const SizedBox.shrink(),
-      ),
+      title: '終了時刻を選択',
     );
     if (picked != null) {
       setState(() {

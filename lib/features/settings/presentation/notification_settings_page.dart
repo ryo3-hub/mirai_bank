@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/widgets/mirai_time_picker_sheet.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../application/setting_providers.dart';
 import '../domain/app_setting.dart';
@@ -50,9 +51,10 @@ class _NotificationSection extends ConsumerWidget {
   }
 
   Future<void> _pickTime(BuildContext context, WidgetRef ref) async {
-    final picked = await showTimePicker(
-      context: context,
+    final picked = await MiraiTimePickerSheet.show(
+      context,
       initialTime: setting.reminderTimeOfDay,
+      title: 'リマインダー時刻',
     );
     if (picked == null) return;
     await ref.read(settingControllerProvider.notifier).setReminderTime(picked);
