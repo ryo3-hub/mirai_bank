@@ -2,8 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 /// アプリ共通のドラムロール（Cupertino）スタイル時刻ピッカー。
-/// 24 時間表記、1 分刻み。MiraiDatePickerSheet と同じくモーダル
-/// ボトムシートで表示し、選択された `TimeOfDay` を返す（キャンセル時は null）。
+///
+/// `CupertinoDatePicker` だと時/分の間隔やフォントサイズの細かい
+/// 制御ができないため、`CupertinoPicker` を 2 つ並べた独自レイアウトに
+/// している（issue #84）。24 時間表記、1 分刻み。
 class MiraiTimePickerSheet extends StatefulWidget {
   const MiraiTimePickerSheet({
     super.key,
@@ -36,24 +38,36 @@ class MiraiTimePickerSheet extends StatefulWidget {
 }
 
 class _MiraiTimePickerSheetState extends State<MiraiTimePickerSheet> {
-  late TimeOfDay _current;
+  late int _hour;
+  late int _minute;
+  late final FixedExtentScrollController _hourController;
+  late final FixedExtentScrollController _minuteController;
+
+  static const double _pickerHeight = 240;
+  static const double _itemExtent = 44;
+  static const double _numberFontSize = 30;
 
   @override
   void initState() {
     super.initState();
-    _current = widget.initialTime;
+    _hour = widget.initialTime.hour;
+    _minute = widget.initialTime.minute;
+    _hourController = FixedExtentScrollController(initialItem: _hour);
+    _minuteController = FixedExtentScrollController(initialItem: _minute);
   }
 
-  void _onTimeChanged(DateTime dt) {
-    _current = TimeOfDay(hour: dt.hour, minute: dt.minute);
+  @override
+  void dispose() {
+    _hourController.dispose();
+    _minuteController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // Cupertino picker は DateTime ベースなので、ダミーの日付に
-    // 初期時刻を埋め込んで渡す。
-    final initial = DateTime(2000, 1, 1, _current.hour, _current.minute);
+    final textColor = theme.colorScheme.onSurface;
+    final labelColor = theme.colorScheme.onSurfaceVariant;
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -72,23 +86,30 @@ class _MiraiTimePickerSheetState extends State<MiraiTimePickerSheet> {
               ),
             ),
           SizedBox(
-            height: 216,
-            child: CupertinoTheme(
-              data: CupertinoThemeData(
-                textTheme: CupertinoTextThemeData(
-                  dateTimePickerTextStyle: TextStyle(
-                    fontSize: 22,
-                    color: theme.colorScheme.onSurface,
-                  ),
+            height: _pickerHeight,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _NumberWheel(
+                  controller: _hourController,
+                  itemCount: 24,
+                  itemExtent: _itemExtent,
+                  textColor: textColor,
+                  numberFontSize: _numberFontSize,
+                  onChanged: (v) => _hour = v,
                 ),
-              ),
-              child: CupertinoDatePicker(
-                mode: CupertinoDatePickerMode.time,
-                use24hFormat: true,
-                initialDateTime: initial,
-                minuteInterval: 1,
-                onDateTimeChanged: _onTimeChanged,
-              ),
+                _Unit(label: '時', color: labelColor),
+                const SizedBox(width: 32),
+                _NumberWheel(
+                  controller: _minuteController,
+                  itemCount: 60,
+                  itemExtent: _itemExtent,
+                  textColor: textColor,
+                  numberFontSize: _numberFontSize,
+                  onChanged: (v) => _minute = v,
+                ),
+                _Unit(label: '分', color: labelColor),
+              ],
             ),
           ),
           Padding(
@@ -96,12 +117,82 @@ class _MiraiTimePickerSheetState extends State<MiraiTimePickerSheet> {
             child: SizedBox(
               width: double.infinity,
               child: FilledButton(
-                onPressed: () => Navigator.of(context).pop(_current),
+                onPressed: () => Navigator.of(context).pop(
+                  TimeOfDay(hour: _hour, minute: _minute),
+                ),
                 child: const Text('決定'),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NumberWheel extends StatelessWidget {
+  const _NumberWheel({
+    required this.controller,
+    required this.itemCount,
+    required this.itemExtent,
+    required this.textColor,
+    required this.numberFontSize,
+    required this.onChanged,
+  });
+
+  final FixedExtentScrollController controller;
+  final int itemCount;
+  final double itemExtent;
+  final Color textColor;
+  final double numberFontSize;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 80,
+      child: CupertinoPicker(
+        scrollController: controller,
+        itemExtent: itemExtent,
+        useMagnifier: true,
+        magnification: 1.1,
+        squeeze: 1.2,
+        onSelectedItemChanged: onChanged,
+        children: [
+          for (var i = 0; i < itemCount; i++)
+            Center(
+              child: Text(
+                i.toString().padLeft(2, '0'),
+                style: TextStyle(
+                  fontSize: numberFontSize,
+                  color: textColor,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Unit extends StatelessWidget {
+  const _Unit({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 6),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 16,
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
