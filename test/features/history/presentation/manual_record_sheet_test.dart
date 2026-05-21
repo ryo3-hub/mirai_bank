@@ -17,7 +17,10 @@ Category _category() => Category(
       updatedAt: DateTime(2026, 1, 1),
     );
 
-WorkSession _session() => WorkSession(
+WorkSession _session({
+  WorkSessionInputMethod inputMethod = WorkSessionInputMethod.timer,
+}) =>
+    WorkSession(
       id: 'sess-1',
       categoryId: 'cat-1',
       startTime: DateTime(2026, 5, 20, 10, 0),
@@ -25,7 +28,7 @@ WorkSession _session() => WorkSession(
       durationSec: 5400,
       amount: 4500,
       memo: '既存メモ',
-      inputMethod: WorkSessionInputMethod.manual,
+      inputMethod: inputMethod,
       createdAt: DateTime(2026, 5, 20),
       updatedAt: DateTime(2026, 5, 20),
     );
@@ -50,25 +53,28 @@ void main() {
     await initializeDateFormatting('ja');
   });
 
-  group('ManualRecordSheet — 編集モードはメモのみ編集可', () {
-    testWidgets('edit mode: subtitle + lock icons appear, time/date untappable',
+  group('ManualRecordSheet — 編集制限はタイマー記録のみ', () {
+    testWidgets(
+        'timer record edit: locks category/date/time, memo remains editable',
         (tester) async {
-      await tester.pumpWidget(_harness(initial: _session()));
+      await tester.pumpWidget(_harness(
+        initial: _session(inputMethod: WorkSessionInputMethod.timer),
+      ));
       await tester.pumpAndSettle();
 
-      // 編集モード見出し + 注意書き
+      // 編集モード見出し + タイマー用の注意書き
       expect(find.text('記録を編集'), findsOneWidget);
-      expect(find.text('編集できるのはメモのみです'), findsOneWidget);
+      expect(find.text('タイマー記録のためメモのみ編集できます'), findsOneWidget);
 
-      // lock_outline は subtitle + category + date + start + end = 5 箇所
+      // lock_outline: subtitle + category + date + start + end = 5
       expect(find.byIcon(Icons.lock_outline), findsNWidgets(5));
 
-      // 編集対象アイコン（カレンダー・時計・unfold）は表示されない
+      // 編集対象アイコンは表示されない
       expect(find.byIcon(Icons.calendar_today), findsNothing);
       expect(find.byIcon(Icons.access_time), findsNothing);
       expect(find.byIcon(Icons.unfold_more), findsNothing);
 
-      // 日付・開始時刻・終了時刻のタップでピッカーが開かないこと
+      // 日付・時刻タップでピッカーが開かない
       await tester.tap(find.text('2026年5月20日 (水)'));
       await tester.pumpAndSettle();
       expect(find.byType(DatePickerDialog), findsNothing);
@@ -76,21 +82,40 @@ void main() {
       await tester.tap(find.text('10:00'));
       await tester.pumpAndSettle();
       expect(find.byType(TimePickerDialog), findsNothing);
-    });
 
-    testWidgets('edit mode: memo field remains editable', (tester) async {
-      await tester.pumpWidget(_harness(initial: _session()));
-      await tester.pumpAndSettle();
-
-      // 初期メモが表示されている
-      expect(find.text('既存メモ'), findsOneWidget);
-
-      // メモ TextField は通常通り入力可能
+      // メモは編集可能
       final memoFinder = find.widgetWithText(TextField, '既存メモ');
       expect(memoFinder, findsOneWidget);
       await tester.enterText(memoFinder, '更新後のメモ');
       await tester.pump();
       expect(find.text('更新後のメモ'), findsOneWidget);
+    });
+
+    testWidgets(
+        'manual record edit: all fields editable, no lock icons present',
+        (tester) async {
+      await tester.pumpWidget(_harness(
+        initial: _session(inputMethod: WorkSessionInputMethod.manual),
+      ));
+      await tester.pumpAndSettle();
+
+      // 編集モード見出しはあるが注意書きはなし
+      expect(find.text('記録を編集'), findsOneWidget);
+      expect(find.text('タイマー記録のためメモのみ編集できます'), findsNothing);
+
+      // lock_outline はどこにも出ない
+      expect(find.byIcon(Icons.lock_outline), findsNothing);
+
+      // 通常の編集アイコンが揃っている
+      expect(find.byIcon(Icons.calendar_today), findsOneWidget);
+      expect(find.byIcon(Icons.access_time), findsNWidgets(2));
+      expect(find.byIcon(Icons.unfold_more), findsOneWidget);
+
+      // メモも編集可能
+      final memoFinder = find.widgetWithText(TextField, '既存メモ');
+      await tester.enterText(memoFinder, '新メモ');
+      await tester.pump();
+      expect(find.text('新メモ'), findsOneWidget);
     });
 
     testWidgets('new mode: all fields editable, no lock icons present',
@@ -99,12 +124,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('手動で記録'), findsOneWidget);
-      expect(find.text('編集できるのはメモのみです'), findsNothing);
+      expect(find.text('タイマー記録のためメモのみ編集できます'), findsNothing);
 
-      // lock_outline はどこにも出ない
       expect(find.byIcon(Icons.lock_outline), findsNothing);
-
-      // 通常の編集アイコンが揃っている
       expect(find.byIcon(Icons.calendar_today), findsOneWidget);
       expect(find.byIcon(Icons.access_time), findsNWidgets(2));
       expect(find.byIcon(Icons.unfold_more), findsOneWidget);

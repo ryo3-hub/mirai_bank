@@ -45,6 +45,12 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
 
   bool get _isEdit => widget.initial != null;
 
+  /// 編集モードでカテゴリ / 日付 / 時間を読み取り専用にするか。
+  /// タイマー計測のセッションだけロックする（手動入力したセッションは
+  /// 後から自由に直せる方が自然）（issue #71）。
+  bool get _readOnlyExceptMemo =>
+      _isEdit && widget.initial!.inputMethod == WorkSessionInputMethod.timer;
+
   @override
   void initState() {
     super.initState();
@@ -267,7 +273,7 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
               _isEdit ? '記録を編集' : '手動で記録',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            if (_isEdit) ...[
+            if (_readOnlyExceptMemo) ...[
               const SizedBox(height: 6),
               Row(
                 children: [
@@ -278,7 +284,7 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    '編集できるのはメモのみです',
+                    'タイマー記録のためメモのみ編集できます',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -311,8 +317,8 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
                 return _CategoryField(
                   category: _selectedCategory,
                   errorText: _categoryError,
-                  readOnly: _isEdit,
-                  onTap: (_isEdit || categories.isEmpty)
+                  readOnly: _readOnlyExceptMemo,
+                  onTap: (_readOnlyExceptMemo || categories.isEmpty)
                       ? null
                       : () => _pickCategory(categories),
                 );
@@ -321,17 +327,17 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
             const SizedBox(height: 16),
             _DateField(
               date: _selectedDate,
-              readOnly: _isEdit,
-              onTap: _isEdit ? null : _pickDate,
+              readOnly: _readOnlyExceptMemo,
+              onTap: _readOnlyExceptMemo ? null : _pickDate,
             ),
             const SizedBox(height: 16),
             _TimeRangeField(
               startTime: _startTime,
               endTime: _endTime,
               errorText: _timeRangeError,
-              readOnly: _isEdit,
-              onPickStart: _isEdit ? null : _pickStartTime,
-              onPickEnd: _isEdit ? null : _pickEndTime,
+              readOnly: _readOnlyExceptMemo,
+              onPickStart: _readOnlyExceptMemo ? null : _pickStartTime,
+              onPickEnd: _readOnlyExceptMemo ? null : _pickEndTime,
             ),
             const SizedBox(height: 16),
             TextField(
