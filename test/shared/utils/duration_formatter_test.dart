@@ -50,4 +50,38 @@ void main() {
       expect(DurationFormatter.hourMinute(-5), '0分');
     });
   });
+
+  group('DurationFormatter.hourMinuteSecond', () {
+    test('returns "0秒" for zero', () {
+      expect(DurationFormatter.hourMinuteSecond(0), '0秒');
+    });
+
+    test('seconds only', () {
+      expect(DurationFormatter.hourMinuteSecond(45), '45秒');
+    });
+
+    test('minutes and seconds', () {
+      expect(DurationFormatter.hourMinuteSecond(65), '1分5秒');
+    });
+
+    test('minutes only when seconds are zero', () {
+      expect(DurationFormatter.hourMinuteSecond(60), '1分');
+    });
+
+    test('hours only when minutes and seconds are zero', () {
+      expect(DurationFormatter.hourMinuteSecond(3600), '1時間');
+    });
+
+    test('hours and seconds skipping zero minutes', () {
+      expect(DurationFormatter.hourMinuteSecond(3605), '1時間5秒');
+    });
+
+    test('full H/M/S combination', () {
+      expect(DurationFormatter.hourMinuteSecond(3665), '1時間1分5秒');
+    });
+
+    test('clamps negative to zero', () {
+      expect(DurationFormatter.hourMinuteSecond(-5), '0秒');
+    });
+  });
 }

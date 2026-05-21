@@ -25,7 +25,7 @@
 ### セッションカード（SessionCard）
 - アイコン円（カテゴリカラー + アイコン）
 - カテゴリ名（`Expanded + ellipsis`）+ 入力方式バッジ（タイマー / 手動）
-- 時間範囲「HH:mm–HH:mm」+ 作業時間
+- 時間範囲「HH:mm–HH:mm」+ 作業時間（`DurationFormatter.hourMinuteSecond` で秒まで表示：例 「1時間30分45秒」、issue #57）
 - メモ（任意、maxLines: 2 + ellipsis）
 - 金額（primary 色、w700）
 
