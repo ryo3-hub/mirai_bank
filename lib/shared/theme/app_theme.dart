@@ -3,13 +3,12 @@ import 'package:flutter/material.dart';
 class AppTheme {
   const AppTheme._();
 
-  static const Color _seedColor = Color(0xFF4F46E5); // Indigo
+  /// アプリのプライマリカラー（issue #87）。
+  /// Tailwind sky-500 相当の水色。FilledButton / 進捗バー / リンク等が
+  /// この色になる。FAB は別途 GitHub Green を維持。
+  static const Color _seedColor = Color(0xFF0EA5E9);
   static const Color _lightBorder = Color(0xFFE5E7EB);
   static const Color _lightSubtleSurface = Color(0xFFF7F8FA);
-
-  /// ボトムナビのアクティブカラー（issue #86）。
-  /// Tailwind sky-500 相当。アプリ全体の primary は別 issue (#87) で変更予定。
-  static const Color _navActiveColor = Color(0xFF0EA5E9);
 
   static ThemeData light() {
     final colorScheme = ColorScheme.fromSeed(
@@ -157,7 +156,7 @@ class AppTheme {
           return IconThemeData(
             size: 24,
             color: selected
-                ? _navActiveColor
+                ? colorScheme.primary
                 : colorScheme.onSurfaceVariant,
           );
         }),
@@ -167,7 +166,7 @@ class AppTheme {
             fontSize: 12,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
             color: selected
-                ? _navActiveColor
+                ? colorScheme.primary
                 : colorScheme.onSurfaceVariant,
           );
         }),
