@@ -3,11 +3,17 @@
 ## 概要
 過去の作業セッションを日別にグループ化して一覧表示し、編集・削除・新規追加を行う画面。
 
+## 動線（issue #54）
+ボトムナビには履歴タブを置かず、**設定 → 履歴** から `/settings/history` に
+プッシュ遷移する。AppBar の戻るボタンで設定一覧に戻れる。
+
+なおカレンダー画面の日付タップでもその日のセッション一覧 / 編集シートに到達できる。
+
 ## UI 構成
 
 ### 履歴一覧画面（HistoryPage）
 ```
-[AppBar] "履歴"
+[AppBar] "履歴" + 戻る
 [Body]
   CustomScrollView
     - 日付ヘッダー（SliverPersistentHeader, pinned）

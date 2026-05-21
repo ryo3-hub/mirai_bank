@@ -26,6 +26,13 @@ class SettingsPage extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push('/settings/goals'),
           ),
+          ListTile(
+            leading: const Icon(Icons.history_outlined),
+            title: const Text('履歴'),
+            subtitle: const Text('過去のセッションを一覧・追加'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/settings/history'),
+          ),
           const Divider(height: 24),
           const _SectionHeader(label: '通知'),
           ListTile(
