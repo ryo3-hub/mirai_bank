@@ -156,16 +156,22 @@ class _WeekdayPicker extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
+        // 端末幅に依存せず常に 1 行に収まるよう、各曜日を Expanded で
+        // 均等割りした独自セルにする（issue #74）。Material の FilterChip は
+        // 最小幅が大きく狭い画面で折り返してしまうため使用しない。
+        Row(
           children: [
-            for (final entry in _labels)
-              FilterChip(
-                label: Text(entry.$2),
-                selected: selected.contains(entry.$1),
-                onSelected: enabled ? (_) => onToggle(entry.$1) : null,
-                showCheckmark: false,
+            for (var i = 0; i < _labels.length; i++) ...[
+              if (i > 0) const SizedBox(width: 4),
+              Expanded(
+                child: _WeekdayCell(
+                  label: _labels[i].$2,
+                  isSelected: selected.contains(_labels[i].$1),
+                  enabled: enabled,
+                  onTap: () => onToggle(_labels[i].$1),
+                ),
               ),
+            ],
           ],
         ),
         if (warn) ...[
@@ -178,6 +184,67 @@ class _WeekdayPicker extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _WeekdayCell extends StatelessWidget {
+  const _WeekdayCell({
+    required this.label,
+    required this.isSelected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final Color bg;
+    final Color fg;
+    final Color border;
+    if (!enabled) {
+      bg = colorScheme.surfaceContainerLow;
+      fg = colorScheme.onSurfaceVariant.withValues(alpha: 0.5);
+      border = colorScheme.outlineVariant.withValues(alpha: 0.5);
+    } else if (isSelected) {
+      bg = colorScheme.primary;
+      fg = colorScheme.onPrimary;
+      border = colorScheme.primary;
+    } else {
+      bg = colorScheme.surface;
+      fg = colorScheme.onSurfaceVariant;
+      border = colorScheme.outlineVariant;
+    }
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: label,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: bg,
+            border: Border.all(color: border, width: 1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: fg,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
