@@ -6,7 +6,9 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../../shared/utils/weekday_color.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
+import '../../category/domain/category_presets.dart';
 import '../application/calendar_providers.dart';
+import '../domain/daily_stats.dart';
 import '../domain/work_session.dart';
 import 'manual_record_sheet.dart';
 import 'widgets/session_card.dart';
@@ -44,8 +46,16 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
   @override
   Widget build(BuildContext context) {
     final monthStart = DateTime(_focusedDay.year, _focusedDay.month, 1);
-    final dailyAmountAsync = ref.watch(dailyAmountMapProvider(monthStart));
-    final dailyAmount = dailyAmountAsync.value ?? const <DateTime, int>{};
+    final dailyStatsAsync = ref.watch(dailyStatsMapProvider(monthStart));
+    final dailyStats =
+        dailyStatsAsync.value ?? const <DateTime, DailyStats>{};
+    final categoriesAsync = ref.watch(categoriesListProvider);
+    final categoryColors = <String, String>{
+      for (final c in categoriesAsync.value ?? const <Category>[])
+        c.id: c.colorCode,
+    };
+    final maxAmount = dailyStats.values
+        .fold<int>(0, (m, s) => s.amount > m ? s.amount : m);
 
     return Scaffold(
       appBar: AppBar(title: const Text('カレンダー')),
@@ -54,7 +64,9 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
           _CalendarCard(
             focusedDay: _focusedDay,
             selectedDay: _selectedDay,
-            dailyAmount: dailyAmount,
+            dailyStats: dailyStats,
+            categoryColors: categoryColors,
+            maxAmount: maxAmount,
             onDaySelected: _onDaySelected,
             onPageChanged: _onPageChanged,
           ),
@@ -70,18 +82,41 @@ class _CalendarCard extends StatelessWidget {
   const _CalendarCard({
     required this.focusedDay,
     required this.selectedDay,
-    required this.dailyAmount,
+    required this.dailyStats,
+    required this.categoryColors,
+    required this.maxAmount,
     required this.onDaySelected,
     required this.onPageChanged,
   });
 
   final DateTime focusedDay;
   final DateTime selectedDay;
-  final Map<DateTime, int> dailyAmount;
+  final Map<DateTime, DailyStats> dailyStats;
+
+  /// categoryId -> hex color code (`#RRGGBB`)
+  final Map<String, String> categoryColors;
+
+  /// 月内の最大金額。ヒートマップ濃度の正規化に使う。0 のときは色なし。
+  final int maxAmount;
   final void Function(DateTime selected, DateTime focused) onDaySelected;
   final ValueChanged<DateTime> onPageChanged;
 
   DateTime _dateOnly(DateTime t) => DateTime(t.year, t.month, t.day);
+
+  Color? _dominantColorFor(DateTime day) {
+    final stats = dailyStats[_dateOnly(day)];
+    if (stats == null) return null;
+    final hex = categoryColors[stats.dominantCategoryId];
+    if (hex == null) return null;
+    return CategoryPresets.colorFor(hex);
+  }
+
+  /// amount を 0.10〜0.25 の alpha に正規化（ヒートマップ濃度）。
+  double _alphaFor(int amount) {
+    if (maxAmount <= 0 || amount <= 0) return 0;
+    final ratio = (amount / maxAmount).clamp(0.0, 1.0);
+    return 0.10 + ratio * 0.15;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -128,25 +163,34 @@ class _CalendarCard extends StatelessWidget {
               );
             },
             defaultBuilder: (context, day, _) {
+              final stats = dailyStats[_dateOnly(day)];
               return _DayCell(
                 day: day,
-                amount: dailyAmount[_dateOnly(day)] ?? 0,
+                amount: stats?.amount ?? 0,
+                dominantColor: _dominantColorFor(day),
+                bgAlpha: _alphaFor(stats?.amount ?? 0),
                 isToday: false,
                 isSelected: false,
               );
             },
             todayBuilder: (context, day, _) {
+              final stats = dailyStats[_dateOnly(day)];
               return _DayCell(
                 day: day,
-                amount: dailyAmount[_dateOnly(day)] ?? 0,
+                amount: stats?.amount ?? 0,
+                dominantColor: _dominantColorFor(day),
+                bgAlpha: _alphaFor(stats?.amount ?? 0),
                 isToday: true,
                 isSelected: false,
               );
             },
             selectedBuilder: (context, day, _) {
+              final stats = dailyStats[_dateOnly(day)];
               return _DayCell(
                 day: day,
-                amount: dailyAmount[_dateOnly(day)] ?? 0,
+                amount: stats?.amount ?? 0,
+                dominantColor: _dominantColorFor(day),
+                bgAlpha: _alphaFor(stats?.amount ?? 0),
                 isToday: isSameDay(day, DateTime.now()),
                 isSelected: true,
               );
@@ -155,6 +199,8 @@ class _CalendarCard extends StatelessWidget {
               return _DayCell(
                 day: day,
                 amount: 0,
+                dominantColor: null,
+                bgAlpha: 0,
                 isToday: false,
                 isSelected: false,
                 isOutside: true,
@@ -227,6 +273,8 @@ class _DayCell extends StatelessWidget {
   const _DayCell({
     required this.day,
     required this.amount,
+    required this.dominantColor,
+    required this.bgAlpha,
     required this.isToday,
     required this.isSelected,
     this.isOutside = false,
@@ -234,6 +282,12 @@ class _DayCell extends StatelessWidget {
 
   final DateTime day;
   final int amount;
+
+  /// その日の主カテゴリ色（金額 0 のとき / outside のときは null）
+  final Color? dominantColor;
+
+  /// 背景に適用する alpha（ヒートマップ濃度）。0 のとき塗らない。
+  final double bgAlpha;
   final bool isToday;
   final bool isSelected;
   final bool isOutside;
@@ -251,9 +305,16 @@ class _DayCell extends StatelessWidget {
       dayNumberColor = weekendColor ?? colorScheme.onSurface;
     }
 
-    final bgColor = isSelected
-        ? colorScheme.primary.withValues(alpha: 0.10)
+    final hasCategoryBg =
+        dominantColor != null && bgAlpha > 0 && !isOutside;
+    final bgColor = hasCategoryBg
+        ? dominantColor!.withValues(alpha: bgAlpha)
         : Colors.transparent;
+
+    // 選択日はカテゴリ色背景と区別するため primary の枠線で囲む。
+    final border = isSelected
+        ? Border.all(color: colorScheme.primary, width: 1.5)
+        : null;
 
     final showAmount = amount > 0 && !isOutside;
 
@@ -263,6 +324,7 @@ class _DayCell extends StatelessWidget {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(8),
+          border: border,
         ),
         child: SizedBox.expand(
           child: Column(
