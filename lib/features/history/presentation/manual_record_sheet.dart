@@ -267,6 +267,25 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
               _isEdit ? '記録を編集' : '手動で記録',
               style: Theme.of(context).textTheme.titleLarge,
             ),
+            if (_isEdit) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(
+                    Icons.lock_outline,
+                    size: 14,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '編集できるのはメモのみです',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 20),
             categoriesAsync.when(
               loading: () => const Padding(
@@ -292,7 +311,8 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
                 return _CategoryField(
                   category: _selectedCategory,
                   errorText: _categoryError,
-                  onTap: categories.isEmpty
+                  readOnly: _isEdit,
+                  onTap: (_isEdit || categories.isEmpty)
                       ? null
                       : () => _pickCategory(categories),
                 );
@@ -301,15 +321,17 @@ class _ManualRecordSheetState extends ConsumerState<ManualRecordSheet> {
             const SizedBox(height: 16),
             _DateField(
               date: _selectedDate,
-              onTap: _pickDate,
+              readOnly: _isEdit,
+              onTap: _isEdit ? null : _pickDate,
             ),
             const SizedBox(height: 16),
             _TimeRangeField(
               startTime: _startTime,
               endTime: _endTime,
               errorText: _timeRangeError,
-              onPickStart: _pickStartTime,
-              onPickEnd: _pickEndTime,
+              readOnly: _isEdit,
+              onPickStart: _isEdit ? null : _pickStartTime,
+              onPickEnd: _isEdit ? null : _pickEndTime,
             ),
             const SizedBox(height: 16),
             TextField(
@@ -384,20 +406,25 @@ class _CategoryField extends StatelessWidget {
     required this.category,
     required this.onTap,
     this.errorText,
+    this.readOnly = false,
   });
 
   final Category? category;
   final VoidCallback? onTap;
   final String? errorText;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final mutedColor = theme.colorScheme.onSurfaceVariant;
     return InputDecorator(
       decoration: InputDecoration(
         labelText: 'カテゴリ',
         border: const OutlineInputBorder(),
         errorText: errorText,
+        fillColor: readOnly ? theme.colorScheme.surfaceContainerLow : null,
+        filled: readOnly,
       ),
       child: InkWell(
         onTap: onTap,
@@ -422,6 +449,7 @@ class _CategoryField extends StatelessWidget {
                     category!.name,
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
+                    style: readOnly ? TextStyle(color: mutedColor) : null,
                   ),
                 ),
               ] else
@@ -432,7 +460,11 @@ class _CategoryField extends StatelessWidget {
                   ),
                 ),
               const SizedBox(width: 8),
-              const Icon(Icons.unfold_more, size: 20),
+              Icon(
+                readOnly ? Icons.lock_outline : Icons.unfold_more,
+                size: readOnly ? 18 : 20,
+                color: readOnly ? mutedColor : null,
+              ),
             ],
           ),
         ),
@@ -442,18 +474,27 @@ class _CategoryField extends StatelessWidget {
 }
 
 class _DateField extends StatelessWidget {
-  const _DateField({required this.date, required this.onTap});
+  const _DateField({
+    required this.date,
+    required this.onTap,
+    this.readOnly = false,
+  });
 
   final DateTime date;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final mutedColor = theme.colorScheme.onSurfaceVariant;
     final formatted = DateFormat('yyyy年M月d日 (E)', 'ja').format(date);
     return InputDecorator(
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: '日付',
-        border: OutlineInputBorder(),
+        border: const OutlineInputBorder(),
+        fillColor: readOnly ? theme.colorScheme.surfaceContainerLow : null,
+        filled: readOnly,
       ),
       child: InkWell(
         onTap: onTap,
@@ -461,9 +502,16 @@ class _DateField extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
             children: [
-              Text(formatted),
+              Text(
+                formatted,
+                style: readOnly ? TextStyle(color: mutedColor) : null,
+              ),
               const Spacer(),
-              const Icon(Icons.calendar_today, size: 18),
+              Icon(
+                readOnly ? Icons.lock_outline : Icons.calendar_today,
+                size: 18,
+                color: readOnly ? mutedColor : null,
+              ),
             ],
           ),
         ),
@@ -479,13 +527,15 @@ class _TimeRangeField extends StatelessWidget {
     required this.onPickStart,
     required this.onPickEnd,
     this.errorText,
+    this.readOnly = false,
   });
 
   final TimeOfDay startTime;
   final TimeOfDay endTime;
-  final VoidCallback onPickStart;
-  final VoidCallback onPickEnd;
+  final VoidCallback? onPickStart;
+  final VoidCallback? onPickEnd;
   final String? errorText;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -505,6 +555,7 @@ class _TimeRangeField extends StatelessWidget {
                 label: '開始',
                 time: startTime,
                 onTap: onPickStart,
+                readOnly: readOnly,
               ),
             ),
             const SizedBox(width: 12),
@@ -513,6 +564,7 @@ class _TimeRangeField extends StatelessWidget {
                 label: '終了',
                 time: endTime,
                 onTap: onPickEnd,
+                readOnly: readOnly,
               ),
             ),
           ],
@@ -537,21 +589,27 @@ class _TimeButton extends StatelessWidget {
     required this.label,
     required this.time,
     required this.onTap,
+    this.readOnly = false,
   });
 
   final String label;
   final TimeOfDay time;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool readOnly;
 
   String _format(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final mutedColor = theme.colorScheme.onSurfaceVariant;
     return InputDecorator(
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
+        fillColor: readOnly ? theme.colorScheme.surfaceContainerLow : null,
+        filled: readOnly,
       ),
       child: InkWell(
         onTap: onTap,
@@ -561,13 +619,18 @@ class _TimeButton extends StatelessWidget {
             children: [
               Text(
                 _format(time),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
-                  fontFeatures: [FontFeature.tabularFigures()],
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                  color: readOnly ? mutedColor : null,
                 ),
               ),
               const Spacer(),
-              const Icon(Icons.access_time, size: 18),
+              Icon(
+                readOnly ? Icons.lock_outline : Icons.access_time,
+                size: 18,
+                color: readOnly ? mutedColor : null,
+              ),
             ],
           ),
         ),
