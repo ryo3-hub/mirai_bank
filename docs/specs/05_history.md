@@ -73,7 +73,7 @@
 - 初期値（新規）: 今日 / 初期値（編集）: セッションの endTime の日付
 
 ### 時間帯（開始時刻 / 終了時刻）
-- 24時間表記の `showTimePicker`（`alwaysUse24HourFormat: true`）
+- `MiraiTimePickerSheet`（ドラムロール、24h、1 分刻み、issue #73）
 - 初期値（新規）: 直前 1 時間（now-1h 〜 now、分は `00` にスナップ）
 - 初期値（編集）: 既存セッションの startTime / endTime の TimeOfDay
 - バリデーション:
