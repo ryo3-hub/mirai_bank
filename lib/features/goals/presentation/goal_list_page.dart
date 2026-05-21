@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../category/application/category_providers.dart';
@@ -58,6 +59,7 @@ class _GoalListBody extends ConsumerWidget {
   final Map<String, Category> categoryMap;
 
   Future<void> _onReorder(WidgetRef ref, int oldIndex, int newIndex) {
+    HapticFeedback.lightImpact();
     // ReorderableListView の newIndex は「移動後の挿入先」を指すので、
     // 下方向への移動は -1 補正してリスト操作と整合させる。
     final reordered = [...active];
@@ -82,6 +84,7 @@ class _GoalListBody extends ConsumerWidget {
     return ReorderableListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
       itemCount: active.length,
+      onReorderStart: (_) => HapticFeedback.selectionClick(),
       onReorder: (oldIndex, newIndex) =>
           _onReorder(ref, oldIndex, newIndex),
       header: _SectionLabel(label: 'アクティブ', count: active.length),
