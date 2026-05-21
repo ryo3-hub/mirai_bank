@@ -10,7 +10,6 @@ class AppShell extends StatelessWidget {
     _Destination(icon: Icons.home_outlined, label: 'ホーム'),
     _Destination(icon: Icons.calendar_month_outlined, label: 'カレンダー'),
     _Destination(icon: Icons.bar_chart_outlined, label: '統計'),
-    _Destination(icon: Icons.history_outlined, label: '履歴'),
     _Destination(icon: Icons.settings_outlined, label: '設定'),
   ];
 

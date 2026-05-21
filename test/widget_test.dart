@@ -51,7 +51,7 @@ class _StubOnboardingState extends OnboardingState {
 }
 
 void main() {
-  testWidgets('App boots and shows bottom navigation with 5 destinations',
+  testWidgets('App boots and shows bottom navigation with 4 destinations',
       (WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -65,8 +65,9 @@ void main() {
     expect(find.text('ホーム'), findsWidgets);
     expect(find.text('カレンダー'), findsOneWidget);
     expect(find.text('統計'), findsOneWidget);
-    expect(find.text('履歴'), findsOneWidget);
     expect(find.text('設定'), findsOneWidget);
+    // 履歴 is no longer in the bottom nav (issue #54).
+    expect(find.widgetWithText(NavigationDestination, '履歴'), findsNothing);
   });
 
   testWidgets('Tapping bottom nav switches screens',
@@ -83,5 +84,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('カテゴリ管理'), findsOneWidget);
+    // 履歴 is accessible from settings, not bottom nav.
+    expect(find.text('履歴'), findsOneWidget);
   });
 }

@@ -11,12 +11,14 @@
   - SectionHeader「管理」
   - ListTile「カテゴリ管理」 → /settings/categories
   - ListTile「目標設定」 → /settings/goals
+  - ListTile「履歴」 → /settings/history       ← #54
   - Divider
   - SectionHeader「通知」
   - ListTile「通知設定」 → /settings/notifications
 ```
 
 本ページに直接の入力フィールドはなく、各 ListTile タップで子ページに遷移する。
+履歴はボトムナビからは外れており、本ページ経由でのみアクセスする（issue #54）。
 
 ## 子画面
 
@@ -31,6 +33,10 @@
 - アクティブな目標一覧 + 達成済み（折りたたみセクション）
 - FAB「目標を追加」（円形、GitHub Green、GoalEditSheet を開く）
 - 各目標カード（GoalCard）: 種別 / カテゴリ / 進捗バー / % / 金額
+
+### 履歴（/settings/history）
+- `HistoryPage`（詳細は [05_history.md](05_history.md)）
+- ボトムナビからは外れており、設定 → 履歴 経由でアクセスする
 
 ### 通知設定（/settings/notifications）
 - `NotificationSettingsPage`

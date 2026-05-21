@@ -80,14 +80,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/history',
-                builder: (context, state) => const HistoryPage(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
                 path: '/settings',
                 builder: (context, state) => const SettingsPage(),
                 routes: [
@@ -98,6 +90,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'goals',
                     builder: (context, state) => const GoalListPage(),
+                  ),
+                  GoRoute(
+                    path: 'history',
+                    builder: (context, state) => const HistoryPage(),
                   ),
                   GoRoute(
                     path: 'notifications',
