@@ -25,7 +25,6 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeTimerAsync = ref.watch(activeTimerProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('ホーム')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),

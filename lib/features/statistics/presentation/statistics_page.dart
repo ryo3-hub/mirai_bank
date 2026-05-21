@@ -21,38 +21,39 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
   Widget build(BuildContext context) {
     final statsAsync = ref.watch(periodStatsProvider(_period));
     return Scaffold(
-      appBar: AppBar(title: const Text('統計')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: SegmentedButton<StatsPeriod>(
-              segments: [
-                for (final p in StatsPeriod.values)
-                  ButtonSegment(value: p, label: Text(p.label)),
-              ],
-              selected: {_period},
-              showSelectedIcon: false,
-              onSelectionChanged: (set) =>
-                  setState(() => _period = set.first),
-              style: ButtonStyle(
-                visualDensity: VisualDensity.compact,
-                textStyle: WidgetStateProperty.all(
-                  const TextStyle(fontSize: 12),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: SegmentedButton<StatsPeriod>(
+                segments: [
+                  for (final p in StatsPeriod.values)
+                    ButtonSegment(value: p, label: Text(p.label)),
+                ],
+                selected: {_period},
+                showSelectedIcon: false,
+                onSelectionChanged: (set) =>
+                    setState(() => _period = set.first),
+                style: ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  textStyle: WidgetStateProperty.all(
+                    const TextStyle(fontSize: 12),
+                  ),
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child: statsAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
-              error: (e, _) =>
-                  Center(child: Text('読み込みに失敗しました: $e')),
-              data: (stats) => _StatsBody(stats: stats),
+            Expanded(
+              child: statsAsync.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (e, _) =>
+                    Center(child: Text('読み込みに失敗しました: $e')),
+                data: (stats) => _StatsBody(stats: stats),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

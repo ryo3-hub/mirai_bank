@@ -58,21 +58,22 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
         .fold<int>(0, (m, s) => s.amount > m ? s.amount : m);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('カレンダー')),
-      body: Column(
-        children: [
-          _CalendarCard(
-            focusedDay: _focusedDay,
-            selectedDay: _selectedDay,
-            dailyStats: dailyStats,
-            categoryColors: categoryColors,
-            maxAmount: maxAmount,
-            onDaySelected: _onDaySelected,
-            onPageChanged: _onPageChanged,
-          ),
-          const Divider(height: 1),
-          Expanded(child: _DaySessionsView(date: _selectedDay)),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            _CalendarCard(
+              focusedDay: _focusedDay,
+              selectedDay: _selectedDay,
+              dailyStats: dailyStats,
+              categoryColors: categoryColors,
+              maxAmount: maxAmount,
+              onDaySelected: _onDaySelected,
+              onPageChanged: _onPageChanged,
+            ),
+            const Divider(height: 1),
+            Expanded(child: _DaySessionsView(date: _selectedDay)),
+          ],
+        ),
       ),
     );
   }
