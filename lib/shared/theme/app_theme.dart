@@ -7,6 +7,10 @@ class AppTheme {
   static const Color _lightBorder = Color(0xFFE5E7EB);
   static const Color _lightSubtleSurface = Color(0xFFF7F8FA);
 
+  /// ボトムナビのアクティブカラー（issue #86）。
+  /// Tailwind sky-500 相当。アプリ全体の primary は別 issue (#87) で変更予定。
+  static const Color _navActiveColor = Color(0xFF0EA5E9);
+
   static ThemeData light() {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: _seedColor,
@@ -153,7 +157,7 @@ class AppTheme {
           return IconThemeData(
             size: 24,
             color: selected
-                ? colorScheme.primary
+                ? _navActiveColor
                 : colorScheme.onSurfaceVariant,
           );
         }),
@@ -163,7 +167,7 @@ class AppTheme {
             fontSize: 12,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
             color: selected
-                ? colorScheme.primary
+                ? _navActiveColor
                 : colorScheme.onSurfaceVariant,
           );
         }),
