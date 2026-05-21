@@ -43,6 +43,14 @@ class $CategoriesTable extends Categories
   late final GeneratedColumn<String> iconCode = GeneratedColumn<String>(
       'icon_code', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _sortOrderMeta =
+      const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+      'sort_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -68,6 +76,7 @@ class $CategoriesTable extends Categories
         hourlyRate,
         colorCode,
         iconCode,
+        sortOrder,
         createdAt,
         updatedAt,
         deletedAt
@@ -113,6 +122,10 @@ class $CategoriesTable extends Categories
     } else if (isInserting) {
       context.missing(_iconCodeMeta);
     }
+    if (data.containsKey('sort_order')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -148,6 +161,8 @@ class $CategoriesTable extends Categories
           .read(DriftSqlType.string, data['${effectivePrefix}color_code'])!,
       iconCode: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}icon_code'])!,
+      sortOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -169,6 +184,10 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
   final int hourlyRate;
   final String colorCode;
   final String iconCode;
+
+  /// ユーザーが任意に並び替えできる表示順。
+  /// 新規追加時はアクティブカテゴリの現在の最大値+1 を割り当て、末尾に追加される。
+  final int sortOrder;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -178,6 +197,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       required this.hourlyRate,
       required this.colorCode,
       required this.iconCode,
+      required this.sortOrder,
       required this.createdAt,
       required this.updatedAt,
       this.deletedAt});
@@ -189,6 +209,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
     map['hourly_rate'] = Variable<int>(hourlyRate);
     map['color_code'] = Variable<String>(colorCode);
     map['icon_code'] = Variable<String>(iconCode);
+    map['sort_order'] = Variable<int>(sortOrder);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -204,6 +225,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       hourlyRate: Value(hourlyRate),
       colorCode: Value(colorCode),
       iconCode: Value(iconCode),
+      sortOrder: Value(sortOrder),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
@@ -221,6 +243,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       hourlyRate: serializer.fromJson<int>(json['hourlyRate']),
       colorCode: serializer.fromJson<String>(json['colorCode']),
       iconCode: serializer.fromJson<String>(json['iconCode']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -235,6 +258,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       'hourlyRate': serializer.toJson<int>(hourlyRate),
       'colorCode': serializer.toJson<String>(colorCode),
       'iconCode': serializer.toJson<String>(iconCode),
+      'sortOrder': serializer.toJson<int>(sortOrder),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -247,6 +271,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           int? hourlyRate,
           String? colorCode,
           String? iconCode,
+          int? sortOrder,
           DateTime? createdAt,
           DateTime? updatedAt,
           Value<DateTime?> deletedAt = const Value.absent()}) =>
@@ -256,6 +281,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
         hourlyRate: hourlyRate ?? this.hourlyRate,
         colorCode: colorCode ?? this.colorCode,
         iconCode: iconCode ?? this.iconCode,
+        sortOrder: sortOrder ?? this.sortOrder,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
         deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -268,6 +294,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           data.hourlyRate.present ? data.hourlyRate.value : this.hourlyRate,
       colorCode: data.colorCode.present ? data.colorCode.value : this.colorCode,
       iconCode: data.iconCode.present ? data.iconCode.value : this.iconCode,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
@@ -282,6 +309,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           ..write('hourlyRate: $hourlyRate, ')
           ..write('colorCode: $colorCode, ')
           ..write('iconCode: $iconCode, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
@@ -291,7 +319,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
 
   @override
   int get hashCode => Object.hash(id, name, hourlyRate, colorCode, iconCode,
-      createdAt, updatedAt, deletedAt);
+      sortOrder, createdAt, updatedAt, deletedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -301,6 +329,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           other.hourlyRate == this.hourlyRate &&
           other.colorCode == this.colorCode &&
           other.iconCode == this.iconCode &&
+          other.sortOrder == this.sortOrder &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
@@ -312,6 +341,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
   final Value<int> hourlyRate;
   final Value<String> colorCode;
   final Value<String> iconCode;
+  final Value<int> sortOrder;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -322,6 +352,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     this.hourlyRate = const Value.absent(),
     this.colorCode = const Value.absent(),
     this.iconCode = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -333,6 +364,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     required int hourlyRate,
     required String colorCode,
     required String iconCode,
+    this.sortOrder = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
@@ -350,6 +382,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     Expression<int>? hourlyRate,
     Expression<String>? colorCode,
     Expression<String>? iconCode,
+    Expression<int>? sortOrder,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -361,6 +394,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       if (hourlyRate != null) 'hourly_rate': hourlyRate,
       if (colorCode != null) 'color_code': colorCode,
       if (iconCode != null) 'icon_code': iconCode,
+      if (sortOrder != null) 'sort_order': sortOrder,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -374,6 +408,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       Value<int>? hourlyRate,
       Value<String>? colorCode,
       Value<String>? iconCode,
+      Value<int>? sortOrder,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
       Value<DateTime?>? deletedAt,
@@ -384,6 +419,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       hourlyRate: hourlyRate ?? this.hourlyRate,
       colorCode: colorCode ?? this.colorCode,
       iconCode: iconCode ?? this.iconCode,
+      sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -409,6 +445,9 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     if (iconCode.present) {
       map['icon_code'] = Variable<String>(iconCode.value);
     }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -432,6 +471,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
           ..write('hourlyRate: $hourlyRate, ')
           ..write('colorCode: $colorCode, ')
           ..write('iconCode: $iconCode, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -2145,6 +2185,7 @@ typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   required int hourlyRate,
   required String colorCode,
   required String iconCode,
+  Value<int> sortOrder,
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<DateTime?> deletedAt,
@@ -2156,6 +2197,7 @@ typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
   Value<int> hourlyRate,
   Value<String> colorCode,
   Value<String> iconCode,
+  Value<int> sortOrder,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
@@ -2235,6 +2277,9 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<String> get iconCode => $composableBuilder(
       column: $table.iconCode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -2333,6 +2378,9 @@ class $$CategoriesTableOrderingComposer
   ColumnOrderings<String> get iconCode => $composableBuilder(
       column: $table.iconCode, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -2366,6 +2414,9 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<String> get iconCode =>
       $composableBuilder(column: $table.iconCode, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2469,6 +2520,7 @@ class $$CategoriesTableTableManager extends RootTableManager<
             Value<int> hourlyRate = const Value.absent(),
             Value<String> colorCode = const Value.absent(),
             Value<String> iconCode = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<DateTime?> deletedAt = const Value.absent(),
@@ -2480,6 +2532,7 @@ class $$CategoriesTableTableManager extends RootTableManager<
             hourlyRate: hourlyRate,
             colorCode: colorCode,
             iconCode: iconCode,
+            sortOrder: sortOrder,
             createdAt: createdAt,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
@@ -2491,6 +2544,7 @@ class $$CategoriesTableTableManager extends RootTableManager<
             required int hourlyRate,
             required String colorCode,
             required String iconCode,
+            Value<int> sortOrder = const Value.absent(),
             required DateTime createdAt,
             required DateTime updatedAt,
             Value<DateTime?> deletedAt = const Value.absent(),
@@ -2502,6 +2556,7 @@ class $$CategoriesTableTableManager extends RootTableManager<
             hourlyRate: hourlyRate,
             colorCode: colorCode,
             iconCode: iconCode,
+            sortOrder: sortOrder,
             createdAt: createdAt,
             updatedAt: updatedAt,
             deletedAt: deletedAt,

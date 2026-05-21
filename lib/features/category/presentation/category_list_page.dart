@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../shared/widgets/confirm_dialog.dart';
+import '../../../shared/widgets/top_toast.dart';
 import '../application/category_providers.dart';
 import '../domain/category.dart';
 import '../domain/category_presets.dart';
-import '../../../shared/widgets/confirm_dialog.dart';
-import '../../../shared/widgets/top_toast.dart';
 import 'category_edit_sheet.dart';
 
 class CategoryListPage extends ConsumerWidget {
@@ -26,21 +27,93 @@ class CategoryListPage extends ConsumerWidget {
           if (categories.isEmpty) {
             return const _EmptyState();
           }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: categories.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final category = categories[index];
-              return _CategoryCard(category: category);
-            },
-          );
+          return _CategoryReorderableList(categories: categories);
         },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => CategoryEditSheet.show(context),
         tooltip: '追加',
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class _CategoryReorderableList extends ConsumerWidget {
+  const _CategoryReorderableList({required this.categories});
+
+  final List<Category> categories;
+
+  Future<void> _onReorder(WidgetRef ref, int oldIndex, int newIndex) {
+    HapticFeedback.lightImpact();
+    // ReorderableListView の newIndex は「移動後の挿入先」を指すので、
+    // 下方向への移動は -1 補正してリスト操作と整合させる。
+    final reordered = [...categories];
+    final adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    final item = reordered.removeAt(oldIndex);
+    reordered.insert(adjustedNewIndex, item);
+    final orderedIds = reordered.map((c) => c.id).toList();
+    return ref.read(categoryControllerProvider.notifier).reorder(orderedIds);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ReorderableListView.builder(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 96),
+      itemCount: categories.length,
+      onReorderStart: (_) => HapticFeedback.selectionClick(),
+      onReorder: (oldIndex, newIndex) => _onReorder(ref, oldIndex, newIndex),
+      header: _SectionLabel(count: categories.length),
+      itemBuilder: (context, index) {
+        final category = categories[index];
+        return Padding(
+          key: ValueKey(category.id),
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: _CategoryCard(category: category),
+        );
+      },
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+      child: Row(
+        children: [
+          Text(
+            'カテゴリ',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$count件',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          const Spacer(),
+          Icon(
+            Icons.drag_indicator,
+            size: 16,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '長押しで並び替え',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+          ),
+        ],
       ),
     );
   }

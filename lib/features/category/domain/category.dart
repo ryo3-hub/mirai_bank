@@ -5,6 +5,7 @@ class Category {
     required this.hourlyRate,
     required this.colorCode,
     required this.iconCode,
+    this.sortOrder = 0,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -15,6 +16,7 @@ class Category {
   final int hourlyRate;
   final String colorCode;
   final String iconCode;
+  final int sortOrder;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -55,6 +57,7 @@ class Category {
     int? hourlyRate,
     String? colorCode,
     String? iconCode,
+    int? sortOrder,
     DateTime? updatedAt,
     DateTime? deletedAt,
   }) {
@@ -64,6 +67,7 @@ class Category {
       hourlyRate: hourlyRate ?? this.hourlyRate,
       colorCode: colorCode ?? this.colorCode,
       iconCode: iconCode ?? this.iconCode,
+      sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,

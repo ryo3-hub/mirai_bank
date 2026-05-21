@@ -7,6 +7,10 @@ class Categories extends Table {
   IntColumn get hourlyRate => integer()();
   TextColumn get colorCode => text().withLength(min: 4, max: 9)();
   TextColumn get iconCode => text()();
+
+  /// ユーザーが任意に並び替えできる表示順。
+  /// 新規追加時はアクティブカテゴリの現在の最大値+1 を割り当て、末尾に追加される。
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();

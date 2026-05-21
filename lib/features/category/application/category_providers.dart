@@ -49,4 +49,8 @@ class CategoryController extends _$CategoryController {
   Future<void> delete(String id) {
     return ref.read(categoryRepositoryProvider).softDelete(id);
   }
+
+  Future<void> reorder(List<String> orderedIds) {
+    return ref.read(categoryRepositoryProvider).reorder(orderedIds);
+  }
 }
