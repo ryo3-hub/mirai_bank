@@ -9,6 +9,7 @@ import '../features/history/presentation/calendar_page.dart';
 import '../features/history/presentation/history_page.dart';
 import '../features/onboarding/application/onboarding_state.dart';
 import '../features/onboarding/presentation/onboarding_page.dart';
+import '../features/settings/presentation/notification_settings_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 import '../features/statistics/presentation/statistics_page.dart';
 import '../features/timer/presentation/home_page.dart';
@@ -97,6 +98,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'goals',
                     builder: (context, state) => const GoalListPage(),
+                  ),
+                  GoRoute(
+                    path: 'notifications',
+                    builder: (context, state) =>
+                        const NotificationSettingsPage(),
                   ),
                 ],
               ),
