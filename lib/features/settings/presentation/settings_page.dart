@@ -33,6 +33,13 @@ class SettingsPage extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/settings/history'),
             ),
+            ListTile(
+              leading: const Icon(Icons.timer_outlined),
+              title: const Text('タイマープリセット'),
+              subtitle: const Text('15分 / 30分 などの集中時間を編集'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/settings/timer-presets'),
+            ),
             const Divider(height: 24),
             const _SectionHeader(label: '通知'),
             ListTile(

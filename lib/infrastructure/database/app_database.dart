@@ -10,7 +10,14 @@ import 'tables.dart';
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Categories, WorkSessions, ActiveTimers, Goals, Settings],
+  tables: [
+    Categories,
+    WorkSessions,
+    ActiveTimers,
+    Goals,
+    Settings,
+    TimerPresets,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -18,11 +25,15 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) => m.createAll(),
+        onCreate: (m) async {
+          await m.createAll();
+          // 初回起動時にデフォルトのタイマープリセット 3 件をシード。
+          await _seedDefaultTimerPresets();
+        },
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             // v2: Goals に sortOrder カラムを追加。既存目標は createdAt 昇順で
@@ -54,8 +65,46 @@ class AppDatabase extends _$AppDatabase {
                   .write(CategoriesCompanion(sortOrder: Value(i)));
             }
           }
+          if (from < 5) {
+            // v5: ActiveTimers に target/accumulated/resumedAt 追加 +
+            // TimerPresets テーブル新設 + デフォルトプリセットをシード。
+            await m.addColumn(
+              activeTimers,
+              activeTimers.targetDurationSec,
+            );
+            await m.addColumn(activeTimers, activeTimers.accumulatedSec);
+            await m.addColumn(activeTimers, activeTimers.resumedAt);
+            await m.createTable(timerPresets);
+            await _seedDefaultTimerPresets();
+          }
         },
       );
+
+  /// デフォルトのタイマープリセットを 3 件シードする。
+  /// 既にレコードがある場合は何もしない（onCreate / onUpgrade 双方から呼ぶため）。
+  Future<void> _seedDefaultTimerPresets() async {
+    final existing = await select(timerPresets).get();
+    if (existing.isNotEmpty) return;
+    final now = DateTime.now();
+    const defaults = [
+      (id: 'default-15', minutes: 15, label: 'さくっと集中', sortOrder: 0),
+      (id: 'default-30', minutes: 30, label: '集中する', sortOrder: 1),
+      (id: 'default-60', minutes: 60, label: 'じっくり腰を据えて', sortOrder: 2),
+    ];
+    for (final d in defaults) {
+      await into(timerPresets).insert(
+        TimerPresetsCompanion(
+          id: Value(d.id),
+          minutes: Value(d.minutes),
+          label: Value(d.label),
+          sortOrder: Value(d.sortOrder),
+          isDefault: const Value(true),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      );
+    }
+  }
 
   static QueryExecutor _openConnection() {
     return LazyDatabase(() async {

@@ -44,6 +44,39 @@ class ActiveTimers extends Table {
   DateTimeColumn get startTime => dateTime()();
   TextColumn get memo => text().nullable()();
 
+  /// 目標時間（秒）。プリセットを開始したときの target を保持。
+  /// v5 で追加。既存タイマー（v4 以前）は 0 で初期化される。
+  IntColumn get targetDurationSec =>
+      integer().withDefault(const Constant(0))();
+
+  /// 一時停止までの累積稼働秒数。
+  /// 一時停止 / 再開を跨いだ正しい経過時間は
+  /// `accumulatedSec + (resumedAt != null ? (now - resumedAt).inSeconds : 0)`
+  /// で求める。v5 で追加。
+  IntColumn get accumulatedSec =>
+      integer().withDefault(const Constant(0))();
+
+  /// 直近で再開（または開始）した時刻。null のときは一時停止中。
+  /// v5 で追加。
+  DateTimeColumn get resumedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// タイマーで使うプリセット時間。デフォルトの 15 / 30 / 60 分はシードされ、
+/// ユーザーが追加・削除（ソフトデリート）できる。v5 で導入。
+@DataClassName('TimerPresetRow')
+class TimerPresets extends Table {
+  TextColumn get id => text()();
+  IntColumn get minutes => integer()();
+  TextColumn get label => text().withDefault(const Constant(''))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  BoolColumn get isDefault => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

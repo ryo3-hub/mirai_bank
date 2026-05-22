@@ -12,6 +12,7 @@
   - ListTile「カテゴリ管理」 → /settings/categories
   - ListTile「目標設定」 → /settings/goals
   - ListTile「履歴」 → /settings/history       ← #54
+  - ListTile「タイマープリセット」 → /settings/timer-presets  ← #95
   - Divider
   - SectionHeader「通知」
   - ListTile「通知設定」 → /settings/notifications

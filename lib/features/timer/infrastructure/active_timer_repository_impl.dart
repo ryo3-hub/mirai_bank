@@ -30,9 +30,10 @@ class ActiveTimerRepositoryImpl implements ActiveTimerRepository {
   }
 
   @override
-  Future<void> save({
+  Future<void> start({
     required String categoryId,
     required DateTime startTime,
+    required int targetDurationSec,
     String? memo,
   }) async {
     await _db.into(_table).insertOnConflictUpdate(
@@ -40,9 +41,41 @@ class ActiveTimerRepositoryImpl implements ActiveTimerRepository {
             id: const Value(_singletonId),
             categoryId: Value(categoryId),
             startTime: Value(startTime),
+            targetDurationSec: Value(targetDurationSec),
+            accumulatedSec: const Value(0),
+            resumedAt: Value(startTime),
             memo: Value(memo),
           ),
         );
+  }
+
+  @override
+  Future<void> pause({required DateTime now}) async {
+    final current = await fetch();
+    if (current == null || current.isPaused) return;
+    final newAccumulated = current.elapsedSecondsAt(now);
+    await (_db.update(_table)..where((t) => t.id.equals(_singletonId))).write(
+      ActiveTimersCompanion(
+        accumulatedSec: Value(newAccumulated),
+        resumedAt: const Value(null),
+      ),
+    );
+  }
+
+  @override
+  Future<void> resume({required DateTime now}) async {
+    final current = await fetch();
+    if (current == null || !current.isPaused) return;
+    await (_db.update(_table)..where((t) => t.id.equals(_singletonId))).write(
+      ActiveTimersCompanion(resumedAt: Value(now)),
+    );
+  }
+
+  @override
+  Future<void> updateMemo(String? memo) async {
+    await (_db.update(_table)..where((t) => t.id.equals(_singletonId))).write(
+      ActiveTimersCompanion(memo: Value(memo)),
+    );
   }
 
   @override
@@ -54,6 +87,9 @@ class ActiveTimerRepositoryImpl implements ActiveTimerRepository {
     return ActiveTimer(
       categoryId: row.categoryId,
       startTime: row.startTime,
+      targetDurationSec: row.targetDurationSec,
+      accumulatedSec: row.accumulatedSec,
+      resumedAt: row.resumedAt,
       memo: row.memo,
     );
   }

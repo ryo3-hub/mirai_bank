@@ -12,12 +12,42 @@ import 'package:mirai_bank/features/history/domain/session_summary.dart';
 import 'package:mirai_bank/features/onboarding/application/onboarding_state.dart';
 import 'package:mirai_bank/features/settings/application/setting_providers.dart';
 import 'package:mirai_bank/features/settings/domain/app_setting.dart';
+import 'package:mirai_bank/features/timer/application/timer_preset_providers.dart';
 import 'package:mirai_bank/features/timer/application/timer_providers.dart';
+import 'package:mirai_bank/features/timer/domain/timer_preset.dart';
 
 List<Override> _stubOverrides() {
   final now = DateTime(2026, 5, 19);
   return [
     activeTimerProvider.overrideWith((ref) => Stream.value(null)),
+    timerPresetListProvider.overrideWith(
+      (ref) => Stream.value(<TimerPreset>[
+        TimerPreset(
+          id: 'p15',
+          minutes: 15,
+          label: 'さくっと集中',
+          isDefault: true,
+          createdAt: now,
+          updatedAt: now,
+        ),
+        TimerPreset(
+          id: 'p30',
+          minutes: 30,
+          label: '集中する',
+          isDefault: true,
+          createdAt: now,
+          updatedAt: now,
+        ),
+        TimerPreset(
+          id: 'p60',
+          minutes: 60,
+          label: 'じっくり腰を据えて',
+          isDefault: true,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]),
+    ),
     categoriesListProvider.overrideWith(
       (ref) => Stream.value(<Category>[
         Category(

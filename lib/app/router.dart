@@ -13,6 +13,7 @@ import '../features/settings/presentation/notification_settings_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 import '../features/statistics/presentation/statistics_page.dart';
 import '../features/timer/presentation/home_page.dart';
+import '../features/timer/presentation/timer_preset_list_page.dart';
 import '../shared/widgets/app_shell.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -99,6 +100,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: 'notifications',
                     builder: (context, state) =>
                         const NotificationSettingsPage(),
+                  ),
+                  GoRoute(
+                    path: 'timer-presets',
+                    builder: (context, state) =>
+                        const TimerPresetListPage(),
                   ),
                 ],
               ),

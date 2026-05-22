@@ -10,6 +10,7 @@ class NotificationService {
   static final NotificationService instance = NotificationService._();
 
   static const int _timerNotificationId = 1001;
+  static const int _timerCompletionNotificationId = 1010;
   // Legacy single-id reminder（v1 互換、cancelDailyReminder で清掃する）。
   static const int _legacyReminderNotificationId = 1002;
   // 曜日ごとに別 ID を使う：基底 + DateTime.weekday (1..7)
@@ -150,6 +151,79 @@ class NotificationService {
       await _plugin.cancel(_timerNotificationId);
     } catch (e, st) {
       debugPrint('cancelOngoingTimer failed: $e\n$st');
+    }
+  }
+
+  /// カウントダウンタイマー完了時の push 通知を [fireAt] にスケジュールする。
+  /// 既存のスケジュールがあれば上書き。一時停止 / 停止 / 完了時にキャンセルする。
+  Future<void> scheduleTimerCompletion({
+    required DateTime fireAt,
+    required String title,
+    required String body,
+  }) async {
+    if (!_initialized) return;
+    try {
+      await cancelTimerCompletion();
+      final scheduled = tz.TZDateTime.from(fireAt, tz.local);
+      if (!scheduled.isAfter(tz.TZDateTime.now(tz.local))) {
+        // 過去時刻 → 即座に通知（fire-and-forget）。
+        await _plugin.show(
+          _timerCompletionNotificationId,
+          title,
+          body,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              _achievementChannelId,
+              _achievementChannelName,
+              channelDescription: _achievementChannelDescription,
+              importance: Importance.high,
+              priority: Priority.high,
+            ),
+            iOS: DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
+          ),
+        );
+        return;
+      }
+      await _plugin.zonedSchedule(
+        _timerCompletionNotificationId,
+        title,
+        body,
+        scheduled,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _achievementChannelId,
+            _achievementChannelName,
+            channelDescription: _achievementChannelDescription,
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        // alarmClock を使うと SCHEDULE_EXACT_ALARM 権限を別途要求せずに
+        // 正確な発火が得られる（端末再起動後も保持される）。
+        androidScheduleMode: AndroidScheduleMode.alarmClock,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (e, st) {
+      debugPrint('scheduleTimerCompletion failed: $e\n$st');
+    }
+  }
+
+  Future<void> cancelTimerCompletion() async {
+    if (!_initialized) return;
+    try {
+      await _plugin.cancel(_timerCompletionNotificationId);
+    } catch (e, st) {
+      debugPrint('cancelTimerCompletion failed: $e\n$st');
     }
   }
 
