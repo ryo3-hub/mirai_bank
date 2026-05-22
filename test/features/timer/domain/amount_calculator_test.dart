@@ -45,24 +45,28 @@ void main() {
     });
   });
 
-  group('AmountCalculator.paidDurationSec (15 分単位切り下げ)', () {
+  group('AmountCalculator.paidDurationSec (5 分単位切り下げ)', () {
     test('0 / negative → 0', () {
       expect(AmountCalculator.paidDurationSec(0), 0);
       expect(AmountCalculator.paidDurationSec(-100), 0);
     });
 
-    test('under 15 minutes → 0', () {
-      expect(AmountCalculator.paidDurationSec(14 * 60), 0);
-      expect(AmountCalculator.paidDurationSec(15 * 60 - 1), 0);
+    test('under 5 minutes → 0', () {
+      expect(AmountCalculator.paidDurationSec(4 * 60 + 59), 0);
+      expect(AmountCalculator.paidDurationSec(5 * 60 - 1), 0);
+    });
+
+    test('exactly 5 minutes → 5 minutes', () {
+      expect(AmountCalculator.paidDurationSec(5 * 60), 5 * 60);
+    });
+
+    test('between 5 and 10 minutes → 5 minutes', () {
+      expect(AmountCalculator.paidDurationSec(7 * 60), 5 * 60);
+      expect(AmountCalculator.paidDurationSec(9 * 60 + 59), 5 * 60);
     });
 
     test('exactly 15 minutes → 15 minutes', () {
       expect(AmountCalculator.paidDurationSec(15 * 60), 15 * 60);
-    });
-
-    test('between 15 and 30 minutes → 15 minutes', () {
-      expect(AmountCalculator.paidDurationSec(23 * 60), 15 * 60);
-      expect(AmountCalculator.paidDurationSec(29 * 60 + 59), 15 * 60);
     });
 
     test('exactly 30 minutes → 30 minutes', () {
@@ -74,14 +78,34 @@ void main() {
     });
   });
 
-  group('AmountCalculator.calculatePaid (15 分単位 + 時給)', () {
-    test('時給 2000 円 / 14:59 → 0 円', () {
+  group('AmountCalculator.calculatePaid (5 分単位 + 時給)', () {
+    test('時給 2000 円 / 4:59 → 0 円', () {
       expect(
         AmountCalculator.calculatePaid(
-          workedSec: 14 * 60 + 59,
+          workedSec: 4 * 60 + 59,
           hourlyRate: 2000,
         ),
         0,
+      );
+    });
+
+    test('時給 2000 円 / 5:00 → 167 円（2000 * 300/3600 = 166.67 → 四捨五入で 167）', () {
+      expect(
+        AmountCalculator.calculatePaid(
+          workedSec: 5 * 60,
+          hourlyRate: 2000,
+        ),
+        167,
+      );
+    });
+
+    test('時給 2000 円 / 9:59 → 167 円（5 分切り下げ）', () {
+      expect(
+        AmountCalculator.calculatePaid(
+          workedSec: 9 * 60 + 59,
+          hourlyRate: 2000,
+        ),
+        167,
       );
     });
 
@@ -89,16 +113,6 @@ void main() {
       expect(
         AmountCalculator.calculatePaid(
           workedSec: 15 * 60,
-          hourlyRate: 2000,
-        ),
-        500,
-      );
-    });
-
-    test('時給 2000 円 / 23:00 → 500 円（15 分切り下げ）', () {
-      expect(
-        AmountCalculator.calculatePaid(
-          workedSec: 23 * 60,
           hourlyRate: 2000,
         ),
         500,

@@ -207,7 +207,9 @@ class NotificationService {
             presentSound: true,
           ),
         ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        // alarmClock を使うと SCHEDULE_EXACT_ALARM 権限を別途要求せずに
+        // 正確な発火が得られる（端末再起動後も保持される）。
+        androidScheduleMode: AndroidScheduleMode.alarmClock,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );

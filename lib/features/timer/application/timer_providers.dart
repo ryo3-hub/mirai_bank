@@ -54,6 +54,9 @@ class TimerController extends _$TimerController {
     required int targetDurationSec,
     String? memo,
   }) async {
+    // 完了通知をきちんと届けるため、初回起動時にまだ要求していなければ
+    // ここで通知権限を確認しておく（既に許可済みなら no-op）。
+    await NotificationService.instance.requestPermissions();
     final now = DateTime.now();
     await ref.read(activeTimerRepositoryProvider).start(
           categoryId: categoryId,
@@ -66,13 +69,13 @@ class TimerController extends _$TimerController {
     if (category != null) {
       await NotificationService.instance.showOngoingTimer(
         categoryName: category.name,
-        subtitle: '集中タイム計測中',
+        subtitle: '作業時間を計測中',
       );
       // 完了時の push 通知をスケジュール（一時停止 / 停止 / 完了時にキャンセル）
       await NotificationService.instance.scheduleTimerCompletion(
         fireAt: now.add(Duration(seconds: targetDurationSec)),
         title: '⏰ タイマー完了！',
-        body: '${category.name} の集中タイムが完了しました',
+        body: '${category.name} の作業時間が完了しました',
       );
     }
   }
@@ -100,7 +103,7 @@ class TimerController extends _$TimerController {
         await NotificationService.instance.scheduleTimerCompletion(
           fireAt: now.add(Duration(seconds: remaining)),
           title: '⏰ タイマー完了！',
-          body: '${category.name} の集中タイムが完了しました',
+          body: '${category.name} の作業時間が完了しました',
         );
       }
     }
@@ -129,7 +132,7 @@ class TimerController extends _$TimerController {
     await NotificationService.instance.cancelTimerCompletion();
     await NotificationService.instance.cancelOngoingTimer();
 
-    // 15 分未満は記録しない
+    // 課金単位（5 分）未満は記録しない
     if (paidSec <= 0) {
       await ref.read(activeTimerRepositoryProvider).clear();
       return null;

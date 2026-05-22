@@ -503,7 +503,7 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
       if (session != null) {
         AmountFlash.show(context, session.amount);
       } else if (!auto) {
-        TopToast.show(context, message: '15 分未満だったので記録しませんでした');
+        TopToast.show(context, message: '5 分未満だったので記録しませんでした');
       }
     } catch (e) {
       if (mounted) {
