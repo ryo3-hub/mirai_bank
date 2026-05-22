@@ -28,8 +28,11 @@
 #### idle (タイマー停止中、かつカテゴリあり)
 - 「タイマーで学習を始める」見出し
 - カテゴリ選択カード（タップで `CategoryPickerSheet`）
-- FilledButton「プリセットを選んで開始」→ `TimerPresetPickerSheet` を開く
-- プリセット選択でカウントダウンタイマーが起動
+- **プリセット選択行**（最大 3 つを横並びで表示、`Row` + `Expanded`）
+  - 各カードは「XX 分」+ 説明、選択中は `primaryContainer` 背景 + primary 枠
+  - 4 件目以降はホームに出ない（`/settings/timer-presets` で管理）
+  - 0 件のときは「プリセットを追加」リンクを表示
+- FilledButton「N 分で開始」→ 選んだプリセットでカウントダウン起動
 
 #### running (タイマー稼働中 / 一時停止中)
 - カテゴリヘッダー（アイコン + 名前 + 「集中中」or「一時停止中」バッジ）
@@ -97,7 +100,6 @@
 
 ## 関連ファイル
 - `lib/features/timer/presentation/home_page.dart`
-- `lib/features/timer/presentation/timer_preset_picker_sheet.dart`
 - `lib/features/timer/presentation/timer_preset_list_page.dart`
 - `lib/features/timer/presentation/timer_preset_edit_sheet.dart`
 - `lib/features/timer/presentation/widgets/today_amount_card.dart`

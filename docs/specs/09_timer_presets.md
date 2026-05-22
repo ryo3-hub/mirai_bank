@@ -69,14 +69,15 @@
 
 新規追加時の `sortOrder` は `max(sortOrder) + 1`。
 
-## ピッカーとの連動
-ホームの `TimerPresetPickerSheet`（タイマー開始時のシート）も同じ
-`timerPresetListProvider` を購読する。追加 / 削除は `watchAll` 経由で即時反映。
+## ホームとの連動
+ホームのタイマーカード（`HomePage`）も同じ `timerPresetListProvider`
+を購読し、先頭から **最大 3 件** をプリセットカードとしてインライン表示する。
+追加 / 削除は `watchAll` 経由で即時反映。
 
 ## 関連ファイル
 - `lib/features/timer/presentation/timer_preset_list_page.dart`
 - `lib/features/timer/presentation/timer_preset_edit_sheet.dart`
-- `lib/features/timer/presentation/timer_preset_picker_sheet.dart`
+- `lib/features/timer/presentation/home_page.dart`（プリセット選択 UI）
 - `lib/features/timer/application/timer_preset_providers.dart`
 - `lib/features/timer/infrastructure/timer_preset_repository*.dart`
 - `lib/features/timer/domain/timer_preset.dart`

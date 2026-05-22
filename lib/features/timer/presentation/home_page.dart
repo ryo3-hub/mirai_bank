@@ -10,11 +10,14 @@ import '../../category/domain/category.dart';
 import '../../category/domain/category_presets.dart';
 import '../../category/presentation/category_edit_sheet.dart';
 import '../../category/presentation/category_picker_sheet.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../history/domain/work_session.dart';
+import '../application/timer_preset_providers.dart';
 import '../application/timer_providers.dart';
 import '../domain/active_timer.dart';
 import '../domain/amount_calculator.dart';
-import 'timer_preset_picker_sheet.dart';
+import '../domain/timer_preset.dart';
 import 'widgets/dashboard_goals_section.dart';
 import 'widgets/streak_badge.dart';
 import 'widgets/today_amount_card.dart';
@@ -68,25 +71,27 @@ class _TimerIdleCard extends ConsumerStatefulWidget {
 }
 
 class _TimerIdleCardState extends ConsumerState<_TimerIdleCard> {
-  Category? _selected;
+  /// ホームに並べるプリセットの最大数（残りは設定ページで管理）。
+  static const _maxInlinePresets = 3;
+
+  Category? _selectedCategory;
+  String? _selectedPresetId;
   bool _starting = false;
 
   Future<void> _pickCategory(List<Category> categories) async {
     final result = await CategoryPickerSheet.show(
       context,
       categories: categories,
-      selectedId: _selected?.id,
+      selectedId: _selectedCategory?.id,
     );
     if (result != null) {
-      setState(() => _selected = result);
+      setState(() => _selectedCategory = result);
     }
   }
 
-  Future<void> _pickPresetAndStart() async {
-    final category = _selected;
+  Future<void> _start(TimerPreset preset) async {
+    final category = _selectedCategory;
     if (category == null) return;
-    final preset = await TimerPresetPickerSheet.show(context);
-    if (preset == null || !mounted) return;
     setState(() => _starting = true);
     try {
       await ref.read(timerControllerProvider.notifier).start(
@@ -109,6 +114,7 @@ class _TimerIdleCardState extends ConsumerState<_TimerIdleCard> {
   @override
   Widget build(BuildContext context) {
     final categoriesAsync = ref.watch(categoriesListProvider);
+    final presetsAsync = ref.watch(timerPresetListProvider);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -122,11 +128,12 @@ class _TimerIdleCardState extends ConsumerState<_TimerIdleCard> {
             if (categories.isEmpty) {
               return const _NoCategoryView();
             }
-            final selected = _selected ?? categories.first;
-            if (_selected == null) {
+            final selectedCategory =
+                _selectedCategory ?? categories.first;
+            if (_selectedCategory == null) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted && _selected == null) {
-                  setState(() => _selected = categories.first);
+                if (mounted && _selectedCategory == null) {
+                  setState(() => _selectedCategory = categories.first);
                 }
               });
             }
@@ -139,31 +146,224 @@ class _TimerIdleCardState extends ConsumerState<_TimerIdleCard> {
                 ),
                 const SizedBox(height: 12),
                 _CategorySelector(
-                  category: selected,
+                  category: selectedCategory,
                   onTap: () => _pickCategory(categories),
                 ),
                 const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: _starting ? null : _pickPresetAndStart,
-                  icon: _starting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.play_arrow),
-                  label: const Text(
-                    'プリセットを選んで開始',
-                    style: TextStyle(fontSize: 16),
+                presetsAsync.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
                   ),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
+                  error: (e, _) => Text('プリセットの読み込みに失敗: $e'),
+                  data: (presets) {
+                    final visible = presets.take(_maxInlinePresets).toList();
+                    if (visible.isEmpty) {
+                      return _NoPresetView();
+                    }
+                    // 選択中のプリセットが消えた / 未設定の場合は先頭を選び直す
+                    if (_selectedPresetId == null ||
+                        !visible.any((p) => p.id == _selectedPresetId)) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          setState(
+                              () => _selectedPresetId = visible.first.id);
+                        }
+                      });
+                    }
+                    final selectedPreset = visible.firstWhere(
+                      (p) => p.id == _selectedPresetId,
+                      orElse: () => visible.first,
+                    );
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _PresetChoiceRow(
+                          presets: visible,
+                          selectedId: selectedPreset.id,
+                          onSelected: (p) =>
+                              setState(() => _selectedPresetId = p.id),
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          onPressed: _starting
+                              ? null
+                              : () => _start(selectedPreset),
+                          icon: _starting
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2),
+                                )
+                              : const Icon(Icons.play_arrow),
+                          label: Text(
+                            '${selectedPreset.minutes} 分で開始',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          style: FilledButton.styleFrom(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _PresetChoiceRow extends StatelessWidget {
+  const _PresetChoiceRow({
+    required this.presets,
+    required this.selectedId,
+    required this.onSelected,
+  });
+
+  final List<TimerPreset> presets;
+  final String selectedId;
+  final ValueChanged<TimerPreset> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (var i = 0; i < presets.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          Expanded(
+            child: _PresetChoiceCard(
+              preset: presets[i],
+              isSelected: presets[i].id == selectedId,
+              onTap: () => onSelected(presets[i]),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _PresetChoiceCard extends StatelessWidget {
+  const _PresetChoiceCard({
+    required this.preset,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final TimerPreset preset;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final bg = isSelected
+        ? colorScheme.primaryContainer
+        : colorScheme.surface;
+    final border = isSelected
+        ? colorScheme.primary
+        : colorScheme.outlineVariant;
+    final mainColor = isSelected
+        ? colorScheme.onPrimaryContainer
+        : colorScheme.onSurface;
+    final subColor = isSelected
+        ? colorScheme.onPrimaryContainer.withValues(alpha: 0.75)
+        : colorScheme.onSurfaceVariant;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+          color: bg,
+          border: Border.all(
+            color: border,
+            width: isSelected ? 1.5 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '${preset.minutes}',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: mainColor,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  TextSpan(
+                    text: ' 分',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: subColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (preset.label.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                preset.label,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: subColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NoPresetView extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.timer_off_outlined,
+            color: theme.colorScheme.outline,
+            size: 32,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'プリセットがありません',
+            style: theme.textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            icon: const Icon(Icons.add),
+            label: const Text('プリセットを追加'),
+            onPressed: () => context.push('/settings/timer-presets'),
+          ),
+        ],
       ),
     );
   }
