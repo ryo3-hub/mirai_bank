@@ -12,7 +12,6 @@ import '../../category/presentation/category_edit_sheet.dart';
 import '../../category/presentation/category_picker_sheet.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../history/domain/work_session.dart';
 import '../application/timer_preset_providers.dart';
 import '../application/timer_providers.dart';
 import '../domain/active_timer.dart';
@@ -468,15 +467,16 @@ class _TimerRunningCard extends ConsumerStatefulWidget {
 }
 
 class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
-  late TextEditingController _memoController;
   bool _busy = false;
   bool _autoStopTriggered = false;
   String? _lastTimerId;
 
+  /// 再開ボタンの緑色（FAB と同じ GitHub Green）。
+  static const Color _resumeColor = Color(0xFF2DA44E);
+
   @override
   void initState() {
     super.initState();
-    _memoController = TextEditingController(text: widget.activeTimer.memo ?? '');
     _lastTimerId = _timerKey(widget.activeTimer);
   }
 
@@ -486,15 +486,8 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
     final newKey = _timerKey(widget.activeTimer);
     if (newKey != _lastTimerId) {
       _lastTimerId = newKey;
-      _memoController.text = widget.activeTimer.memo ?? '';
       _autoStopTriggered = false;
     }
-  }
-
-  @override
-  void dispose() {
-    _memoController.dispose();
-    super.dispose();
   }
 
   String _timerKey(ActiveTimer t) =>
@@ -503,15 +496,9 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
   Future<void> _stop({bool auto = false}) async {
     if (_busy) return;
     setState(() => _busy = true);
-    FocusScope.of(context).unfocus();
     try {
-      // 入力されたメモを保存してから停止する
-      await ref
-          .read(timerControllerProvider.notifier)
-          .updateMemo(_memoController.text);
-      final session = await ref
-          .read(timerControllerProvider.notifier)
-          .stop(memo: _memoController.text);
+      final session =
+          await ref.read(timerControllerProvider.notifier).stop();
       if (!mounted) return;
       if (session != null) {
         AmountFlash.show(context, session.amount);
@@ -538,10 +525,6 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
       if (widget.activeTimer.isPaused) {
         await ref.read(timerControllerProvider.notifier).resume();
       } else {
-        // 一時停止前に最新メモを保存
-        await ref
-            .read(timerControllerProvider.notifier)
-            .updateMemo(_memoController.text);
         await ref.read(timerControllerProvider.notifier).pause();
       }
     } catch (e) {
@@ -616,22 +599,10 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
               ),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _memoController,
-              decoration: InputDecoration(
-                labelText: 'メモ（スキルアップ内容など）',
-                border: const OutlineInputBorder(),
-                filled: true,
-                fillColor: colorScheme.surface,
-              ),
-              maxLines: 2,
-              maxLength: WorkSession.memoMaxLength,
-            ),
-            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
-                  child: FilledButton.tonalIcon(
+                  child: FilledButton.icon(
                     onPressed: _busy ? null : _togglePause,
                     icon: Icon(
                       timer.isPaused
@@ -641,6 +612,14 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
                     label: Text(timer.isPaused ? '再開' : '一時停止'),
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
+                      // 再開時のみ強調色（GitHub Green）に。一時停止中の
+                      // 「再開」アクションが目立つようにする。
+                      backgroundColor: timer.isPaused
+                          ? _resumeColor
+                          : colorScheme.secondaryContainer,
+                      foregroundColor: timer.isPaused
+                          ? Colors.white
+                          : colorScheme.onSecondaryContainer,
                     ),
                   ),
                 ),
@@ -719,7 +698,7 @@ class _RunningCategoryHeader extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                isPaused ? '一時停止中' : '集中中',
+                isPaused ? '一時停止中' : '作業中',
                 style: TextStyle(color: color, fontWeight: FontWeight.w600),
               ),
             ],
