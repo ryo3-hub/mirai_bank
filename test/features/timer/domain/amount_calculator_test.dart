@@ -44,4 +44,85 @@ void main() {
       );
     });
   });
+
+  group('AmountCalculator.paidDurationSec (15 分単位切り下げ)', () {
+    test('0 / negative → 0', () {
+      expect(AmountCalculator.paidDurationSec(0), 0);
+      expect(AmountCalculator.paidDurationSec(-100), 0);
+    });
+
+    test('under 15 minutes → 0', () {
+      expect(AmountCalculator.paidDurationSec(14 * 60), 0);
+      expect(AmountCalculator.paidDurationSec(15 * 60 - 1), 0);
+    });
+
+    test('exactly 15 minutes → 15 minutes', () {
+      expect(AmountCalculator.paidDurationSec(15 * 60), 15 * 60);
+    });
+
+    test('between 15 and 30 minutes → 15 minutes', () {
+      expect(AmountCalculator.paidDurationSec(23 * 60), 15 * 60);
+      expect(AmountCalculator.paidDurationSec(29 * 60 + 59), 15 * 60);
+    });
+
+    test('exactly 30 minutes → 30 minutes', () {
+      expect(AmountCalculator.paidDurationSec(30 * 60), 30 * 60);
+    });
+
+    test('60 minutes → 60 minutes', () {
+      expect(AmountCalculator.paidDurationSec(60 * 60), 60 * 60);
+    });
+  });
+
+  group('AmountCalculator.calculatePaid (15 分単位 + 時給)', () {
+    test('時給 2000 円 / 14:59 → 0 円', () {
+      expect(
+        AmountCalculator.calculatePaid(
+          workedSec: 14 * 60 + 59,
+          hourlyRate: 2000,
+        ),
+        0,
+      );
+    });
+
+    test('時給 2000 円 / 15:00 → 500 円', () {
+      expect(
+        AmountCalculator.calculatePaid(
+          workedSec: 15 * 60,
+          hourlyRate: 2000,
+        ),
+        500,
+      );
+    });
+
+    test('時給 2000 円 / 23:00 → 500 円（15 分切り下げ）', () {
+      expect(
+        AmountCalculator.calculatePaid(
+          workedSec: 23 * 60,
+          hourlyRate: 2000,
+        ),
+        500,
+      );
+    });
+
+    test('時給 2000 円 / 30:00 → 1000 円', () {
+      expect(
+        AmountCalculator.calculatePaid(
+          workedSec: 30 * 60,
+          hourlyRate: 2000,
+        ),
+        1000,
+      );
+    });
+
+    test('時給 2000 円 / 60:00 → 2000 円', () {
+      expect(
+        AmountCalculator.calculatePaid(
+          workedSec: 60 * 60,
+          hourlyRate: 2000,
+        ),
+        2000,
+      );
+    });
+  });
 }

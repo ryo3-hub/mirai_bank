@@ -1,10 +1,50 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirai_bank/features/timer/domain/active_timer.dart';
 
+ActiveTimer _running({
+  required DateTime startTime,
+  int targetMinutes = 30,
+  int accumulatedSec = 0,
+}) =>
+    ActiveTimer(
+      categoryId: 'c1',
+      startTime: startTime,
+      targetDurationSec: targetMinutes * 60,
+      accumulatedSec: accumulatedSec,
+      resumedAt: startTime,
+    );
+
+ActiveTimer _resumed({
+  required DateTime startTime,
+  required DateTime resumedAt,
+  int targetMinutes = 30,
+  int accumulatedSec = 0,
+}) =>
+    ActiveTimer(
+      categoryId: 'c1',
+      startTime: startTime,
+      targetDurationSec: targetMinutes * 60,
+      accumulatedSec: accumulatedSec,
+      resumedAt: resumedAt,
+    );
+
+ActiveTimer _paused({
+  required DateTime startTime,
+  int targetMinutes = 30,
+  int accumulatedSec = 0,
+}) =>
+    ActiveTimer(
+      categoryId: 'c1',
+      startTime: startTime,
+      targetDurationSec: targetMinutes * 60,
+      accumulatedSec: accumulatedSec,
+      resumedAt: null,
+    );
+
 void main() {
-  group('ActiveTimer.elapsedSecondsAt', () {
+  group('ActiveTimer.elapsedSecondsAt — running', () {
     final start = DateTime(2026, 1, 1, 10, 0, 0);
-    final timer = ActiveTimer(categoryId: 'c1', startTime: start);
+    final timer = _running(startTime: start);
 
     test('returns 0 at start time', () {
       expect(timer.elapsedSecondsAt(start), 0);
@@ -22,6 +62,41 @@ void main() {
         timer.elapsedSecondsAt(start.subtract(const Duration(seconds: 10))),
         0,
       );
+    });
+  });
+
+  group('ActiveTimer paused / resumed', () {
+    final start = DateTime(2026, 1, 1, 10, 0, 0);
+
+    test('paused timer keeps accumulatedSec regardless of now', () {
+      final paused = _paused(startTime: start, accumulatedSec: 300);
+      expect(paused.isPaused, true);
+      expect(paused.elapsedSecondsAt(start.add(const Duration(minutes: 10))),
+          300);
+    });
+
+    test('resumed timer adds accumulated + sinceResume', () {
+      final resumedAt = start.add(const Duration(minutes: 10));
+      final resumed = _resumed(
+        startTime: start,
+        resumedAt: resumedAt,
+        accumulatedSec: 300,
+      );
+      expect(resumed.isPaused, false);
+      expect(
+        resumed.elapsedSecondsAt(resumedAt.add(const Duration(minutes: 7))),
+        300 + 7 * 60,
+      );
+    });
+
+    test('remaining clamps to 0 when over target', () {
+      final timer = _paused(
+        startTime: start,
+        targetMinutes: 15,
+        accumulatedSec: 30 * 60,
+      );
+      expect(timer.remainingSecondsAt(start), 0);
+      expect(timer.isCompletedAt(start), true);
     });
   });
 }

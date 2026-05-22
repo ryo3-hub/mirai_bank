@@ -14,6 +14,7 @@ import '../../history/domain/work_session.dart';
 import '../application/timer_providers.dart';
 import '../domain/active_timer.dart';
 import '../domain/amount_calculator.dart';
+import 'timer_preset_picker_sheet.dart';
 import 'widgets/dashboard_goals_section.dart';
 import 'widgets/streak_badge.dart';
 import 'widgets/today_amount_card.dart';
@@ -81,14 +82,17 @@ class _TimerIdleCardState extends ConsumerState<_TimerIdleCard> {
     }
   }
 
-  Future<void> _start() async {
+  Future<void> _pickPresetAndStart() async {
     final category = _selected;
     if (category == null) return;
+    final preset = await TimerPresetPickerSheet.show(context);
+    if (preset == null || !mounted) return;
     setState(() => _starting = true);
     try {
-      await ref
-          .read(timerControllerProvider.notifier)
-          .start(categoryId: category.id);
+      await ref.read(timerControllerProvider.notifier).start(
+            categoryId: category.id,
+            targetDurationSec: preset.durationSec,
+          );
     } catch (e) {
       if (mounted) {
         TopToast.show(
@@ -140,7 +144,7 @@ class _TimerIdleCardState extends ConsumerState<_TimerIdleCard> {
                 ),
                 const SizedBox(height: 16),
                 FilledButton.icon(
-                  onPressed: _starting ? null : _start,
+                  onPressed: _starting ? null : _pickPresetAndStart,
                   icon: _starting
                       ? const SizedBox(
                           width: 18,
@@ -149,7 +153,7 @@ class _TimerIdleCardState extends ConsumerState<_TimerIdleCard> {
                         )
                       : const Icon(Icons.play_arrow),
                   label: const Text(
-                    '計測を開始',
+                    'プリセットを選んで開始',
                     style: TextStyle(fontSize: 16),
                   ),
                   style: FilledButton.styleFrom(
@@ -264,14 +268,27 @@ class _TimerRunningCard extends ConsumerStatefulWidget {
 }
 
 class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
-  late final TextEditingController _memoController;
-  bool _stopping = false;
+  late TextEditingController _memoController;
+  bool _busy = false;
+  bool _autoStopTriggered = false;
+  String? _lastTimerId;
 
   @override
   void initState() {
     super.initState();
-    _memoController =
-        TextEditingController(text: widget.activeTimer.memo ?? '');
+    _memoController = TextEditingController(text: widget.activeTimer.memo ?? '');
+    _lastTimerId = _timerKey(widget.activeTimer);
+  }
+
+  @override
+  void didUpdateWidget(_TimerRunningCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final newKey = _timerKey(widget.activeTimer);
+    if (newKey != _lastTimerId) {
+      _lastTimerId = newKey;
+      _memoController.text = widget.activeTimer.memo ?? '';
+      _autoStopTriggered = false;
+    }
   }
 
   @override
@@ -280,15 +297,26 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
     super.dispose();
   }
 
-  Future<void> _stop() async {
-    setState(() => _stopping = true);
+  String _timerKey(ActiveTimer t) =>
+      '${t.startTime.millisecondsSinceEpoch}-${t.categoryId}';
+
+  Future<void> _stop({bool auto = false}) async {
+    if (_busy) return;
+    setState(() => _busy = true);
     FocusScope.of(context).unfocus();
     try {
+      // 入力されたメモを保存してから停止する
+      await ref
+          .read(timerControllerProvider.notifier)
+          .updateMemo(_memoController.text);
       final session = await ref
           .read(timerControllerProvider.notifier)
           .stop(memo: _memoController.text);
-      if (session != null && mounted) {
+      if (!mounted) return;
+      if (session != null) {
         AmountFlash.show(context, session.amount);
+      } else if (!auto) {
+        TopToast.show(context, message: '15 分未満だったので記録しませんでした');
       }
     } catch (e) {
       if (mounted) {
@@ -297,21 +325,59 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
           message: '停止に失敗しました: $e',
           isError: true,
         );
-        setState(() => _stopping = false);
       }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _togglePause() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      if (widget.activeTimer.isPaused) {
+        await ref.read(timerControllerProvider.notifier).resume();
+      } else {
+        // 一時停止前に最新メモを保存
+        await ref
+            .read(timerControllerProvider.notifier)
+            .updateMemo(_memoController.text);
+        await ref.read(timerControllerProvider.notifier).pause();
+      }
+    } catch (e) {
+      if (mounted) {
+        TopToast.show(
+          context,
+          message: '操作に失敗しました: $e',
+          isError: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final categoryAsync =
-        ref.watch(categoryByIdProvider(widget.activeTimer.categoryId));
-    final elapsedAsync =
-        ref.watch(elapsedSecondsProvider(widget.activeTimer.startTime));
+    final timer = widget.activeTimer;
+    final categoryAsync = ref.watch(categoryByIdProvider(timer.categoryId));
+    final elapsedAsync = ref.watch(timerElapsedProvider);
     final elapsed = elapsedAsync.value ??
-        DateTime.now()
-            .difference(widget.activeTimer.startTime)
-            .inSeconds;
+        timer.elapsedSecondsAt(DateTime.now());
+    final remaining = (timer.targetDurationSec - elapsed).clamp(0, 1 << 30);
+    final progress = timer.targetDurationSec == 0
+        ? 0.0
+        : (elapsed / timer.targetDurationSec).clamp(0.0, 1.0);
+    final isCompleted = remaining == 0 && timer.targetDurationSec > 0;
+
+    // 完了したら 1 度だけ自動停止
+    if (isCompleted && !_autoStopTriggered && !_busy) {
+      _autoStopTriggered = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _stop(auto: true);
+      });
+    }
+
     final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
@@ -326,18 +392,25 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
               error: (_, __) => const SizedBox.shrink(),
               data: (category) {
                 if (category == null) return const SizedBox.shrink();
-                return _RunningCategoryHeader(category: category);
+                return _RunningCategoryHeader(
+                  category: category,
+                  isPaused: timer.isPaused,
+                );
               },
             ),
             const SizedBox(height: 16),
-            _ElapsedDisplay(seconds: elapsed),
+            _CountdownDisplay(
+              remainingSec: remaining,
+              progress: progress,
+              isPaused: timer.isPaused,
+            ),
             const SizedBox(height: 8),
             categoryAsync.when(
               loading: () => const SizedBox.shrink(),
               error: (_, __) => const SizedBox.shrink(),
               data: (category) => _AmountDisplay(
-                amount: AmountCalculator.calculate(
-                  durationSec: elapsed,
+                amount: AmountCalculator.calculatePaid(
+                  workedSec: elapsed,
                   hourlyRate: category?.hourlyRate ?? 0,
                 ),
               ),
@@ -346,7 +419,7 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
             TextField(
               controller: _memoController,
               decoration: InputDecoration(
-                labelText: 'メモ（任意）',
+                labelText: 'メモ（スキルアップ内容など）',
                 border: const OutlineInputBorder(),
                 filled: true,
                 fillColor: colorScheme.surface,
@@ -355,24 +428,42 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
               maxLength: WorkSession.memoMaxLength,
             ),
             const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: _stopping ? null : _stop,
-              icon: _stopping
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.stop),
-              label: const Text(
-                '計測を停止',
-                style: TextStyle(fontSize: 16),
-              ),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                backgroundColor: colorScheme.error,
-                foregroundColor: colorScheme.onError,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    onPressed: _busy ? null : _togglePause,
+                    icon: Icon(
+                      timer.isPaused
+                          ? Icons.play_arrow
+                          : Icons.pause,
+                    ),
+                    label: Text(timer.isPaused ? '再開' : '一時停止'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _busy ? null : () => _stop(),
+                    icon: _busy
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.stop),
+                    label: const Text('停止'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      backgroundColor: colorScheme.error,
+                      foregroundColor: colorScheme.onError,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -382,9 +473,13 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
 }
 
 class _RunningCategoryHeader extends StatelessWidget {
-  const _RunningCategoryHeader({required this.category});
+  const _RunningCategoryHeader({
+    required this.category,
+    required this.isPaused,
+  });
 
   final Category category;
+  final bool isPaused;
 
   @override
   Widget build(BuildContext context) {
@@ -415,10 +510,16 @@ class _RunningCategoryHeader extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.fiber_manual_record, size: 10, color: color),
+              Icon(
+                isPaused
+                    ? Icons.pause_circle_filled
+                    : Icons.fiber_manual_record,
+                size: 12,
+                color: color,
+              ),
               const SizedBox(width: 4),
               Text(
-                '計測中',
+                isPaused ? '一時停止中' : '集中中',
                 style: TextStyle(color: color, fontWeight: FontWeight.w600),
               ),
             ],
@@ -429,23 +530,56 @@ class _RunningCategoryHeader extends StatelessWidget {
   }
 }
 
-class _ElapsedDisplay extends StatelessWidget {
-  const _ElapsedDisplay({required this.seconds});
+class _CountdownDisplay extends StatelessWidget {
+  const _CountdownDisplay({
+    required this.remainingSec,
+    required this.progress,
+    required this.isPaused,
+  });
 
-  final int seconds;
+  final int remainingSec;
+  final double progress;
+  final bool isPaused;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        DurationFormatter.hms(seconds),
-        style: const TextStyle(
-          fontSize: 48,
-          fontWeight: FontWeight.w600,
-          fontFeatures: [FontFeature.tabularFigures()],
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Text(
+          _formatRemaining(remainingSec),
+          style: TextStyle(
+            fontSize: 56,
+            fontWeight: FontWeight.w700,
+            color: isPaused
+                ? theme.colorScheme.onSurfaceVariant
+                : theme.colorScheme.onSurface,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
-      ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 6,
+            backgroundColor: theme.colorScheme.surface,
+            valueColor: AlwaysStoppedAnimation(
+              isPaused
+                  ? theme.colorScheme.onSurfaceVariant
+                  : theme.colorScheme.primary,
+            ),
+          ),
+        ),
+      ],
     );
+  }
+
+  static String _formatRemaining(int seconds) {
+    final s = seconds < 0 ? 0 : seconds;
+    final m = s ~/ 60;
+    final r = s % 60;
+    return '${m.toString().padLeft(2, '0')}:${r.toString().padLeft(2, '0')}';
   }
 }
 
@@ -469,3 +603,9 @@ class _AmountDisplay extends StatelessWidget {
     );
   }
 }
+
+// 旧ストップウォッチ用フォーマッタが他から参照されないように、
+// DurationFormatter は他画面でも引き続き使うので import は残す。
+// （未使用警告を避けるため `void` 関数で参照を保つ）
+// ignore: unused_element
+void _retain() => DurationFormatter.hms(0);

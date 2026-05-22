@@ -194,7 +194,7 @@ class _CategoryByIdProviderElement
 }
 
 String _$categoryControllerHash() =>
-    r'bc26413d6a02acc69bb13b2aaec9fa2c5df1ca3f';
+    r'82937cb07c04fa3ca6f0a9acfc33f67135c37d20';
 
 /// See also [CategoryController].
 @ProviderFor(CategoryController)

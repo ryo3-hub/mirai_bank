@@ -16,6 +16,7 @@
 | 06 | [06_settings.md](06_settings.md) | 設定（カテゴリ管理 / 目標 / 通知） |
 | 07 | [07_categories.md](07_categories.md) | カテゴリ追加・編集シート |
 | 08 | [08_goals.md](08_goals.md) | 目標追加・編集シート |
+| 09 | [09_timer_presets.md](09_timer_presets.md) | タイマープリセット編集ページ |
 
 ## 共通ルール
 

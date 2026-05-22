@@ -1067,8 +1067,38 @@ class $ActiveTimersTable extends ActiveTimers
   late final GeneratedColumn<String> memo = GeneratedColumn<String>(
       'memo', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _targetDurationSecMeta =
+      const VerificationMeta('targetDurationSec');
   @override
-  List<GeneratedColumn> get $columns => [id, categoryId, startTime, memo];
+  late final GeneratedColumn<int> targetDurationSec = GeneratedColumn<int>(
+      'target_duration_sec', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _accumulatedSecMeta =
+      const VerificationMeta('accumulatedSec');
+  @override
+  late final GeneratedColumn<int> accumulatedSec = GeneratedColumn<int>(
+      'accumulated_sec', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _resumedAtMeta =
+      const VerificationMeta('resumedAt');
+  @override
+  late final GeneratedColumn<DateTime> resumedAt = GeneratedColumn<DateTime>(
+      'resumed_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        categoryId,
+        startTime,
+        memo,
+        targetDurationSec,
+        accumulatedSec,
+        resumedAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1100,6 +1130,22 @@ class $ActiveTimersTable extends ActiveTimers
       context.handle(
           _memoMeta, memo.isAcceptableOrUnknown(data['memo']!, _memoMeta));
     }
+    if (data.containsKey('target_duration_sec')) {
+      context.handle(
+          _targetDurationSecMeta,
+          targetDurationSec.isAcceptableOrUnknown(
+              data['target_duration_sec']!, _targetDurationSecMeta));
+    }
+    if (data.containsKey('accumulated_sec')) {
+      context.handle(
+          _accumulatedSecMeta,
+          accumulatedSec.isAcceptableOrUnknown(
+              data['accumulated_sec']!, _accumulatedSecMeta));
+    }
+    if (data.containsKey('resumed_at')) {
+      context.handle(_resumedAtMeta,
+          resumedAt.isAcceptableOrUnknown(data['resumed_at']!, _resumedAtMeta));
+    }
     return context;
   }
 
@@ -1117,6 +1163,12 @@ class $ActiveTimersTable extends ActiveTimers
           .read(DriftSqlType.dateTime, data['${effectivePrefix}start_time'])!,
       memo: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}memo']),
+      targetDurationSec: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}target_duration_sec'])!,
+      accumulatedSec: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}accumulated_sec'])!,
+      resumedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}resumed_at']),
     );
   }
 
@@ -1131,11 +1183,28 @@ class ActiveTimerRow extends DataClass implements Insertable<ActiveTimerRow> {
   final String categoryId;
   final DateTime startTime;
   final String? memo;
+
+  /// 目標時間（秒）。プリセットを開始したときの target を保持。
+  /// v5 で追加。既存タイマー（v4 以前）は 0 で初期化される。
+  final int targetDurationSec;
+
+  /// 一時停止までの累積稼働秒数。
+  /// 一時停止 / 再開を跨いだ正しい経過時間は
+  /// `accumulatedSec + (resumedAt != null ? (now - resumedAt).inSeconds : 0)`
+  /// で求める。v5 で追加。
+  final int accumulatedSec;
+
+  /// 直近で再開（または開始）した時刻。null のときは一時停止中。
+  /// v5 で追加。
+  final DateTime? resumedAt;
   const ActiveTimerRow(
       {required this.id,
       required this.categoryId,
       required this.startTime,
-      this.memo});
+      this.memo,
+      required this.targetDurationSec,
+      required this.accumulatedSec,
+      this.resumedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1144,6 +1213,11 @@ class ActiveTimerRow extends DataClass implements Insertable<ActiveTimerRow> {
     map['start_time'] = Variable<DateTime>(startTime);
     if (!nullToAbsent || memo != null) {
       map['memo'] = Variable<String>(memo);
+    }
+    map['target_duration_sec'] = Variable<int>(targetDurationSec);
+    map['accumulated_sec'] = Variable<int>(accumulatedSec);
+    if (!nullToAbsent || resumedAt != null) {
+      map['resumed_at'] = Variable<DateTime>(resumedAt);
     }
     return map;
   }
@@ -1154,6 +1228,11 @@ class ActiveTimerRow extends DataClass implements Insertable<ActiveTimerRow> {
       categoryId: Value(categoryId),
       startTime: Value(startTime),
       memo: memo == null && nullToAbsent ? const Value.absent() : Value(memo),
+      targetDurationSec: Value(targetDurationSec),
+      accumulatedSec: Value(accumulatedSec),
+      resumedAt: resumedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(resumedAt),
     );
   }
 
@@ -1165,6 +1244,9 @@ class ActiveTimerRow extends DataClass implements Insertable<ActiveTimerRow> {
       categoryId: serializer.fromJson<String>(json['categoryId']),
       startTime: serializer.fromJson<DateTime>(json['startTime']),
       memo: serializer.fromJson<String?>(json['memo']),
+      targetDurationSec: serializer.fromJson<int>(json['targetDurationSec']),
+      accumulatedSec: serializer.fromJson<int>(json['accumulatedSec']),
+      resumedAt: serializer.fromJson<DateTime?>(json['resumedAt']),
     );
   }
   @override
@@ -1175,6 +1257,9 @@ class ActiveTimerRow extends DataClass implements Insertable<ActiveTimerRow> {
       'categoryId': serializer.toJson<String>(categoryId),
       'startTime': serializer.toJson<DateTime>(startTime),
       'memo': serializer.toJson<String?>(memo),
+      'targetDurationSec': serializer.toJson<int>(targetDurationSec),
+      'accumulatedSec': serializer.toJson<int>(accumulatedSec),
+      'resumedAt': serializer.toJson<DateTime?>(resumedAt),
     };
   }
 
@@ -1182,12 +1267,18 @@ class ActiveTimerRow extends DataClass implements Insertable<ActiveTimerRow> {
           {int? id,
           String? categoryId,
           DateTime? startTime,
-          Value<String?> memo = const Value.absent()}) =>
+          Value<String?> memo = const Value.absent(),
+          int? targetDurationSec,
+          int? accumulatedSec,
+          Value<DateTime?> resumedAt = const Value.absent()}) =>
       ActiveTimerRow(
         id: id ?? this.id,
         categoryId: categoryId ?? this.categoryId,
         startTime: startTime ?? this.startTime,
         memo: memo.present ? memo.value : this.memo,
+        targetDurationSec: targetDurationSec ?? this.targetDurationSec,
+        accumulatedSec: accumulatedSec ?? this.accumulatedSec,
+        resumedAt: resumedAt.present ? resumedAt.value : this.resumedAt,
       );
   ActiveTimerRow copyWithCompanion(ActiveTimersCompanion data) {
     return ActiveTimerRow(
@@ -1196,6 +1287,13 @@ class ActiveTimerRow extends DataClass implements Insertable<ActiveTimerRow> {
           data.categoryId.present ? data.categoryId.value : this.categoryId,
       startTime: data.startTime.present ? data.startTime.value : this.startTime,
       memo: data.memo.present ? data.memo.value : this.memo,
+      targetDurationSec: data.targetDurationSec.present
+          ? data.targetDurationSec.value
+          : this.targetDurationSec,
+      accumulatedSec: data.accumulatedSec.present
+          ? data.accumulatedSec.value
+          : this.accumulatedSec,
+      resumedAt: data.resumedAt.present ? data.resumedAt.value : this.resumedAt,
     );
   }
 
@@ -1205,13 +1303,17 @@ class ActiveTimerRow extends DataClass implements Insertable<ActiveTimerRow> {
           ..write('id: $id, ')
           ..write('categoryId: $categoryId, ')
           ..write('startTime: $startTime, ')
-          ..write('memo: $memo')
+          ..write('memo: $memo, ')
+          ..write('targetDurationSec: $targetDurationSec, ')
+          ..write('accumulatedSec: $accumulatedSec, ')
+          ..write('resumedAt: $resumedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, categoryId, startTime, memo);
+  int get hashCode => Object.hash(id, categoryId, startTime, memo,
+      targetDurationSec, accumulatedSec, resumedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1219,7 +1321,10 @@ class ActiveTimerRow extends DataClass implements Insertable<ActiveTimerRow> {
           other.id == this.id &&
           other.categoryId == this.categoryId &&
           other.startTime == this.startTime &&
-          other.memo == this.memo);
+          other.memo == this.memo &&
+          other.targetDurationSec == this.targetDurationSec &&
+          other.accumulatedSec == this.accumulatedSec &&
+          other.resumedAt == this.resumedAt);
 }
 
 class ActiveTimersCompanion extends UpdateCompanion<ActiveTimerRow> {
@@ -1227,17 +1332,26 @@ class ActiveTimersCompanion extends UpdateCompanion<ActiveTimerRow> {
   final Value<String> categoryId;
   final Value<DateTime> startTime;
   final Value<String?> memo;
+  final Value<int> targetDurationSec;
+  final Value<int> accumulatedSec;
+  final Value<DateTime?> resumedAt;
   const ActiveTimersCompanion({
     this.id = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.startTime = const Value.absent(),
     this.memo = const Value.absent(),
+    this.targetDurationSec = const Value.absent(),
+    this.accumulatedSec = const Value.absent(),
+    this.resumedAt = const Value.absent(),
   });
   ActiveTimersCompanion.insert({
     this.id = const Value.absent(),
     required String categoryId,
     required DateTime startTime,
     this.memo = const Value.absent(),
+    this.targetDurationSec = const Value.absent(),
+    this.accumulatedSec = const Value.absent(),
+    this.resumedAt = const Value.absent(),
   })  : categoryId = Value(categoryId),
         startTime = Value(startTime);
   static Insertable<ActiveTimerRow> custom({
@@ -1245,12 +1359,18 @@ class ActiveTimersCompanion extends UpdateCompanion<ActiveTimerRow> {
     Expression<String>? categoryId,
     Expression<DateTime>? startTime,
     Expression<String>? memo,
+    Expression<int>? targetDurationSec,
+    Expression<int>? accumulatedSec,
+    Expression<DateTime>? resumedAt,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (categoryId != null) 'category_id': categoryId,
       if (startTime != null) 'start_time': startTime,
       if (memo != null) 'memo': memo,
+      if (targetDurationSec != null) 'target_duration_sec': targetDurationSec,
+      if (accumulatedSec != null) 'accumulated_sec': accumulatedSec,
+      if (resumedAt != null) 'resumed_at': resumedAt,
     });
   }
 
@@ -1258,12 +1378,18 @@ class ActiveTimersCompanion extends UpdateCompanion<ActiveTimerRow> {
       {Value<int>? id,
       Value<String>? categoryId,
       Value<DateTime>? startTime,
-      Value<String?>? memo}) {
+      Value<String?>? memo,
+      Value<int>? targetDurationSec,
+      Value<int>? accumulatedSec,
+      Value<DateTime?>? resumedAt}) {
     return ActiveTimersCompanion(
       id: id ?? this.id,
       categoryId: categoryId ?? this.categoryId,
       startTime: startTime ?? this.startTime,
       memo: memo ?? this.memo,
+      targetDurationSec: targetDurationSec ?? this.targetDurationSec,
+      accumulatedSec: accumulatedSec ?? this.accumulatedSec,
+      resumedAt: resumedAt ?? this.resumedAt,
     );
   }
 
@@ -1282,6 +1408,15 @@ class ActiveTimersCompanion extends UpdateCompanion<ActiveTimerRow> {
     if (memo.present) {
       map['memo'] = Variable<String>(memo.value);
     }
+    if (targetDurationSec.present) {
+      map['target_duration_sec'] = Variable<int>(targetDurationSec.value);
+    }
+    if (accumulatedSec.present) {
+      map['accumulated_sec'] = Variable<int>(accumulatedSec.value);
+    }
+    if (resumedAt.present) {
+      map['resumed_at'] = Variable<DateTime>(resumedAt.value);
+    }
     return map;
   }
 
@@ -1291,7 +1426,10 @@ class ActiveTimersCompanion extends UpdateCompanion<ActiveTimerRow> {
           ..write('id: $id, ')
           ..write('categoryId: $categoryId, ')
           ..write('startTime: $startTime, ')
-          ..write('memo: $memo')
+          ..write('memo: $memo, ')
+          ..write('targetDurationSec: $targetDurationSec, ')
+          ..write('accumulatedSec: $accumulatedSec, ')
+          ..write('resumedAt: $resumedAt')
           ..write(')'))
         .toString();
   }
@@ -2163,6 +2301,434 @@ class SettingsCompanion extends UpdateCompanion<SettingRow> {
   }
 }
 
+class $TimerPresetsTable extends TimerPresets
+    with TableInfo<$TimerPresetsTable, TimerPresetRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TimerPresetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _minutesMeta =
+      const VerificationMeta('minutes');
+  @override
+  late final GeneratedColumn<int> minutes = GeneratedColumn<int>(
+      'minutes', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+      'label', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _sortOrderMeta =
+      const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+      'sort_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _isDefaultMeta =
+      const VerificationMeta('isDefault');
+  @override
+  late final GeneratedColumn<bool> isDefault = GeneratedColumn<bool>(
+      'is_default', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_default" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+      'deleted_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        minutes,
+        label,
+        sortOrder,
+        isDefault,
+        createdAt,
+        updatedAt,
+        deletedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'timer_presets';
+  @override
+  VerificationContext validateIntegrity(Insertable<TimerPresetRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('minutes')) {
+      context.handle(_minutesMeta,
+          minutes.isAcceptableOrUnknown(data['minutes']!, _minutesMeta));
+    } else if (isInserting) {
+      context.missing(_minutesMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+          _labelMeta, label.isAcceptableOrUnknown(data['label']!, _labelMeta));
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
+    }
+    if (data.containsKey('is_default')) {
+      context.handle(_isDefaultMeta,
+          isDefault.isAcceptableOrUnknown(data['is_default']!, _isDefaultMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TimerPresetRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TimerPresetRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      minutes: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}minutes'])!,
+      label: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}label'])!,
+      sortOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
+      isDefault: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_default'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}deleted_at']),
+    );
+  }
+
+  @override
+  $TimerPresetsTable createAlias(String alias) {
+    return $TimerPresetsTable(attachedDatabase, alias);
+  }
+}
+
+class TimerPresetRow extends DataClass implements Insertable<TimerPresetRow> {
+  final String id;
+  final int minutes;
+  final String label;
+  final int sortOrder;
+  final bool isDefault;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  const TimerPresetRow(
+      {required this.id,
+      required this.minutes,
+      required this.label,
+      required this.sortOrder,
+      required this.isDefault,
+      required this.createdAt,
+      required this.updatedAt,
+      this.deletedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['minutes'] = Variable<int>(minutes);
+    map['label'] = Variable<String>(label);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['is_default'] = Variable<bool>(isDefault);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    return map;
+  }
+
+  TimerPresetsCompanion toCompanion(bool nullToAbsent) {
+    return TimerPresetsCompanion(
+      id: Value(id),
+      minutes: Value(minutes),
+      label: Value(label),
+      sortOrder: Value(sortOrder),
+      isDefault: Value(isDefault),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+    );
+  }
+
+  factory TimerPresetRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TimerPresetRow(
+      id: serializer.fromJson<String>(json['id']),
+      minutes: serializer.fromJson<int>(json['minutes']),
+      label: serializer.fromJson<String>(json['label']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      isDefault: serializer.fromJson<bool>(json['isDefault']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'minutes': serializer.toJson<int>(minutes),
+      'label': serializer.toJson<String>(label),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'isDefault': serializer.toJson<bool>(isDefault),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+    };
+  }
+
+  TimerPresetRow copyWith(
+          {String? id,
+          int? minutes,
+          String? label,
+          int? sortOrder,
+          bool? isDefault,
+          DateTime? createdAt,
+          DateTime? updatedAt,
+          Value<DateTime?> deletedAt = const Value.absent()}) =>
+      TimerPresetRow(
+        id: id ?? this.id,
+        minutes: minutes ?? this.minutes,
+        label: label ?? this.label,
+        sortOrder: sortOrder ?? this.sortOrder,
+        isDefault: isDefault ?? this.isDefault,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+      );
+  TimerPresetRow copyWithCompanion(TimerPresetsCompanion data) {
+    return TimerPresetRow(
+      id: data.id.present ? data.id.value : this.id,
+      minutes: data.minutes.present ? data.minutes.value : this.minutes,
+      label: data.label.present ? data.label.value : this.label,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      isDefault: data.isDefault.present ? data.isDefault.value : this.isDefault,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TimerPresetRow(')
+          ..write('id: $id, ')
+          ..write('minutes: $minutes, ')
+          ..write('label: $label, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isDefault: $isDefault, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, minutes, label, sortOrder, isDefault,
+      createdAt, updatedAt, deletedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TimerPresetRow &&
+          other.id == this.id &&
+          other.minutes == this.minutes &&
+          other.label == this.label &&
+          other.sortOrder == this.sortOrder &&
+          other.isDefault == this.isDefault &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt);
+}
+
+class TimerPresetsCompanion extends UpdateCompanion<TimerPresetRow> {
+  final Value<String> id;
+  final Value<int> minutes;
+  final Value<String> label;
+  final Value<int> sortOrder;
+  final Value<bool> isDefault;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> rowid;
+  const TimerPresetsCompanion({
+    this.id = const Value.absent(),
+    this.minutes = const Value.absent(),
+    this.label = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isDefault = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TimerPresetsCompanion.insert({
+    required String id,
+    required int minutes,
+    this.label = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isDefault = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        minutes = Value(minutes),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<TimerPresetRow> custom({
+    Expression<String>? id,
+    Expression<int>? minutes,
+    Expression<String>? label,
+    Expression<int>? sortOrder,
+    Expression<bool>? isDefault,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (minutes != null) 'minutes': minutes,
+      if (label != null) 'label': label,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (isDefault != null) 'is_default': isDefault,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TimerPresetsCompanion copyWith(
+      {Value<String>? id,
+      Value<int>? minutes,
+      Value<String>? label,
+      Value<int>? sortOrder,
+      Value<bool>? isDefault,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<DateTime?>? deletedAt,
+      Value<int>? rowid}) {
+    return TimerPresetsCompanion(
+      id: id ?? this.id,
+      minutes: minutes ?? this.minutes,
+      label: label ?? this.label,
+      sortOrder: sortOrder ?? this.sortOrder,
+      isDefault: isDefault ?? this.isDefault,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (minutes.present) {
+      map['minutes'] = Variable<int>(minutes.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (isDefault.present) {
+      map['is_default'] = Variable<bool>(isDefault.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TimerPresetsCompanion(')
+          ..write('id: $id, ')
+          ..write('minutes: $minutes, ')
+          ..write('label: $label, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isDefault: $isDefault, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2171,12 +2737,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ActiveTimersTable activeTimers = $ActiveTimersTable(this);
   late final $GoalsTable goals = $GoalsTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
+  late final $TimerPresetsTable timerPresets = $TimerPresetsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [categories, workSessions, activeTimers, goals, settings];
+      [categories, workSessions, activeTimers, goals, settings, timerPresets];
 }
 
 typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
@@ -3012,6 +3579,9 @@ typedef $$ActiveTimersTableCreateCompanionBuilder = ActiveTimersCompanion
   required String categoryId,
   required DateTime startTime,
   Value<String?> memo,
+  Value<int> targetDurationSec,
+  Value<int> accumulatedSec,
+  Value<DateTime?> resumedAt,
 });
 typedef $$ActiveTimersTableUpdateCompanionBuilder = ActiveTimersCompanion
     Function({
@@ -3019,6 +3589,9 @@ typedef $$ActiveTimersTableUpdateCompanionBuilder = ActiveTimersCompanion
   Value<String> categoryId,
   Value<DateTime> startTime,
   Value<String?> memo,
+  Value<int> targetDurationSec,
+  Value<int> accumulatedSec,
+  Value<DateTime?> resumedAt,
 });
 
 final class $$ActiveTimersTableReferences
@@ -3059,6 +3632,17 @@ class $$ActiveTimersTableFilterComposer
   ColumnFilters<String> get memo => $composableBuilder(
       column: $table.memo, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<int> get targetDurationSec => $composableBuilder(
+      column: $table.targetDurationSec,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get accumulatedSec => $composableBuilder(
+      column: $table.accumulatedSec,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get resumedAt => $composableBuilder(
+      column: $table.resumedAt, builder: (column) => ColumnFilters(column));
+
   $$CategoriesTableFilterComposer get categoryId {
     final $$CategoriesTableFilterComposer composer = $composerBuilder(
         composer: this,
@@ -3098,6 +3682,17 @@ class $$ActiveTimersTableOrderingComposer
   ColumnOrderings<String> get memo => $composableBuilder(
       column: $table.memo, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get targetDurationSec => $composableBuilder(
+      column: $table.targetDurationSec,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get accumulatedSec => $composableBuilder(
+      column: $table.accumulatedSec,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get resumedAt => $composableBuilder(
+      column: $table.resumedAt, builder: (column) => ColumnOrderings(column));
+
   $$CategoriesTableOrderingComposer get categoryId {
     final $$CategoriesTableOrderingComposer composer = $composerBuilder(
         composer: this,
@@ -3136,6 +3731,15 @@ class $$ActiveTimersTableAnnotationComposer
 
   GeneratedColumn<String> get memo =>
       $composableBuilder(column: $table.memo, builder: (column) => column);
+
+  GeneratedColumn<int> get targetDurationSec => $composableBuilder(
+      column: $table.targetDurationSec, builder: (column) => column);
+
+  GeneratedColumn<int> get accumulatedSec => $composableBuilder(
+      column: $table.accumulatedSec, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get resumedAt =>
+      $composableBuilder(column: $table.resumedAt, builder: (column) => column);
 
   $$CategoriesTableAnnotationComposer get categoryId {
     final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
@@ -3185,24 +3789,36 @@ class $$ActiveTimersTableTableManager extends RootTableManager<
             Value<String> categoryId = const Value.absent(),
             Value<DateTime> startTime = const Value.absent(),
             Value<String?> memo = const Value.absent(),
+            Value<int> targetDurationSec = const Value.absent(),
+            Value<int> accumulatedSec = const Value.absent(),
+            Value<DateTime?> resumedAt = const Value.absent(),
           }) =>
               ActiveTimersCompanion(
             id: id,
             categoryId: categoryId,
             startTime: startTime,
             memo: memo,
+            targetDurationSec: targetDurationSec,
+            accumulatedSec: accumulatedSec,
+            resumedAt: resumedAt,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String categoryId,
             required DateTime startTime,
             Value<String?> memo = const Value.absent(),
+            Value<int> targetDurationSec = const Value.absent(),
+            Value<int> accumulatedSec = const Value.absent(),
+            Value<DateTime?> resumedAt = const Value.absent(),
           }) =>
               ActiveTimersCompanion.insert(
             id: id,
             categoryId: categoryId,
             startTime: startTime,
             memo: memo,
+            targetDurationSec: targetDurationSec,
+            accumulatedSec: accumulatedSec,
+            resumedAt: resumedAt,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (
@@ -3774,6 +4390,224 @@ typedef $$SettingsTableProcessedTableManager = ProcessedTableManager<
     (SettingRow, BaseReferences<_$AppDatabase, $SettingsTable, SettingRow>),
     SettingRow,
     PrefetchHooks Function()>;
+typedef $$TimerPresetsTableCreateCompanionBuilder = TimerPresetsCompanion
+    Function({
+  required String id,
+  required int minutes,
+  Value<String> label,
+  Value<int> sortOrder,
+  Value<bool> isDefault,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<int> rowid,
+});
+typedef $$TimerPresetsTableUpdateCompanionBuilder = TimerPresetsCompanion
+    Function({
+  Value<String> id,
+  Value<int> minutes,
+  Value<String> label,
+  Value<int> sortOrder,
+  Value<bool> isDefault,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<DateTime?> deletedAt,
+  Value<int> rowid,
+});
+
+class $$TimerPresetsTableFilterComposer
+    extends Composer<_$AppDatabase, $TimerPresetsTable> {
+  $$TimerPresetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get minutes => $composableBuilder(
+      column: $table.minutes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get label => $composableBuilder(
+      column: $table.label, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isDefault => $composableBuilder(
+      column: $table.isDefault, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$TimerPresetsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TimerPresetsTable> {
+  $$TimerPresetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get minutes => $composableBuilder(
+      column: $table.minutes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get label => $composableBuilder(
+      column: $table.label, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isDefault => $composableBuilder(
+      column: $table.isDefault, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$TimerPresetsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TimerPresetsTable> {
+  $$TimerPresetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get minutes =>
+      $composableBuilder(column: $table.minutes, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get isDefault =>
+      $composableBuilder(column: $table.isDefault, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+}
+
+class $$TimerPresetsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $TimerPresetsTable,
+    TimerPresetRow,
+    $$TimerPresetsTableFilterComposer,
+    $$TimerPresetsTableOrderingComposer,
+    $$TimerPresetsTableAnnotationComposer,
+    $$TimerPresetsTableCreateCompanionBuilder,
+    $$TimerPresetsTableUpdateCompanionBuilder,
+    (
+      TimerPresetRow,
+      BaseReferences<_$AppDatabase, $TimerPresetsTable, TimerPresetRow>
+    ),
+    TimerPresetRow,
+    PrefetchHooks Function()> {
+  $$TimerPresetsTableTableManager(_$AppDatabase db, $TimerPresetsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TimerPresetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TimerPresetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TimerPresetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<int> minutes = const Value.absent(),
+            Value<String> label = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            Value<bool> isDefault = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TimerPresetsCompanion(
+            id: id,
+            minutes: minutes,
+            label: label,
+            sortOrder: sortOrder,
+            isDefault: isDefault,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required int minutes,
+            Value<String> label = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            Value<bool> isDefault = const Value.absent(),
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<DateTime?> deletedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TimerPresetsCompanion.insert(
+            id: id,
+            minutes: minutes,
+            label: label,
+            sortOrder: sortOrder,
+            isDefault: isDefault,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$TimerPresetsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $TimerPresetsTable,
+    TimerPresetRow,
+    $$TimerPresetsTableFilterComposer,
+    $$TimerPresetsTableOrderingComposer,
+    $$TimerPresetsTableAnnotationComposer,
+    $$TimerPresetsTableCreateCompanionBuilder,
+    $$TimerPresetsTableUpdateCompanionBuilder,
+    (
+      TimerPresetRow,
+      BaseReferences<_$AppDatabase, $TimerPresetsTable, TimerPresetRow>
+    ),
+    TimerPresetRow,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3788,4 +4622,6 @@ class $AppDatabaseManager {
       $$GoalsTableTableManager(_db, _db.goals);
   $$SettingsTableTableManager get settings =>
       $$SettingsTableTableManager(_db, _db.settings);
+  $$TimerPresetsTableTableManager get timerPresets =>
+      $$TimerPresetsTableTableManager(_db, _db.timerPresets);
 }

@@ -24,13 +24,23 @@ Stream<ActiveTimer?> activeTimer(Ref ref) {
   return ref.watch(activeTimerRepositoryProvider).watch();
 }
 
+/// アクティブタイマーの累計経過秒数を 1 秒間隔で emit する。
+/// 一時停止中は固定値を返し続ける。
 @riverpod
-Stream<int> elapsedSeconds(Ref ref, DateTime startTime) async* {
-  yield DateTime.now().difference(startTime).inSeconds;
-  yield* Stream.periodic(
-    const Duration(seconds: 1),
-    (_) => DateTime.now().difference(startTime).inSeconds,
-  );
+Stream<int> timerElapsed(Ref ref) async* {
+  final timer = await ref.watch(activeTimerProvider.future);
+  if (timer == null) {
+    yield 0;
+    return;
+  }
+  int compute() => timer.elapsedSecondsAt(DateTime.now());
+  yield compute();
+  if (timer.isPaused) {
+    // 一時停止中は更新しない
+    return;
+  }
+  yield* Stream<void>.periodic(const Duration(seconds: 1))
+      .map((_) => compute());
 }
 
 @riverpod
@@ -38,11 +48,17 @@ class TimerController extends _$TimerController {
   @override
   void build() {}
 
-  Future<void> start({required String categoryId, String? memo}) async {
+  /// プリセットを選んでタイマーを開始する。
+  Future<void> start({
+    required String categoryId,
+    required int targetDurationSec,
+    String? memo,
+  }) async {
     final now = DateTime.now();
-    await ref.read(activeTimerRepositoryProvider).save(
+    await ref.read(activeTimerRepositoryProvider).start(
           categoryId: categoryId,
           startTime: now,
+          targetDurationSec: targetDurationSec,
           memo: memo,
         );
     final category =
@@ -50,59 +66,108 @@ class TimerController extends _$TimerController {
     if (category != null) {
       await NotificationService.instance.showOngoingTimer(
         categoryName: category.name,
-        subtitle: '作業を計測中です',
+        subtitle: '集中タイム計測中',
+      );
+      // 完了時の push 通知をスケジュール（一時停止 / 停止 / 完了時にキャンセル）
+      await NotificationService.instance.scheduleTimerCompletion(
+        fireAt: now.add(Duration(seconds: targetDurationSec)),
+        title: '⏰ タイマー完了！',
+        body: '${category.name} の集中タイムが完了しました',
       );
     }
   }
 
-  Future<void> updateMemo(String? memo) async {
-    final current = await ref.read(activeTimerRepositoryProvider).fetch();
-    if (current == null) return;
-    await ref.read(activeTimerRepositoryProvider).save(
-          categoryId: current.categoryId,
-          startTime: current.startTime,
-          memo: (memo == null || memo.isEmpty) ? null : memo,
-        );
+  Future<void> pause() async {
+    await ref
+        .read(activeTimerRepositoryProvider)
+        .pause(now: DateTime.now());
+    // 一時停止中は完了通知をキャンセル
+    await NotificationService.instance.cancelTimerCompletion();
   }
 
+  Future<void> resume() async {
+    final timer = await ref.read(activeTimerRepositoryProvider).fetch();
+    if (timer == null) return;
+    final now = DateTime.now();
+    await ref.read(activeTimerRepositoryProvider).resume(now: now);
+    // 残り時間に合わせて完了通知を再スケジュール
+    final remaining = timer.targetDurationSec - timer.accumulatedSec;
+    if (remaining > 0) {
+      final category = await ref
+          .read(categoryRepositoryProvider)
+          .findById(timer.categoryId);
+      if (category != null) {
+        await NotificationService.instance.scheduleTimerCompletion(
+          fireAt: now.add(Duration(seconds: remaining)),
+          title: '⏰ タイマー完了！',
+          body: '${category.name} の集中タイムが完了しました',
+        );
+      }
+    }
+  }
+
+  Future<void> updateMemo(String? memo) {
+    final normalized = (memo == null || memo.trim().isEmpty)
+        ? null
+        : memo.trim();
+    return ref.read(activeTimerRepositoryProvider).updateMemo(normalized);
+  }
+
+  /// タイマーを終了してセッションを保存する。
+  ///
+  /// 課金対象時間（15 分単位切り下げ）が 0 のときは記録を作らずに
+  /// クリアだけ行い、`null` を返す（issue #95 案 B）。
   Future<WorkSession?> stop({String? memo}) async {
     final activeTimer =
         await ref.read(activeTimerRepositoryProvider).fetch();
     if (activeTimer == null) return null;
 
+    final now = DateTime.now();
+    final workedSec = activeTimer.elapsedSecondsAt(now);
+    final paidSec = AmountCalculator.paidDurationSec(workedSec);
+
+    await NotificationService.instance.cancelTimerCompletion();
+    await NotificationService.instance.cancelOngoingTimer();
+
+    // 15 分未満は記録しない
+    if (paidSec <= 0) {
+      await ref.read(activeTimerRepositoryProvider).clear();
+      return null;
+    }
+
     final category = await ref
         .read(categoryRepositoryProvider)
         .findById(activeTimer.categoryId);
-
-    final endTime = DateTime.now();
-    final durationSec = endTime.difference(activeTimer.startTime).inSeconds;
     final hourlyRate = category?.hourlyRate ?? 0;
     final amount = AmountCalculator.calculate(
-      durationSec: durationSec,
+      durationSec: paidSec,
       hourlyRate: hourlyRate,
     );
     final finalMemo = memo?.trim().isNotEmpty == true
         ? memo!.trim()
         : activeTimer.memo;
 
+    // endTime は「startTime + 課金対象秒数」とする。実時間より短いが、
+    // 履歴側で「課金対象に等しい duration」として保持するため整合させる。
+    final endTime = activeTimer.startTime.add(Duration(seconds: paidSec));
     final session = await ref.read(workSessionRepositoryProvider).create(
           categoryId: activeTimer.categoryId,
           startTime: activeTimer.startTime,
           endTime: endTime,
-          durationSec: durationSec,
+          durationSec: paidSec,
           amount: amount,
           memo: finalMemo,
           inputMethod: WorkSessionInputMethod.timer,
         );
 
     await ref.read(activeTimerRepositoryProvider).clear();
-    await NotificationService.instance.cancelOngoingTimer();
     await ref.read(postSessionNotifierProvider).runAfterSessionSave();
     return session;
   }
 
   Future<void> cancel() async {
     await ref.read(activeTimerRepositoryProvider).clear();
+    await NotificationService.instance.cancelTimerCompletion();
     await NotificationService.instance.cancelOngoingTimer();
   }
 }
