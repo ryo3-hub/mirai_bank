@@ -110,11 +110,6 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              '新規目標',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 20),
             categoriesAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
