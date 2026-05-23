@@ -23,13 +23,14 @@
 ```
 [BottomSheet]（showDragHandle: true, isDismissible: true）
   - "新規カテゴリ" or "カテゴリを編集"（titleLarge）
-  - SegmentedButton [プリセットから選ぶ | 自分で設定]   ← issue #97
-  - ── プリセットから選ぶの場合 ──
+  - SegmentedButton [プリセット | カスタム]   ← issue #97
+    （`CategoryEditModeSelector` 共通ウィジェット、13px / w600）
+  - ── プリセット の場合 ──
     - プリセット選択カード
       - 未選択: 「カテゴリを選ぶ」
       - 選択中: 大カテゴリ / 小カテゴリ + 推奨時給を表示
       - タップで CategoryMasterPickerSheet を開く
-  - ── 自分で設定の場合 ──
+  - ── カスタム の場合 ──
     - カテゴリ名 TextFormField
     - 時給 TextFormField
   - アイコンセクション（両モード共通、編集可）
@@ -38,8 +39,9 @@
 ```
 
 プリセットモードでは名前 / 時給入力欄は画面に出さず、master から自動入力された
-値で保存される。アイコン / カラーは両モードで編集可能（プリセット時は major の
-既定が初期値）。
+値で保存される。プリセット未選択で「保存」を押すとエラートースト「プリセットを
+選んでください」。アイコン / カラーは両モードで編集可能（プリセット時は major
+の既定が初期値）。
 
 専用「キャンセル」ボタンなし。シート外タップ / 下スワイプで閉じる。
 
@@ -117,7 +119,10 @@
 ## 関連ファイル
 - `lib/features/category/presentation/category_edit_sheet.dart`
 - `lib/features/category/presentation/category_list_page.dart`
+- `lib/features/category/presentation/category_master_picker_sheet.dart`
 - `lib/features/category/presentation/widgets/category_form_widgets.dart`
+- `lib/features/category/presentation/widgets/category_edit_mode_selector.dart`（共通 SegmentedButton + `CategoryEditMode` enum）
 - `lib/features/category/application/category_providers.dart`
 - `lib/features/category/domain/category.dart`
+- `lib/features/category/domain/category_master.dart`（プリセット master 55 件）
 - `lib/features/category/domain/category_presets.dart`

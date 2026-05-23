@@ -43,8 +43,8 @@
 - `NotificationSettingsPage`
 - 構成：
   - SwitchListTile「学習リマインダー」（指定時刻に通知）
-  - ListTile「リマインダー時刻」（リマインダー有効時のみタップ可能、`showTimePicker`）
-  - 通知する曜日（FilterChip 月〜日。リマインダー有効時のみ操作可能。0 件選択時は赤の警告文）
+  - ListTile「リマインダー時刻」（リマインダー有効時のみタップ可能、`MiraiTimePickerSheet` / ドラムロール）
+  - 通知する曜日（独自 `_WeekdayCell` を `Row` + `Expanded` で 1 行に。日始まり。0 件選択時は赤の警告文）
   - SwitchListTile「達成通知」（目標達成・連続学習の節目で通知）
 
 #### 学習リマインダー
