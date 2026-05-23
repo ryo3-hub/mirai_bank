@@ -82,8 +82,12 @@ class _GoalProgressRow extends StatelessWidget {
 
   String _periodLabel(Goal goal) {
     if (goal.type == GoalType.cumulative) return '累計';
-    final start = goal.periodStart;
+    final preset = GoalPreset.fromGoal(goal);
     final end = goal.periodEnd;
+    if (preset != null && end != null) {
+      return '〜 ${_dateFormatter.format(end)}';
+    }
+    final start = goal.periodStart;
     if (start == null || end == null) return '期間';
     return '${_dateFormatter.format(start)} 〜 ${_dateFormatter.format(end)}';
   }
@@ -96,7 +100,9 @@ class _GoalProgressRow extends StatelessWidget {
         ? CategoryPresets.colorFor(category!.colorCode)
         : theme.colorScheme.primary;
     final percent = (progress.ratio * 100).round();
+    final preset = GoalPreset.fromGoal(goal);
     final label = category?.name ??
+        preset?.label ??
         (goal.type == GoalType.cumulative ? '累計目標' : '期間目標');
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),

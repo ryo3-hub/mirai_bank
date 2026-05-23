@@ -66,7 +66,9 @@ class _GoalAchievementDialogState extends State<GoalAchievementDialog>
     final theme = Theme.of(context);
     final goal = widget.goal;
     final scope = widget.categoryName ?? '全カテゴリ';
-    final typeLabel = goal.type == GoalType.cumulative ? '累計目標' : '期間目標';
+    final preset = GoalPreset.fromGoal(goal);
+    final typeLabel = preset?.label ??
+        (goal.type == GoalType.cumulative ? '累計目標' : '期間目標');
 
     return Stack(
       alignment: Alignment.center,
