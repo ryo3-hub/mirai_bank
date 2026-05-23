@@ -28,7 +28,7 @@ class CategoryController extends _$CategoryController {
   @override
   void build() {}
 
-  Future<void> create({
+  Future<Category> create({
     required String name,
     required int hourlyRate,
     required String colorCode,

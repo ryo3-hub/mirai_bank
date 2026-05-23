@@ -9,6 +9,7 @@ import '../../../category/domain/category_presets.dart';
 import '../../../goals/application/goal_providers.dart';
 import '../../../goals/domain/goal.dart';
 import '../../../goals/domain/goal_progress.dart';
+import '../../../goals/presentation/goal_edit_sheet.dart';
 
 class DashboardGoalsSection extends ConsumerWidget {
   const DashboardGoalsSection({super.key});
@@ -22,7 +23,8 @@ class DashboardGoalsSection extends ConsumerWidget {
     final categories = categoriesAsync.value ?? const <Category>[];
     final categoryMap = {for (final c in categories) c.id: c};
     final progresses = progressAsync.value ?? const <GoalProgress>[];
-    if (progresses.isEmpty) return const SizedBox.shrink();
+    // issue #102: 目標が 0 件のときはホームから直接追加できる導線を出す。
+    if (progresses.isEmpty) return const _AddGoalCard();
     final visible = progresses.take(_maxDisplay).toList();
     final more = progresses.length - visible.length;
 
@@ -65,6 +67,67 @@ class DashboardGoalsSection extends ConsumerWidget {
                     : categoryMap[p.goal.categoryId],
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AddGoalCard extends StatelessWidget {
+  const _AddGoalCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => GoalEditSheet.show(context),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.flag_outlined,
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '目標を追加',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '短期 / 中期 / 長期から選んで設定',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.add_circle,
+                size: 28,
+                color: theme.colorScheme.primary,
+              ),
+            ],
+          ),
         ),
       ),
     );
