@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/reorder_proxy_decorator.dart';
+import '../../../shared/widgets/top_toast.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
 import '../application/goal_providers.dart';
@@ -10,6 +12,32 @@ import '../domain/goal.dart';
 import '../domain/goal_progress.dart';
 import 'goal_edit_sheet.dart';
 import 'widgets/goal_card.dart';
+
+Future<void> _confirmAndDeleteGoal(
+  BuildContext context,
+  WidgetRef ref,
+  String id,
+) async {
+  final ok = await showDeleteConfirmDialog(
+    context: context,
+    message: 'この目標を削除します。',
+  );
+  if (!ok || !context.mounted) return;
+  try {
+    await ref.read(goalControllerProvider.notifier).delete(id);
+    if (context.mounted) {
+      TopToast.show(context, message: '目標を削除しました');
+    }
+  } catch (e) {
+    if (context.mounted) {
+      TopToast.show(
+        context,
+        message: '削除に失敗しました: $e',
+        isError: true,
+      );
+    }
+  }
+}
 
 class GoalListPage extends ConsumerWidget {
   const GoalListPage({super.key});
@@ -147,8 +175,8 @@ class _GoalListBodyState extends ConsumerState<_GoalListBody> {
             category: progress.goal.categoryId == null
                 ? null
                 : categoryMap[progress.goal.categoryId],
-            onTap: () =>
-                GoalEditSheet.show(context, initial: progress.goal),
+            onDelete: () =>
+                _confirmAndDeleteGoal(context, ref, progress.goal.id),
           ),
         );
       },
@@ -200,7 +228,7 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _AchievedSection extends StatelessWidget {
+class _AchievedSection extends ConsumerWidget {
   const _AchievedSection({
     required this.goals,
     required this.categoryMap,
@@ -210,7 +238,7 @@ class _AchievedSection extends StatelessWidget {
   final Map<String, Category> categoryMap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Theme(
       data: Theme.of(context).copyWith(
         dividerColor: Colors.transparent,
@@ -247,7 +275,7 @@ class _AchievedSection extends StatelessWidget {
                   category: goal.categoryId == null
                       ? null
                       : categoryMap[goal.categoryId],
-                  onTap: () => GoalEditSheet.show(context, initial: goal),
+                  onDelete: () => _confirmAndDeleteGoal(context, ref, goal.id),
                 ),
               ),
           ],

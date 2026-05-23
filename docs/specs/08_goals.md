@@ -1,23 +1,22 @@
-# 目標追加・編集シート
+# 目標追加シート
 
 ## 概要
-短期 / 中期 / 長期のプリセットから目標を選択するボトムシート。設定 > 目標設定から開かれる。
+短期 / 中期 / 長期のプリセットから目標を選択するボトムシート。設定 > 目標設定の FAB から開かれる。
 
-issue #100 で「自由入力（種別 / 金額 / 期間）方式」から本プリセット選択方式に変更した。
+issue #100 で「自由入力（種別 / 金額 / 期間）方式」から本プリセット選択方式に変更。
+編集機能は廃止し、削除は目標カード右上の削除アイコンから行う。
 
 ## UI 構成
 ```
 [BottomSheet]（showDragHandle: true, isDismissible: true）
-  - "新規目標" or "目標を編集"（titleLarge）
+  - "新規目標"（titleLarge）
   - 対象カテゴリ選択（タップで CategoryOptionSheet）
   - "目標を選ぶ"（titleSmall）
   - プリセット 3 ボタン（縦並びの選択カード）
-    - 短期目標 / 中期目標 / 長期目標
+    - 短期目標 (7日間) / 中期目標 (30日間) / 長期目標 (90日間)
     - 各カードに「達成予定: YYYY/M/d」と目標金額（円）を表示
     - 選択中はラジオアイコン + アクセント色枠
-  - ボタン行：
-    - 新規: 保存ボタン横幅一杯（プリセット未選択時は無効）
-    - 編集: 削除ボタン + 保存ボタン（均等幅）
+  - 保存ボタン（プリセット未選択時は無効・横幅一杯）
 ```
 
 専用「キャンセル」ボタンなし。シート外タップ / 下スワイプで閉じる。
@@ -38,17 +37,25 @@ issue #100 で「自由入力（種別 / 金額 / 期間）方式」から本プ
 
 ### 保存
 - DB 格納形式は既存スキーマ互換：`GoalType.period` + `periodStart = 当日 0:00` + `periodEnd = 当日 + プリセット日数`
-- 新規: `GoalController.create(type: period, ...)`
-- 編集: `GoalController.updateGoal(initial.copyWith(...))`
-  - 編集時はプリセット変更 = 仕切り直しとして periodStart を「今日」に再設定
-  - 達成済み (`achievedAt`) はクリア
+- `GoalController.create(type: period, ...)`
 - 保存後、`GoalAchievementChecker.checkAndMark()` で達成判定 → `achievedAt` を更新
 
-### 削除（編集モードのみ）
+### 削除
+編集機能は廃止。一覧画面の各目標カード右上の削除アイコンから削除する：
+
 1. `showDeleteConfirmDialog` で確認（赤フィルドの削除ボタン）
 2. `GoalController.delete()` で削除
 3. トースト「目標を削除しました」
-4. シートを閉じる
+
+達成済みセクション（アコーディオン内）の目標カードも同じ削除アイコンで削除可能。
+
+## 目標カード表示
+
+- 左上：プリセットラベル（短期 / 中期 / 長期、または既存目標は累計 / 期間）
+- 中央：対象カテゴリ（アイコン + 名前、null なら「全カテゴリ」）
+- 右上：達成済みなら「達成 ✓」、削除アイコン
+- 達成予定日（`達成予定: YYYY/M/d`）
+- 累積金額 / 目標金額、進捗パーセント、プログレスバー
 
 ## プリセットの逆引き（既存目標との互換性）
 
@@ -73,15 +80,14 @@ DB は `GoalType.period` で保存するため、`GoalPreset` は `periodEnd - p
 | 操作 | 成功時 | 失敗時 |
 |---|---|---|
 | 追加 | 「目標を追加しました」 | 「保存に失敗しました: $e」 |
-| 編集 | 「目標を更新しました」 | 「保存に失敗しました: $e」 |
 | 削除 | 「目標を削除しました」 | 「削除に失敗しました: $e」 |
 
 達成時は `GoalAchievementDialog` で別途お祝い演出。
 
 ## 関連ファイル
-- `lib/features/goals/presentation/goal_edit_sheet.dart`
-- `lib/features/goals/presentation/goal_list_page.dart`
-- `lib/features/goals/presentation/widgets/goal_card.dart`
+- `lib/features/goals/presentation/goal_edit_sheet.dart`（新規作成シート）
+- `lib/features/goals/presentation/goal_list_page.dart`（削除導線）
+- `lib/features/goals/presentation/widgets/goal_card.dart`（削除アイコン）
 - `lib/features/goals/application/goal_providers.dart`
 - `lib/features/goals/application/goal_achievement_checker.dart`
 - `lib/features/goals/domain/goal.dart`（`GoalPreset` enum）

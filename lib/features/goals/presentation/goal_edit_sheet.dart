@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
@@ -10,22 +9,21 @@ import '../../category/domain/category_presets.dart';
 import '../application/goal_providers.dart';
 import '../domain/goal.dart';
 
-/// 目標作成・編集ボトムシート。
+/// 新規目標作成ボトムシート。
 ///
-/// issue #100 で自由入力（種別 / 金額 / 期間）から、
-/// 短期 / 中期 / 長期の 3 プリセット選択方式へ変更した。
+/// issue #100 で自由入力（種別 / 金額 / 期間）から、短期 / 中期 / 長期の
+/// 3 プリセット選択方式へ変更。編集機能は廃止し、削除のみ GoalCard の
+/// 削除アイコンから行う。
 class GoalEditSheet extends ConsumerStatefulWidget {
-  const GoalEditSheet({super.key, this.initial});
+  const GoalEditSheet({super.key});
 
-  final Goal? initial;
-
-  static Future<void> show(BuildContext context, {Goal? initial}) {
+  static Future<void> show(BuildContext context) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      builder: (_) => GoalEditSheet(initial: initial),
+      builder: (_) => const GoalEditSheet(),
     );
   }
 
@@ -37,28 +35,12 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
   GoalPreset? _preset;
   String? _categoryId;
   bool _saving = false;
-  bool _deleting = false;
-
-  bool get _isEdit => widget.initial != null;
-
-  @override
-  void initState() {
-    super.initState();
-    final initial = widget.initial;
-    if (initial != null) {
-      _preset = GoalPreset.fromGoal(initial);
-      _categoryId = initial.categoryId;
-    }
-  }
 
   static DateTime _todayMidnight() {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day);
   }
 
-  /// 現在の [_preset] と [_categoryId] から達成予定日を求める。
-  /// 編集時は元の periodStart は引き継がず「今日」を起点に再計算する
-  /// （プリセット変更 = 仕切り直しのため）。
   DateTime _computeDeadline(GoalPreset preset) {
     return _todayMidnight().add(Duration(days: preset.days));
   }
@@ -93,34 +75,16 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
     final start = _todayMidnight();
     final end = start.add(Duration(days: preset.days));
     final amount = _computeTargetAmount(preset, categories);
-    final initial = widget.initial;
     try {
-      if (initial == null) {
-        await controller.create(
-          type: GoalType.period,
-          targetAmount: amount,
-          categoryId: _categoryId,
-          periodStart: start,
-          periodEnd: end,
-        );
-      } else {
-        await controller.updateGoal(
-          initial.copyWith(
-            type: GoalType.period,
-            targetAmount: amount,
-            categoryId: _categoryId,
-            clearCategoryId: _categoryId == null,
-            periodStart: start,
-            periodEnd: end,
-            clearAchievedAt: true,
-          ),
-        );
-      }
+      await controller.create(
+        type: GoalType.period,
+        targetAmount: amount,
+        categoryId: _categoryId,
+        periodStart: start,
+        periodEnd: end,
+      );
       if (mounted) {
-        TopToast.show(
-          context,
-          message: _isEdit ? '目標を更新しました' : '目標を追加しました',
-        );
+        TopToast.show(context, message: '目標を追加しました');
         navigator.pop();
       }
     } catch (e) {
@@ -129,34 +93,6 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
         TopToast.show(
           context,
           message: '保存に失敗しました: $e',
-          isError: true,
-        );
-      }
-    }
-  }
-
-  Future<void> _delete() async {
-    final initial = widget.initial;
-    if (initial == null) return;
-    final ok = await showDeleteConfirmDialog(
-      context: context,
-      message: 'この目標を削除します。',
-    );
-    if (!ok || !mounted) return;
-    final navigator = Navigator.of(context);
-    setState(() => _deleting = true);
-    try {
-      await ref.read(goalControllerProvider.notifier).delete(initial.id);
-      if (mounted) {
-        TopToast.show(context, message: '目標を削除しました');
-        navigator.pop();
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _deleting = false);
-        TopToast.show(
-          context,
-          message: '削除に失敗しました: $e',
           isError: true,
         );
       }
@@ -175,7 +111,7 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              _isEdit ? '目標を編集' : '新規目標',
+              '新規目標',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 20),
@@ -214,63 +150,18 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
                         ),
                       ),
                     const SizedBox(height: 24),
-                    if (_isEdit)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: FilledButton.icon(
-                              onPressed: (_saving || _deleting) ? null : _delete,
-                              icon: _deleting
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
-                                    )
-                                  : const Icon(Icons.delete_outline),
-                              label: const Text('削除'),
-                              style: FilledButton.styleFrom(
-                                backgroundColor:
-                                    Theme.of(context).colorScheme.error,
-                                foregroundColor:
-                                    Theme.of(context).colorScheme.onError,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: FilledButton(
-                              onPressed: (_saving ||
-                                      _deleting ||
-                                      _preset == null)
-                                  ? null
-                                  : () => _save(categories),
-                              child: _saving
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
-                                    )
-                                  : const Text('保存'),
-                            ),
-                          ),
-                        ],
-                      )
-                    else
-                      FilledButton(
-                        onPressed: (_saving || _preset == null)
-                            ? null
-                            : () => _save(categories),
-                        child: _saving
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Text('保存'),
-                      ),
+                    FilledButton(
+                      onPressed: (_saving || _preset == null)
+                          ? null
+                          : () => _save(categories),
+                      child: _saving
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('保存'),
+                    ),
                   ],
                 );
               },
@@ -335,11 +226,24 @@ class _PresetCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      preset.label,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          preset.label,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '(${preset.days}日間)',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
