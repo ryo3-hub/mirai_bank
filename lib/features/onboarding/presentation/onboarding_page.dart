@@ -179,6 +179,35 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     }
   }
 
+  /// 目標ステップから戻る。issue #106 で追加。
+  /// 直前に作ったカテゴリをソフトデリートしてカテゴリステップへ復帰する
+  /// （案 B: ロールバック方式）。フォームの入力値はそのまま残し、再度
+  /// 「始める」を押せば新規カテゴリとして作り直される。
+  Future<void> _onGoalBack() async {
+    final created = _createdCategory;
+    if (created == null) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(categoryControllerProvider.notifier).delete(created.id);
+      if (!mounted) return;
+      setState(() {
+        _createdCategory = null;
+        _selectedPreset = null;
+        _step = _OnboardingStep.category;
+        _saving = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        TopToast.show(
+          context,
+          message: '戻る処理に失敗しました: $e',
+          isError: true,
+        );
+      }
+    }
+  }
+
   static DateTime _todayMidnight() {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day);
@@ -329,75 +358,97 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final theme = Theme.of(context);
     final category = _createdCategory;
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.flag_outlined,
-              size: 32,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            '目標を選びましょう',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '達成予定日と金額の目安を表示します。\n'
-            'あとから自由に変更できます。',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          if (category != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: _CategoryChip(category: category),
-            ),
-          for (final preset in GoalPreset.values)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: _GoalPresetCard(
-                preset: preset,
-                selected: _selectedPreset == preset,
-                amount: preset.targetAmountFor(category),
-                deadline: _todayMidnight().add(Duration(days: preset.days)),
-                onTap: () => setState(() => _selectedPreset = preset),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                onPressed: _saving ? null : _onGoalBack,
+                icon: const Icon(Icons.arrow_back),
+                tooltip: '戻る',
               ),
             ),
-          const SizedBox(height: 32),
-          FilledButton(
-            onPressed: (_saving || _selectedPreset == null)
-                ? null
-                : _onGoalSave,
-            child: _saving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('設定する'),
           ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: _saving ? null : _onGoalSkip,
-            child: const Text('あとで設定する'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color:
+                        theme.colorScheme.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.flag_outlined,
+                    size: 32,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  '目標を選びましょう',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '達成予定日と金額の目安を表示します。',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                if (category != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: _CategoryChip(category: category),
+                  ),
+                for (final preset in GoalPreset.values)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: _GoalPresetCard(
+                      preset: preset,
+                      selected: _selectedPreset == preset,
+                      amount: preset.targetAmountFor(category),
+                      deadline:
+                          _todayMidnight().add(Duration(days: preset.days)),
+                      onTap: () =>
+                          setState(() => _selectedPreset = preset),
+                    ),
+                  ),
+                const SizedBox(height: 32),
+                FilledButton(
+                  onPressed: (_saving || _selectedPreset == null)
+                      ? null
+                      : _onGoalSave,
+                  child: _saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child:
+                              CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('設定する'),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: _saving ? null : _onGoalSkip,
+                  child: const Text('あとで設定する'),
+                ),
+              ],
+            ),
           ),
         ],
       ),
