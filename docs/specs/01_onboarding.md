@@ -15,9 +15,12 @@
   body: SingleChildScrollView
     - 円形バッジ（Icons.savings_outlined + 薄い primary 背景）
     - 「ようこそ」ヘッドライン
-    - 「まず、カテゴリと時給を設定しましょう。あとから自由に変更できます。」
-    - カテゴリ名 TextFormField
-    - 時給 TextFormField
+    - 「まず、カテゴリを 1 つ選びましょう。プリセットから選ぶと推奨時給がセットされます。」
+    - プリセット選択カード（タップで CategoryMasterPickerSheet、issue #97）
+      - 未選択: 「プリセットから選ぶ」
+      - 選択中: 大カテゴリ / 小カテゴリ + 推奨時給を表示
+    - カテゴリ名 TextFormField（プリセット選択時は自動入力、編集可）
+    - 時給 TextFormField（プリセット選択時は推奨時給が入る、編集可）
     - アイコンセクション（カラー付きピッカー）
     - カラーセクション（カラーピッカー）
     - FilledButton「始める」
@@ -27,6 +30,7 @@
 ```
 
 背景タップで `FocusScope.of(context).unfocus()`（キーボード閉じ）。
+カテゴリ名や時給は手で書き換えてもプリセットの紐付け（`masterKey`）は維持される。
 
 ## 入力フィールド
 

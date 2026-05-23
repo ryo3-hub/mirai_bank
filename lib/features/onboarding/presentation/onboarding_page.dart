@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../shared/widgets/top_toast.dart';
 import '../../category/application/category_providers.dart';
+import '../../category/domain/category_master.dart';
 import '../../category/domain/category_presets.dart';
+import '../../category/presentation/category_master_picker_sheet.dart';
 import '../../category/presentation/widgets/category_form_widgets.dart';
 import '../application/onboarding_state.dart';
 
@@ -15,12 +18,15 @@ class OnboardingPage extends ConsumerStatefulWidget {
 }
 
 class _OnboardingPageState extends ConsumerState<OnboardingPage> {
+  static final _rateFormatter = NumberFormat('#,###');
+
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _rateController = TextEditingController(text: '1000');
   final _rateFocus = FocusNode();
   String _iconCode = CategoryPresets.defaultIcon;
   String _colorCode = CategoryPresets.defaultColor;
+  String? _masterKey;
   bool _saving = false;
 
   @override
@@ -29,6 +35,25 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     _rateController.dispose();
     _rateFocus.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickFromMaster() async {
+    final initialMajor = CategoryMaster.findMinor(_masterKey)?.majorKey;
+    final minor = await CategoryMasterPickerSheet.show(
+      context,
+      initialMajorKey: initialMajor,
+    );
+    if (minor == null || !mounted) return;
+    final major = CategoryMaster.findMajor(minor.majorKey);
+    setState(() {
+      _masterKey = minor.key;
+      _nameController.text = minor.name;
+      _rateController.text = minor.recommendedRate.toString();
+      if (major != null) {
+        _iconCode = major.iconCode;
+        _colorCode = major.colorCode;
+      }
+    });
   }
 
   Future<void> _onStart() async {
@@ -41,6 +66,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             hourlyRate: int.parse(_rateController.text.trim()),
             colorCode: _colorCode,
             iconCode: _iconCode,
+            masterKey: _masterKey,
           );
       await ref.read(onboardingStateProvider.notifier).markCompleted();
     } catch (e) {
@@ -115,7 +141,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'まず、カテゴリと時給を設定しましょう。\nあとから自由に変更できます。',
+                        'まず、カテゴリを 1 つ選びましょう。\n'
+                        'プリセットから選ぶと推奨時給がセットされます。',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           height: 1.5,
@@ -123,6 +150,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 32),
+                      _OnboardingPresetCard(
+                        masterKey: _masterKey,
+                        onTap: _pickFromMaster,
+                        rateFormatter: _rateFormatter,
+                      ),
+                      const SizedBox(height: 20),
                       CategoryNameField(
                         controller: _nameController,
                         textInputAction: TextInputAction.next,
@@ -184,6 +217,94 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _OnboardingPresetCard extends StatelessWidget {
+  const _OnboardingPresetCard({
+    required this.masterKey,
+    required this.onTap,
+    required this.rateFormatter,
+  });
+
+  final String? masterKey;
+  final VoidCallback onTap;
+  final NumberFormat rateFormatter;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final minor = CategoryMaster.findMinor(masterKey);
+    final major = minor == null ? null : CategoryMaster.findMajor(minor.majorKey);
+    final selected = minor != null;
+    final accent = major == null
+        ? theme.colorScheme.primary
+        : CategoryPresets.colorFor(major.colorCode);
+    return Material(
+      color: selected
+          ? accent.withValues(alpha: 0.08)
+          : theme.colorScheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: selected ? accent : theme.colorScheme.outlineVariant,
+          width: selected ? 1.5 : 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: accent,
+                foregroundColor: Colors.white,
+                child: Icon(
+                  major == null
+                      ? Icons.auto_awesome_outlined
+                      : CategoryPresets.iconFor(major.iconCode),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      selected
+                          ? '${major?.name ?? ''} / ${minor.name}'
+                          : 'プリセットから選ぶ',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      selected
+                          ? '推奨時給 ${rateFormatter.format(minor.recommendedRate)} 円/h'
+                          : '時給の相場がわからなくても OK',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                selected ? Icons.swap_horiz : Icons.chevron_right,
+                color: theme.colorScheme.outline,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

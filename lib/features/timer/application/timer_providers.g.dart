@@ -59,7 +59,7 @@ final timerElapsedProvider = AutoDisposeStreamProvider<int>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef TimerElapsedRef = AutoDisposeStreamProviderRef<int>;
-String _$timerControllerHash() => r'd898322335cebf1347bd29247a060fe5c9ad4951';
+String _$timerControllerHash() => r'1a088bd4ac81ff67dbae5e389a4235fa8e83fed0';
 
 /// See also [TimerController].
 @ProviderFor(TimerController)

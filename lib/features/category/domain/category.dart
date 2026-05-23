@@ -6,6 +6,7 @@ class Category {
     required this.colorCode,
     required this.iconCode,
     this.sortOrder = 0,
+    this.masterKey,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -17,6 +18,11 @@ class Category {
   final String colorCode;
   final String iconCode;
   final int sortOrder;
+
+  /// プリセット master 由来の場合、`CategoryMaster.minors[].key` を保持する
+  /// （issue #97）。自由入力で作成した場合は null。
+  final String? masterKey;
+
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -58,6 +64,8 @@ class Category {
     String? colorCode,
     String? iconCode,
     int? sortOrder,
+    String? masterKey,
+    bool clearMasterKey = false,
     DateTime? updatedAt,
     DateTime? deletedAt,
   }) {
@@ -68,6 +76,7 @@ class Category {
       colorCode: colorCode ?? this.colorCode,
       iconCode: iconCode ?? this.iconCode,
       sortOrder: sortOrder ?? this.sortOrder,
+      masterKey: clearMasterKey ? null : (masterKey ?? this.masterKey),
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,

@@ -33,12 +33,14 @@ class CategoryController extends _$CategoryController {
     required int hourlyRate,
     required String colorCode,
     required String iconCode,
+    String? masterKey,
   }) {
     return ref.read(categoryRepositoryProvider).create(
           name: name,
           hourlyRate: hourlyRate,
           colorCode: colorCode,
           iconCode: iconCode,
+          masterKey: masterKey,
         );
   }
 

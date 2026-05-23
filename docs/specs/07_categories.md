@@ -23,6 +23,11 @@
 ```
 [BottomSheet]（showDragHandle: true, isDismissible: true）
   - "新規カテゴリ" or "カテゴリを編集"（titleLarge）
+  - SegmentedButton [プリセットから選ぶ | 自分で設定]   ← issue #97
+  - （プリセットモードのみ）プリセット選択カード
+    - 未選択: 「カテゴリを選ぶ」
+    - 選択中: 大カテゴリ / 小カテゴリ + 推奨時給を表示
+    - タップで CategoryMasterPickerSheet を開く
   - カテゴリ名 TextFormField
   - 時給 TextFormField
   - アイコンセクション
@@ -31,6 +36,26 @@
 ```
 
 専用「キャンセル」ボタンなし。シート外タップ / 下スワイプで閉じる。
+
+### モード初期値
+- 新規 → **プリセットから選ぶ**（初心者向け、時給の相場を提示）
+- 編集 → 既存カテゴリに `masterKey` があれば **プリセット**、無ければ **自分で設定**
+
+### CategoryMasterPickerSheet（issue #97）
+プリセット選択用の独立シート。`showModalBottomSheet` で別シートとして開き、
+内部で大カテゴリ → 小カテゴリの 2 ステップ。
+- ステップ 1: 14 個の大カテゴリを 2 列グリッドで表示（五十音順）
+- ステップ 2: 選んだ大カテゴリの小カテゴリ一覧（五十音順）+ 推奨時給
+- 小カテゴリをタップすると `CategoryMasterMinor` を返してシートを閉じる
+- 編集モードで開いた場合は `initialMajorKey` で該当 major のステップ 2 から開始
+- マスタデータは `lib/features/category/domain/category_master.dart` に const 定義
+  （14 大カテゴリ × 計 55 小カテゴリ）
+
+### プリセット選択後の挙動
+- カテゴリ名・時給・アイコン・カラーが master に基づいて自動入力される
+- いずれのフィールドも以降は手で編集可能（プリセットからの「ヒント」扱い）
+- `Category.masterKey` には選んだ minor の key が保存される（自由入力で
+  作成した場合は null）
 
 ## 入力フィールド
 
