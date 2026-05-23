@@ -39,8 +39,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!onboardingCompleted && !hasCategories && !isOnboarding) {
         return '/onboarding';
       }
-      // Exit /onboarding once it's marked complete (or categories exist).
-      if (isOnboarding && (onboardingCompleted || hasCategories)) {
+      // Exit /onboarding only once it's explicitly marked completed.
+      // issue #102: hasCategories だけで抜けると、カテゴリ作成直後の目標
+      // ステップが表示されない（オンボーディングは markCompleted() を呼ぶまで継続）。
+      if (isOnboarding && onboardingCompleted) {
         return '/home';
       }
       return null;

@@ -50,7 +50,9 @@
 - FilledButton.icon「カテゴリを追加」（タップで `CategoryEditSheet.show()`）
 
 ### 5. DashboardGoalsSection
-- 目標が 0 件のときは表示なし（`SizedBox.shrink`）
+- 目標が 0 件のとき: **「目標を追加」カード**を表示（issue #102）
+  - タップで `GoalEditSheet.show()`（新規目標シート）が開く
+  - アイコン + 「目標を追加」+「短期 / 中期 / 長期から選んで設定」のサブテキスト
 - **最大表示件数: 5 件** (`_maxDisplay = 5`)
 - 上回る分は「他 N 件」リンクで `/settings/goals` へ
 - 各目標：ラベル / 達成率 % / 進捗バー / 現在金額 / 目標金額
@@ -82,6 +84,7 @@
 ## 遷移
 - 「カテゴリを追加」→ `CategoryEditSheet` （ボトムシート）
 - カテゴリ選択 → `CategoryPickerSheet`（ボトムシート）
+- 「目標を追加」（目標 0 件時）→ `GoalEditSheet` （ボトムシート）
 - 目標「他 N 件」/ 「すべて見る」→ `/settings/goals`
 - プリセット編集 → `/settings/timer-presets`（設定タブ経由）
 
