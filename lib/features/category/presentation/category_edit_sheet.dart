@@ -153,7 +153,6 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isEdit = widget.initial != null;
     final viewInsets = MediaQuery.of(context).viewInsets;
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets.bottom),
@@ -164,11 +163,6 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                isEdit ? 'カテゴリを編集' : '新規カテゴリ',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 16),
               CategoryEditModeSelector(
                 mode: _mode,
                 onChanged: (m) {
