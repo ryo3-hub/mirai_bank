@@ -65,6 +65,10 @@ class PostSessionNotifier {
   String _achievementBody(Goal goal, String? categoryName) {
     final amount = _amountFormatter.format(goal.targetAmount);
     final scope = categoryName ?? '全カテゴリ';
+    final preset = GoalPreset.fromGoal(goal);
+    if (preset != null) {
+      return '$scope の${preset.label} $amount円 を達成しました';
+    }
     if (goal.type == GoalType.cumulative) {
       return '$scope の累計 $amount円目標を達成しました';
     }

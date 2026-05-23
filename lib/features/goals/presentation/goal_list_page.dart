@@ -289,7 +289,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '右下のボタンから\n累計・期間の目標を設定できます',
+              '右下のボタンから\n短期 / 中期 / 長期の目標を設定できます',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,

@@ -20,6 +20,12 @@ class GoalCard extends StatelessWidget {
 
   static final _amountFormatter = NumberFormat('#,###');
 
+  static String _typeLabel(Goal goal) {
+    final preset = GoalPreset.fromGoal(goal);
+    if (preset != null) return preset.label.replaceAll('目標', '');
+    return goal.type == GoalType.cumulative ? '累計' : '期間';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -28,6 +34,7 @@ class GoalCard extends StatelessWidget {
         ? CategoryPresets.colorFor(category!.colorCode)
         : theme.colorScheme.primary;
     final percent = (progress.ratio * 100).round();
+    final preset = GoalPreset.fromGoal(goal);
 
     return Card(
       child: InkWell(
@@ -50,7 +57,7 @@ class GoalCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      goal.type == GoalType.cumulative ? '累計' : '期間',
+                      _typeLabel(goal),
                       style: TextStyle(
                         color: color,
                         fontSize: 11,
@@ -111,11 +118,13 @@ class GoalCard extends StatelessWidget {
                     ),
                 ],
               ),
-              if (goal.type == GoalType.period && goal.periodStart != null) ...[
+              if (goal.type == GoalType.period && goal.periodEnd != null) ...[
                 const SizedBox(height: 6),
                 Text(
-                  '${DateFormat('M/d').format(goal.periodStart!)} 〜 '
-                  '${DateFormat('M/d').format(goal.periodEnd!)}',
+                  preset != null
+                      ? '達成予定: ${DateFormat('yyyy/M/d').format(goal.periodEnd!)}'
+                      : '${DateFormat('M/d').format(goal.periodStart!)} 〜 '
+                          '${DateFormat('M/d').format(goal.periodEnd!)}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
