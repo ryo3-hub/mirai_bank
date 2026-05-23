@@ -25,7 +25,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -76,6 +76,11 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(activeTimers, activeTimers.resumedAt);
             await m.createTable(timerPresets);
             await _seedDefaultTimerPresets();
+          }
+          if (from < 6) {
+            // v6: Categories に masterKey カラムを追加（issue #97）。
+            // 既存カテゴリは null のまま（プリセット由来ではない自由入力扱い）。
+            await m.addColumn(categories, categories.masterKey);
           }
         },
       );

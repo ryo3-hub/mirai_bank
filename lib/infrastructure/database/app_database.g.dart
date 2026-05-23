@@ -51,6 +51,12 @@ class $CategoriesTable extends Categories
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _masterKeyMeta =
+      const VerificationMeta('masterKey');
+  @override
+  late final GeneratedColumn<String> masterKey = GeneratedColumn<String>(
+      'master_key', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -77,6 +83,7 @@ class $CategoriesTable extends Categories
         colorCode,
         iconCode,
         sortOrder,
+        masterKey,
         createdAt,
         updatedAt,
         deletedAt
@@ -126,6 +133,10 @@ class $CategoriesTable extends Categories
       context.handle(_sortOrderMeta,
           sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
     }
+    if (data.containsKey('master_key')) {
+      context.handle(_masterKeyMeta,
+          masterKey.isAcceptableOrUnknown(data['master_key']!, _masterKeyMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -163,6 +174,8 @@ class $CategoriesTable extends Categories
           .read(DriftSqlType.string, data['${effectivePrefix}icon_code'])!,
       sortOrder: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
+      masterKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}master_key']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -188,6 +201,10 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
   /// ユーザーが任意に並び替えできる表示順。
   /// 新規追加時はアクティブカテゴリの現在の最大値+1 を割り当て、末尾に追加される。
   final int sortOrder;
+
+  /// プリセット master（`CategoryMaster.minors[].key`）からコピーした場合の参照。
+  /// 自由入力で作成したカテゴリは null。v6 で追加（issue #97）。
+  final String? masterKey;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
@@ -198,6 +215,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       required this.colorCode,
       required this.iconCode,
       required this.sortOrder,
+      this.masterKey,
       required this.createdAt,
       required this.updatedAt,
       this.deletedAt});
@@ -210,6 +228,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
     map['color_code'] = Variable<String>(colorCode);
     map['icon_code'] = Variable<String>(iconCode);
     map['sort_order'] = Variable<int>(sortOrder);
+    if (!nullToAbsent || masterKey != null) {
+      map['master_key'] = Variable<String>(masterKey);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -226,6 +247,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       colorCode: Value(colorCode),
       iconCode: Value(iconCode),
       sortOrder: Value(sortOrder),
+      masterKey: masterKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(masterKey),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
@@ -244,6 +268,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       colorCode: serializer.fromJson<String>(json['colorCode']),
       iconCode: serializer.fromJson<String>(json['iconCode']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      masterKey: serializer.fromJson<String?>(json['masterKey']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -259,6 +284,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       'colorCode': serializer.toJson<String>(colorCode),
       'iconCode': serializer.toJson<String>(iconCode),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'masterKey': serializer.toJson<String?>(masterKey),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -272,6 +298,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           String? colorCode,
           String? iconCode,
           int? sortOrder,
+          Value<String?> masterKey = const Value.absent(),
           DateTime? createdAt,
           DateTime? updatedAt,
           Value<DateTime?> deletedAt = const Value.absent()}) =>
@@ -282,6 +309,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
         colorCode: colorCode ?? this.colorCode,
         iconCode: iconCode ?? this.iconCode,
         sortOrder: sortOrder ?? this.sortOrder,
+        masterKey: masterKey.present ? masterKey.value : this.masterKey,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
         deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -295,6 +323,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       colorCode: data.colorCode.present ? data.colorCode.value : this.colorCode,
       iconCode: data.iconCode.present ? data.iconCode.value : this.iconCode,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      masterKey: data.masterKey.present ? data.masterKey.value : this.masterKey,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
@@ -310,6 +339,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           ..write('colorCode: $colorCode, ')
           ..write('iconCode: $iconCode, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('masterKey: $masterKey, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
@@ -319,7 +349,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
 
   @override
   int get hashCode => Object.hash(id, name, hourlyRate, colorCode, iconCode,
-      sortOrder, createdAt, updatedAt, deletedAt);
+      sortOrder, masterKey, createdAt, updatedAt, deletedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -330,6 +360,7 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           other.colorCode == this.colorCode &&
           other.iconCode == this.iconCode &&
           other.sortOrder == this.sortOrder &&
+          other.masterKey == this.masterKey &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
@@ -342,6 +373,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
   final Value<String> colorCode;
   final Value<String> iconCode;
   final Value<int> sortOrder;
+  final Value<String?> masterKey;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -353,6 +385,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     this.colorCode = const Value.absent(),
     this.iconCode = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.masterKey = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -365,6 +398,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     required String colorCode,
     required String iconCode,
     this.sortOrder = const Value.absent(),
+    this.masterKey = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.deletedAt = const Value.absent(),
@@ -383,6 +417,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     Expression<String>? colorCode,
     Expression<String>? iconCode,
     Expression<int>? sortOrder,
+    Expression<String>? masterKey,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -395,6 +430,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       if (colorCode != null) 'color_code': colorCode,
       if (iconCode != null) 'icon_code': iconCode,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (masterKey != null) 'master_key': masterKey,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -409,6 +445,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       Value<String>? colorCode,
       Value<String>? iconCode,
       Value<int>? sortOrder,
+      Value<String?>? masterKey,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
       Value<DateTime?>? deletedAt,
@@ -420,6 +457,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       colorCode: colorCode ?? this.colorCode,
       iconCode: iconCode ?? this.iconCode,
       sortOrder: sortOrder ?? this.sortOrder,
+      masterKey: masterKey ?? this.masterKey,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -448,6 +486,9 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (masterKey.present) {
+      map['master_key'] = Variable<String>(masterKey.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -472,6 +513,7 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
           ..write('colorCode: $colorCode, ')
           ..write('iconCode: $iconCode, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('masterKey: $masterKey, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -2753,6 +2795,7 @@ typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   required String colorCode,
   required String iconCode,
   Value<int> sortOrder,
+  Value<String?> masterKey,
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<DateTime?> deletedAt,
@@ -2765,6 +2808,7 @@ typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
   Value<String> colorCode,
   Value<String> iconCode,
   Value<int> sortOrder,
+  Value<String?> masterKey,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<DateTime?> deletedAt,
@@ -2847,6 +2891,9 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
       column: $table.sortOrder, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get masterKey => $composableBuilder(
+      column: $table.masterKey, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -2948,6 +2995,9 @@ class $$CategoriesTableOrderingComposer
   ColumnOrderings<int> get sortOrder => $composableBuilder(
       column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get masterKey => $composableBuilder(
+      column: $table.masterKey, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -2984,6 +3034,9 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<String> get masterKey =>
+      $composableBuilder(column: $table.masterKey, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -3088,6 +3141,7 @@ class $$CategoriesTableTableManager extends RootTableManager<
             Value<String> colorCode = const Value.absent(),
             Value<String> iconCode = const Value.absent(),
             Value<int> sortOrder = const Value.absent(),
+            Value<String?> masterKey = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<DateTime?> deletedAt = const Value.absent(),
@@ -3100,6 +3154,7 @@ class $$CategoriesTableTableManager extends RootTableManager<
             colorCode: colorCode,
             iconCode: iconCode,
             sortOrder: sortOrder,
+            masterKey: masterKey,
             createdAt: createdAt,
             updatedAt: updatedAt,
             deletedAt: deletedAt,
@@ -3112,6 +3167,7 @@ class $$CategoriesTableTableManager extends RootTableManager<
             required String colorCode,
             required String iconCode,
             Value<int> sortOrder = const Value.absent(),
+            Value<String?> masterKey = const Value.absent(),
             required DateTime createdAt,
             required DateTime updatedAt,
             Value<DateTime?> deletedAt = const Value.absent(),
@@ -3124,6 +3180,7 @@ class $$CategoriesTableTableManager extends RootTableManager<
             colorCode: colorCode,
             iconCode: iconCode,
             sortOrder: sortOrder,
+            masterKey: masterKey,
             createdAt: createdAt,
             updatedAt: updatedAt,
             deletedAt: deletedAt,

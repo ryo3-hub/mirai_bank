@@ -50,6 +50,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
     required int hourlyRate,
     required String colorCode,
     required String iconCode,
+    String? masterKey,
   }) async {
     final now = DateTime.now();
     final id = _uuid.v4();
@@ -63,6 +64,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
             colorCode: Value(colorCode),
             iconCode: Value(iconCode),
             sortOrder: Value(nextSortOrder),
+            masterKey: Value(masterKey),
             createdAt: Value(now),
             updatedAt: Value(now),
           ),
@@ -74,6 +76,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
       colorCode: colorCode,
       iconCode: iconCode,
       sortOrder: nextSortOrder,
+      masterKey: masterKey,
       createdAt: now,
       updatedAt: now,
     );
@@ -98,6 +101,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
         hourlyRate: Value(category.hourlyRate),
         colorCode: Value(category.colorCode),
         iconCode: Value(category.iconCode),
+        masterKey: Value(category.masterKey),
         updatedAt: Value(now),
       ),
     );
@@ -148,6 +152,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
       colorCode: row.colorCode,
       iconCode: row.iconCode,
       sortOrder: row.sortOrder,
+      masterKey: row.masterKey,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       deletedAt: row.deletedAt,

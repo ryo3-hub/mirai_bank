@@ -11,6 +11,11 @@ class Categories extends Table {
   /// ユーザーが任意に並び替えできる表示順。
   /// 新規追加時はアクティブカテゴリの現在の最大値+1 を割り当て、末尾に追加される。
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  /// プリセット master（`CategoryMaster.minors[].key`）からコピーした場合の参照。
+  /// 自由入力で作成したカテゴリは null。v6 で追加（issue #97）。
+  TextColumn get masterKey => text().nullable()();
+
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();

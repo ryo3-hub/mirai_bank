@@ -12,6 +12,7 @@ abstract interface class CategoryRepository {
     required int hourlyRate,
     required String colorCode,
     required String iconCode,
+    String? masterKey,
   });
 
   Future<void> update(Category category);
