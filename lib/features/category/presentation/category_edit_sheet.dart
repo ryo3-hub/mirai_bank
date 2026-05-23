@@ -8,9 +8,8 @@ import '../domain/category.dart';
 import '../domain/category_master.dart';
 import '../domain/category_presets.dart';
 import 'category_master_picker_sheet.dart';
+import 'widgets/category_edit_mode_selector.dart';
 import 'widgets/category_form_widgets.dart';
-
-enum _EditMode { preset, custom }
 
 class CategoryEditSheet extends ConsumerStatefulWidget {
   const CategoryEditSheet({super.key, this.initial});
@@ -39,7 +38,7 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
   late final TextEditingController _rateController;
   late String _iconCode;
   late String _colorCode;
-  late _EditMode _mode;
+  late CategoryEditMode _mode;
   String? _masterKey;
   bool _saving = false;
 
@@ -56,8 +55,8 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
     // 新規はプリセット、編集は既存値を尊重して「自分で設定」をデフォルトに。
     // ただし masterKey が残っている編集は「プリセット」のままに。
     _mode = initial == null
-        ? _EditMode.preset
-        : (initial.masterKey != null ? _EditMode.preset : _EditMode.custom);
+        ? CategoryEditMode.preset
+        : (initial.masterKey != null ? CategoryEditMode.preset : CategoryEditMode.custom);
   }
 
   @override
@@ -88,7 +87,7 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
 
   Future<void> _onSave() async {
     // プリセットモードで master 未選択のときはガード
-    if (_mode == _EditMode.preset && _masterKey == null) {
+    if (_mode == CategoryEditMode.preset && _masterKey == null) {
       TopToast.show(
         context,
         message: 'プリセットを選んでください',
@@ -99,7 +98,7 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
     // custom モードのときだけフォームのバリデーションを走らせる
     // （プリセットモードは name/rate フィールドが画面に無く Form に
     // 登録されていないため）。
-    if (_mode == _EditMode.custom &&
+    if (_mode == CategoryEditMode.custom &&
         !_formKey.currentState!.validate()) {
       return;
     }
@@ -110,7 +109,7 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
     final name = _nameController.text.trim();
     final rate = int.parse(_rateController.text.trim());
     // custom モードで保存するときは master 由来情報を捨てる。
-    final masterKey = _mode == _EditMode.preset ? _masterKey : null;
+    final masterKey = _mode == CategoryEditMode.preset ? _masterKey : null;
     final initial = widget.initial;
     try {
       if (initial == null) {
@@ -170,20 +169,20 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
-              _ModeSelector(
+              CategoryEditModeSelector(
                 mode: _mode,
                 onChanged: (m) {
                   setState(() {
                     _mode = m;
                     // custom に切り替えたら master 紐付けを外す
-                    if (m == _EditMode.custom) {
+                    if (m == CategoryEditMode.custom) {
                       _masterKey = null;
                     }
                   });
                 },
               ),
               const SizedBox(height: 20),
-              if (_mode == _EditMode.preset) ...[
+              if (_mode == CategoryEditMode.preset) ...[
                 _PresetSummaryCard(
                   masterKey: _masterKey,
                   onTap: _pickFromMaster,
@@ -224,37 +223,6 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ModeSelector extends StatelessWidget {
-  const _ModeSelector({required this.mode, required this.onChanged});
-
-  final _EditMode mode;
-  final ValueChanged<_EditMode> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SegmentedButton<_EditMode>(
-      segments: const [
-        ButtonSegment(
-          value: _EditMode.preset,
-          label: Text('プリセットから選ぶ'),
-          icon: Icon(Icons.auto_awesome_outlined),
-        ),
-        ButtonSegment(
-          value: _EditMode.custom,
-          label: Text('自分で設定'),
-          icon: Icon(Icons.edit_outlined),
-        ),
-      ],
-      selected: {mode},
-      showSelectedIcon: false,
-      onSelectionChanged: (set) => onChanged(set.first),
-      style: ButtonStyle(
-        visualDensity: VisualDensity.compact,
       ),
     );
   }
