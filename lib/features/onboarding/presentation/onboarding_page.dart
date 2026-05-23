@@ -10,6 +10,8 @@ import '../../category/presentation/category_master_picker_sheet.dart';
 import '../../category/presentation/widgets/category_form_widgets.dart';
 import '../application/onboarding_state.dart';
 
+enum _OnboardingMode { preset, custom }
+
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
 
@@ -27,6 +29,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   String _iconCode = CategoryPresets.defaultIcon;
   String _colorCode = CategoryPresets.defaultColor;
   String? _masterKey;
+  _OnboardingMode _mode = _OnboardingMode.preset;
   bool _saving = false;
 
   @override
@@ -57,16 +60,30 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   }
 
   Future<void> _onStart() async {
-    if (!_formKey.currentState!.validate()) return;
+    // プリセットモードで master 未選択のときはガード
+    if (_mode == _OnboardingMode.preset && _masterKey == null) {
+      TopToast.show(
+        context,
+        message: 'プリセットを選んでください',
+        isError: true,
+      );
+      return;
+    }
+    // custom モードのときだけ Form のバリデーションを走らせる
+    if (_mode == _OnboardingMode.custom &&
+        !_formKey.currentState!.validate()) {
+      return;
+    }
     FocusScope.of(context).unfocus();
     setState(() => _saving = true);
     try {
+      final masterKey = _mode == _OnboardingMode.preset ? _masterKey : null;
       await ref.read(categoryControllerProvider.notifier).create(
             name: _nameController.text.trim(),
             hourlyRate: int.parse(_rateController.text.trim()),
             colorCode: _colorCode,
             iconCode: _iconCode,
-            masterKey: _masterKey,
+            masterKey: masterKey,
           );
       await ref.read(onboardingStateProvider.notifier).markCompleted();
     } catch (e) {
@@ -141,33 +158,48 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'まず、カテゴリを 1 つ選びましょう。\n'
-                        'プリセットから選ぶと推奨時給がセットされます。',
+                        'まず、カテゴリを 1 つ設定しましょう。\n'
+                        'あとから自由に変更できます。',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           height: 1.5,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 32),
-                      _OnboardingPresetCard(
-                        masterKey: _masterKey,
-                        onTap: _pickFromMaster,
-                        rateFormatter: _rateFormatter,
+                      const SizedBox(height: 24),
+                      _ModeSelector(
+                        mode: _mode,
+                        onChanged: (m) {
+                          setState(() {
+                            _mode = m;
+                            if (m == _OnboardingMode.custom) {
+                              _masterKey = null;
+                            }
+                          });
+                        },
                       ),
                       const SizedBox(height: 20),
-                      CategoryNameField(
-                        controller: _nameController,
-                        textInputAction: TextInputAction.next,
-                        onFieldSubmitted: (_) => _rateFocus.requestFocus(),
-                      ),
-                      const SizedBox(height: 8),
-                      CategoryHourlyRateField(
-                        controller: _rateController,
-                        focusNode: _rateFocus,
-                        helperText: '将来の自分にとっての時間価値を入力',
-                      ),
-                      const SizedBox(height: 24),
+                      if (_mode == _OnboardingMode.preset) ...[
+                        _OnboardingPresetCard(
+                          masterKey: _masterKey,
+                          onTap: _pickFromMaster,
+                          rateFormatter: _rateFormatter,
+                        ),
+                        const SizedBox(height: 24),
+                      ] else ...[
+                        CategoryNameField(
+                          controller: _nameController,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) => _rateFocus.requestFocus(),
+                        ),
+                        const SizedBox(height: 8),
+                        CategoryHourlyRateField(
+                          controller: _rateController,
+                          focusNode: _rateFocus,
+                          helperText: '将来の自分にとっての時間価値を入力',
+                        ),
+                        const SizedBox(height: 24),
+                      ],
                       const CategoryFormSectionLabel(text: 'アイコン'),
                       const SizedBox(height: 8),
                       CategoryIconPicker(
@@ -217,6 +249,37 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _ModeSelector extends StatelessWidget {
+  const _ModeSelector({required this.mode, required this.onChanged});
+
+  final _OnboardingMode mode;
+  final ValueChanged<_OnboardingMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedButton<_OnboardingMode>(
+      segments: const [
+        ButtonSegment(
+          value: _OnboardingMode.preset,
+          label: Text('プリセットから選ぶ'),
+          icon: Icon(Icons.auto_awesome_outlined),
+        ),
+        ButtonSegment(
+          value: _OnboardingMode.custom,
+          label: Text('自分で設定'),
+          icon: Icon(Icons.edit_outlined),
+        ),
+      ],
+      selected: {mode},
+      showSelectedIcon: false,
+      onSelectionChanged: (set) => onChanged(set.first),
+      style: ButtonStyle(
+        visualDensity: VisualDensity.compact,
       ),
     );
   }

@@ -87,7 +87,22 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
   }
 
   Future<void> _onSave() async {
-    if (!_formKey.currentState!.validate()) return;
+    // プリセットモードで master 未選択のときはガード
+    if (_mode == _EditMode.preset && _masterKey == null) {
+      TopToast.show(
+        context,
+        message: 'プリセットを選んでください',
+        isError: true,
+      );
+      return;
+    }
+    // custom モードのときだけフォームのバリデーションを走らせる
+    // （プリセットモードは name/rate フィールドが画面に無く Form に
+    // 登録されていないため）。
+    if (_mode == _EditMode.custom &&
+        !_formKey.currentState!.validate()) {
+      return;
+    }
     FocusScope.of(context).unfocus();
     setState(() => _saving = true);
     final controller = ref.read(categoryControllerProvider.notifier);
@@ -175,11 +190,12 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
                   rateFormatter: _rateFormatter,
                 ),
                 const SizedBox(height: 20),
+              ] else ...[
+                CategoryNameField(controller: _nameController),
+                const SizedBox(height: 8),
+                CategoryHourlyRateField(controller: _rateController),
+                const SizedBox(height: 24),
               ],
-              CategoryNameField(controller: _nameController),
-              const SizedBox(height: 8),
-              CategoryHourlyRateField(controller: _rateController),
-              const SizedBox(height: 24),
               const CategoryFormSectionLabel(text: 'アイコン'),
               const SizedBox(height: 8),
               CategoryIconPicker(
