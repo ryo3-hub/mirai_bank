@@ -9,8 +9,7 @@
 ```
 [SafeArea]  ← AppBar は削除済み (issue #56)
 [SingleChildScrollView]
-  0. StreakBadge — 連続学習日数（任意表示）
-  1. TodayAmountCard — 今日の積み上げ
+  1. TodayAmountCard — 今日の積み上げ（連続学習日数フッターを含む）
   2. (空き 12px)
   3. Timer card — タイマー（idle / running / no category）
   4. (空き 12px)
@@ -21,6 +20,20 @@
 - ラベル「今日の積み上げ」
 - 大きな金額表示（`AnimatedAmount`、48px、primary 色）
 - 今日の作業時間（`DurationFormatter.hourMinute`、tabular figures）
+- **連続学習フッター**（`_StreakFooter`、issue #122）：
+  - 連続日数が 1 日以上のときだけ表示。divider + `Icons.local_fire_department` +
+    「N 日連続」+（節目ぴったりの日はラベル）の構成
+  - 色は段階別：1–6 日 primary / 7–29 amber / 30–99 orange / 100–364 crimson /
+    365+ gold
+  - 節目ラベル：3「3日達成！」/ 7「1週間達成！」/ 30「1ヶ月達成！」/
+    100「100日達成！」/ 365「1年達成！」
+  - 旧 `StreakBadge`（ピル型）は廃止 → カード内フッターに統合
+  - **励ましメッセージ**（issue #122 フォロー、`streak_messages.dart`）：
+    日数表示の下に italic / `onSurfaceVariant` 色の小さなメッセージを並べる。
+    1–2 / 3–6 / 7–29 / 30–99 / 100–364 / 365+ の 6 ティア × 30 件のレパートリーから、
+    `pickStreakMessage(days, now)` がローカル日付で決定論的に 1 つ選ぶ。
+    同じ日は何度開いても同じ文言、翌日には変わる（1 ティア最大 30 種類なので
+    1 ヶ月分の変化を確保）。
 
 ### 3. Timer card（カウントダウン式、issue #95）
 状態により 3 つに分岐：

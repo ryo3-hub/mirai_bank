@@ -18,7 +18,6 @@ import '../domain/active_timer.dart';
 import '../domain/amount_calculator.dart';
 import '../domain/timer_preset.dart';
 import 'widgets/dashboard_goals_section.dart';
-import 'widgets/streak_badge.dart';
 import 'widgets/today_amount_card.dart';
 
 class HomePage extends ConsumerWidget {
@@ -34,7 +33,6 @@ class HomePage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const StreakBadge(),
               const TodayAmountCard(),
               const SizedBox(height: 12),
               activeTimerAsync.when(
