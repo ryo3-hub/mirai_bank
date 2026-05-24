@@ -36,9 +36,11 @@ class KeyboardDoneBar extends StatelessWidget {
 
 /// キーボード表示中のみ、root overlay に [KeyboardDoneBar] を表示するラッパ。
 ///
-/// モーダルボトムシート内など、自身の Scaffold が body 高さを伸ばせない
-/// レイアウトでも、`OverlayPortal` で root overlay に直接描画するため
-/// キーボード直上に確実に配置できる。issue #114 の続きでこの方式に変更。
+/// モーダルボトムシート内や Scaffold(resizeToAvoidBottomInset: true) 配下では
+/// `MediaQuery.viewInsetsOf(context).bottom` が 0 に上書きされ得るため、
+/// `View.of(context)` から window 直接の viewInsets を読み取って判定する。
+/// 表示自体は `OverlayPortal` で root overlay に直接配置するため、自身のレイアウトに
+/// 依存せずキーボード直上に表示できる。
 class KeyboardDoneOverlay extends StatefulWidget {
   const KeyboardDoneOverlay({super.key, required this.child});
 
@@ -65,12 +67,15 @@ class _KeyboardDoneOverlayState extends State<KeyboardDoneOverlay>
     super.dispose();
   }
 
-  @override
-  void didChangeMetrics() {
-    // 端末のキーボード表示変化を購読し、bar を出し入れする。
+  /// Scaffold 等で上書きされない window 直接の bottom viewInsets（論理 px）を返す。
+  double _rawBottomInset(BuildContext context) {
+    final view = View.of(context);
+    return view.viewInsets.bottom / view.devicePixelRatio;
+  }
+
+  void _syncVisibility() {
     if (!mounted) return;
-    final inset = MediaQuery.viewInsetsOf(context).bottom;
-    final shouldShow = inset > 0;
+    final shouldShow = _rawBottomInset(context) > 0;
     if (shouldShow == _visible) return;
     _visible = shouldShow;
     if (shouldShow) {
@@ -81,19 +86,14 @@ class _KeyboardDoneOverlayState extends State<KeyboardDoneOverlay>
   }
 
   @override
+  void didChangeMetrics() {
+    _syncVisibility();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 初期表示時にもキーボード状態を反映する。
-    final inset = MediaQuery.viewInsetsOf(context).bottom;
-    final shouldShow = inset > 0;
-    if (shouldShow != _visible) {
-      _visible = shouldShow;
-      if (shouldShow) {
-        _controller.show();
-      } else {
-        _controller.hide();
-      }
-    }
+    _syncVisibility();
   }
 
   @override
@@ -101,11 +101,11 @@ class _KeyboardDoneOverlayState extends State<KeyboardDoneOverlay>
     return OverlayPortal(
       controller: _controller,
       overlayChildBuilder: (overlayContext) {
-        final inset = MediaQuery.viewInsetsOf(overlayContext).bottom;
+        final bottom = _rawBottomInset(overlayContext);
         return Positioned(
           left: 0,
           right: 0,
-          bottom: inset,
+          bottom: bottom,
           child: KeyboardDoneBar(
             onDone: () => FocusScope.of(context).unfocus(),
           ),
