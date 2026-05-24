@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../shared/widgets/keyboard_done_bar.dart';
 import '../../../shared/widgets/mirai_date_picker_sheet.dart';
+import '../../../shared/widgets/save_action_button.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
@@ -205,15 +207,20 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets;
+    final keyboardVisible = viewInsets.bottom > 0;
     final categoriesAsync = ref.watch(categoriesListProvider);
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets.bottom),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            categoriesAsync.when(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  categoriesAsync.when(
               loading: () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
                 child: LinearProgressIndicator(),
@@ -266,24 +273,26 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: (_saving || !canSave)
-                          ? null
-                          : () => _save(categories),
-                      child: _saving
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('保存'),
+                    SaveActionButton(
+                      label: '目標を追加',
+                      icon: Icons.add_circle_outline,
+                      loading: _saving,
+                      onPressed:
+                          canSave ? () => _save(categories) : null,
                     ),
                   ],
                 );
               },
             ),
-          ],
-        ),
+                ],
+              ),
+            ),
+          ),
+          if (keyboardVisible)
+            KeyboardDoneBar(
+              onDone: () => FocusScope.of(context).unfocus(),
+            ),
+        ],
       ),
     );
   }
@@ -479,17 +488,14 @@ class _CustomCard extends StatelessWidget {
                       border: const OutlineInputBorder(),
                       suffixText: '円',
                       errorText: amountError,
-                      helperText: '1,000 〜 10,000,000 円',
                     ),
                     onChanged: (_) => onAmountChanged(),
                   ),
                   const SizedBox(height: 12),
                   InputDecorator(
                     decoration: InputDecoration(
-                      labelText: '達成予定日',
                       border: const OutlineInputBorder(),
                       errorText: deadlineError,
-                      helperText: '翌日 〜 10 年後まで',
                     ),
                     child: InkWell(
                       onTap: onPickDate,
@@ -500,7 +506,7 @@ class _CustomCard extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 deadline == null
-                                    ? '日付を選択'
+                                    ? '達成予定日を選択'
                                     : _dateFormatter.format(deadline!),
                                 style: TextStyle(
                                   color: deadline == null

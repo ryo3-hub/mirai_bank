@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../shared/widgets/keyboard_done_bar.dart';
+import '../../../shared/widgets/save_action_button.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../application/category_providers.dart';
 import '../domain/category.dart';
@@ -154,13 +156,18 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets;
+    final keyboardVisible = viewInsets.bottom > 0;
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets.bottom),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: Form(
-          key: _formKey,
-          child: Column(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: Form(
+                key: _formKey,
+                child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               CategoryEditModeSelector(
@@ -204,19 +211,24 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
                 onChanged: (code) => setState(() => _colorCode = code),
               ),
               const SizedBox(height: 28),
-              FilledButton(
-                onPressed: _saving ? null : _onSave,
-                child: _saving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('保存'),
+              SaveActionButton(
+                label: widget.initial == null ? 'カテゴリを追加' : 'カテゴリを更新',
+                icon: widget.initial == null
+                    ? Icons.add_circle_outline
+                    : Icons.check_circle_outline,
+                loading: _saving,
+                onPressed: _onSave,
               ),
-            ],
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
+          if (keyboardVisible)
+            KeyboardDoneBar(
+              onDone: () => FocusScope.of(context).unfocus(),
+            ),
+        ],
       ),
     );
   }
