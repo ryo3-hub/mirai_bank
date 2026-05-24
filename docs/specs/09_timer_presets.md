@@ -74,9 +74,9 @@
 を購読し、先頭から **最大 3 件** をプリセットカードとしてインライン表示する。
 追加 / 削除は `watchAll` 経由で即時反映。
 
-カード 3 枚は `IntrinsicHeight` + `CrossAxisAlignment.stretch` で常に同じ高さに揃える
-（issue #119）。説明（label）の有無でカード高さが変わらないよう、内部の Column は
-`mainAxisAlignment: MainAxisAlignment.center` で中央寄せ。
+説明（label）が空でも `Visibility(maintainSize: true)` でラベル領域分の高さを確保し、
+説明ありのカードとレイアウトを揃える（issue #119）。これにより数字の縦位置も
+他カードと一致する。
 
 ## 関連ファイル
 - `lib/features/timer/presentation/timer_preset_list_page.dart`
