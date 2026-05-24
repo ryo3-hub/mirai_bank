@@ -155,12 +155,14 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final viewInsets = MediaQuery.of(context).viewInsets;
-    final keyboardVisible = viewInsets.bottom > 0;
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final isEdit = widget.initial != null;
-    return Padding(
-      padding: EdgeInsets.only(bottom: viewInsets.bottom),
-      child: Stack(
+    // issue #114 リファイン: オンボーディングと同じ Scaffold + Stack パターンで
+    // 完了バーを確実にキーボード直上に配置する。
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      backgroundColor: Colors.transparent,
+      body: Stack(
         children: [
           SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),

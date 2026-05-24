@@ -206,12 +206,14 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final viewInsets = MediaQuery.of(context).viewInsets;
-    final keyboardVisible = viewInsets.bottom > 0;
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     final categoriesAsync = ref.watch(categoriesListProvider);
-    return Padding(
-      padding: EdgeInsets.only(bottom: viewInsets.bottom),
-      child: Stack(
+    // issue #114 リファイン: オンボーディングと同じ Scaffold + Stack パターンで
+    // 完了バーを確実にキーボード直上に配置する。
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      backgroundColor: Colors.transparent,
+      body: Stack(
         children: [
           SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -501,7 +503,6 @@ class _CustomCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   InputDecorator(
                     decoration: InputDecoration(
-                      labelText: '達成予定日',
                       border: const OutlineInputBorder(),
                       errorText: deadlineError,
                     ),
@@ -514,7 +515,7 @@ class _CustomCard extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 deadline == null
-                                    ? '日付を選択'
+                                    ? '達成予定日を選択'
                                     : _dateFormatter.format(deadline!),
                                 style: TextStyle(
                                   color: deadline == null
