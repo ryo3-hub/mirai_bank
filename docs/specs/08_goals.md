@@ -25,11 +25,11 @@ issue #100 で「自由入力（種別 / 金額 / 期間）方式」から本プ
 - 折りたたみ初期表示: ラジオアイコン + 「カスタムで設定」+ 編集アイコン
 - 選択して展開すると：
   - 目標金額 TextField（number キーボード、数字のみ）
-    - helperText「1,000 〜 10,000,000 円」
     - 範囲: **1,000 〜 1,000 万円**
+    - helperText は表示しない（issue #114）。エラー時のみ `errorText` で範囲を含むメッセージを表示
   - 達成予定日（タップで `MiraiDatePickerSheet`）
-    - helperText「翌日 〜 10 年後まで」
     - 範囲: **翌日 〜 今日 +10 年**
+    - helperText は表示しない（issue #114）。エラー時のみ `errorText` を表示
 - 他のプリセットを選ぶとカスタムは折りたたまれる
 
 #### バリデーション（保存押下時）
@@ -73,6 +73,12 @@ issue #100 で「自由入力（種別 / 金額 / 期間）方式」から本プ
 - DB 格納形式は既存スキーマ互換：`GoalType.period` + `periodStart = 当日 0:00` + `periodEnd = 当日 + プリセット日数`
 - `GoalController.create(type: period, ...)`
 - 保存後、`GoalAchievementChecker.checkAndMark()` で達成判定 → `achievedAt` を更新
+- 保存ボタンは共通 `SaveActionButton`（高さ 54、角丸 16、アイコン + ラベル、横幅一杯、ラベル「目標を追加」）
+
+### キーボード完了バー（issue #114）
+カスタム金額入力時の number キーボードは「return」が無いので、キーボード表示中
+（`MediaQuery.viewInsetsOf(context).bottom > 0`）にのみシート最下段に共通
+`KeyboardDoneBar` を表示する。タップで `unfocus()`。
 
 ### 削除
 編集機能は廃止。一覧画面の各目標カード右上の削除アイコンから削除する：
@@ -120,6 +126,8 @@ DB は `GoalType.period` で保存するため、`GoalPreset` は `periodEnd - p
 
 ## 関連ファイル
 - `lib/features/goals/presentation/goal_edit_sheet.dart`（新規作成シート）
+- `lib/shared/widgets/save_action_button.dart`（共通保存ボタン）
+- `lib/shared/widgets/keyboard_done_bar.dart`（共通キーボード完了バー）
 - `lib/features/goals/presentation/goal_list_page.dart`（削除導線）
 - `lib/features/goals/presentation/widgets/goal_card.dart`（削除アイコン）
 - `lib/features/goals/application/goal_providers.dart`

@@ -107,6 +107,14 @@
 - 新規: `CategoryController.create()`
 - 編集: `CategoryController.updateCategory(initial.copyWith(...))`
 - 既存セッションの amount は時給変更で**変更されない**（記録時に確定済み）
+- 保存ボタンは共通 `SaveActionButton`（高さ 54、角丸 16、アイコン + ラベル、横幅一杯）
+  - 新規時のラベル: 「カテゴリを追加」 / 編集時のラベル: 「カテゴリを更新」
+  - 保存中は `CircularProgressIndicator` に差し替え、押下不可
+
+### キーボード完了バー（issue #114）
+時給フィールド（number キーボード）にはキーボード上の「return」が無いので、
+キーボード表示中（`MediaQuery.viewInsetsOf(context).bottom > 0`）にのみ
+シート最下段に共通 `KeyboardDoneBar` を表示する。タップで `unfocus()`。
 
 ### 削除
 このシートには削除ボタンはない（削除はカテゴリ一覧の trailing IconButton から実行）。
@@ -124,6 +132,8 @@
 - `lib/features/category/presentation/category_master_picker_sheet.dart`
 - `lib/features/category/presentation/widgets/category_form_widgets.dart`
 - `lib/features/category/presentation/widgets/category_edit_mode_selector.dart`（共通 SegmentedButton + `CategoryEditMode` enum）
+- `lib/shared/widgets/save_action_button.dart`（共通保存ボタン）
+- `lib/shared/widgets/keyboard_done_bar.dart`（共通キーボード完了バー）
 - `lib/features/category/application/category_providers.dart`
 - `lib/features/category/domain/category.dart`
 - `lib/features/category/domain/category_master.dart`（プリセット master 55 件）

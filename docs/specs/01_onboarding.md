@@ -36,7 +36,7 @@
       - 時給 TextFormField
     - アイコンセクション（カラー付きピッカー、両モード共通）
     - カラーセクション（カラーピッカー、両モード共通）
-    - FilledButton「始める」
+    - SaveActionButton「始める」（issue #114 で共通化）
     - TextButton「あとで設定する」
   Stack overlay (キーボード表示中):
     - 画面下部に「完了」バー（タップで unfocus）
@@ -159,7 +159,7 @@ issue #108 で 3 問のウィザード形式に変更（Q1 → Q2 → Q3 → 結
   - 区切り線
   - ペース / 1 回あたり / 期間 の 3 行
 - ヒントカード（ハード組み合わせ時のみ表示、後述）
-- FilledButton「この目標で設定する」
+- SaveActionButton「この目標で設定する」（issue #114 で共通化）
 - TextButton「あとで設定する」
 ```
 
