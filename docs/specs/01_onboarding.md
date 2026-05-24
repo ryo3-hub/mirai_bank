@@ -1,12 +1,13 @@
 # オンボーディング画面
 
 ## 概要
-初回インストール時のみ表示される 2 ステップの全画面フォーム。
+初回インストール時のみ表示される 3 ステップの全画面フォーム。
 
 1. **カテゴリ設定ステップ**（必須）: 最初のカテゴリと時給を登録、または「あとで設定する」でスキップ
 2. **目標設定ステップ**（任意）: issue #102 で追加。カテゴリを実際に作った場合のみ続けて表示。プリセット（短期/中期/長期）から目標を選ぶ。スキップ可能
+3. **リマインダー曜日選択ステップ**（任意）: issue #121 で追加。目標を実際に設定した場合のみ続けて表示。学習する曜日を選んでリマインダーを有効化、またはスキップ
 
-カテゴリをスキップしたユーザーには目標ステップは出さない（カテゴリ無しでは時給ベースの目標金額が計算できないため）。
+カテゴリをスキップしたユーザーには目標ステップ・リマインダーステップは出さない（カテゴリ無しでは時給ベースの目標金額が計算できないため）。目標もスキップした場合はリマインダーステップも出さない（途中でスキップ＝もう何も設定しないユーザー意図とみなすため）。
 
 ## 表示条件
 - `shared_preferences` の `onboarding_completed` フラグが **false**
@@ -213,6 +214,44 @@ UI はオレンジ系のアクセントカラー枠 + `Icons.tips_and_updates_ou
 - 各質問画面 / 結果画面の TextButton「あとで設定する」
 - `OnboardingState.markCompleted()` のみ実行 → `/home` に遷移
 - ホームの目標 0 件カード「目標を追加」から後で設定できる
+- リマインダーステップもスキップされる
+
+## ステップ 3: リマインダー曜日選択（目標設定後のみ）
+
+issue #121 で追加。目標を「この目標で設定する」で確定したあとに表示する。
+学習する曜日を選択 → デフォルト時刻 21:00 のリマインダーを有効化する流れ。
+
+### UI 構成
+```
+[Scaffold]
+  body: SingleChildScrollView
+    - 戻る IconButton（→ 結果画面へ）
+    - 円形バッジ（Icons.notifications_active_outlined + 薄い primary 背景）
+    - 「学習する曜日は？」ヘッドライン
+    - 「選んだ曜日の 21:00 にリマインダー通知をお届けします。」
+    - WeekdayPicker（共通ウィジェット、日曜始まり）
+      - 初期値: 全 7 曜日が選択済み
+      - 1 つ以上選んでないと「設定する」押下時にエラートースト
+    - 補足: 「時刻と通知の有無は設定画面からあとで変更できます。」
+    - SaveActionButton「リマインダーを設定する」（issue #114 で共通化）
+    - TextButton「あとで設定する」
+```
+
+### 「リマインダーを設定する」アクション
+1. 選択曜日が 0 件のときはエラートースト（保存しない）
+2. `SettingController.setReminderWeekdays(_selectedWeekdays)` で曜日 DB 保存
+3. `SettingController.setReminderEnabled(enabled: true, time: 21:00, weekdays: _selectedWeekdays)`
+   - 内部で `NotificationService.requestPermissions()` を呼び、許可ダイアログを出す
+   - 拒否されると `StateError` がスロー → catch してエラートーストだけ出し、リマインダーは
+     オフのままにする（曜日選択は保持）。オンボーディングは続行
+4. `OnboardingState.markCompleted()` でオンボード完了 → `/home` 遷移
+
+### 「あとで設定する」アクション
+- 設定変更なしで `OnboardingState.markCompleted()` のみ → `/home` 遷移
+- リマインダー周りはデフォルト（`reminderEnabled = false`、`reminderWeekdays = 全 7 曜日`）のまま
+
+### 戻る IconButton
+- 結果画面に戻る（`_step = goal` / `_goalSubStep = result`）
 
 ## 状態
 - **Loading**: 各ボタン押下中は `CircularProgressIndicator(strokeWidth: 2)` を表示し、両ボタンを無効化
@@ -223,8 +262,10 @@ UI はオレンジ系のアクセントカラー枠 + `Icons.tips_and_updates_ou
 |---|---|---|
 | カテゴリ「始める」 | なし（目標ステップへ） | エラートースト |
 | カテゴリ「あとで設定する」 | なし（ホーム遷移） | エラートースト |
-| 目標「設定する」 | なし（ホーム遷移） | エラートースト |
+| 目標「この目標で設定する」 | なし（リマインダーステップへ） | エラートースト |
 | 目標「あとで設定する」 | なし（ホーム遷移） | エラートースト |
+| リマインダー「設定する」 | なし（ホーム遷移） | エラートースト（通知拒否時もホーム遷移は実行） |
+| リマインダー「あとで設定する」 | なし（ホーム遷移） | エラートースト |
 
 ## 関連ファイル
 - `lib/features/onboarding/presentation/onboarding_page.dart`
@@ -232,4 +273,8 @@ UI はオレンジ系のアクセントカラー枠 + `Icons.tips_and_updates_ou
 - `lib/features/onboarding/domain/goal_questionnaire.dart`（質問票と計算式）
 - `lib/features/category/presentation/widgets/category_form_widgets.dart`
 - `lib/features/goals/domain/goal.dart`
+- `lib/features/settings/application/setting_providers.dart`（リマインダー設定の保存、issue #121）
+- `lib/features/settings/domain/app_setting.dart`（デフォルト時刻 21:00、issue #121）
+- `lib/shared/widgets/weekday_picker.dart`（曜日ピッカー共通、issue #121）
+- `lib/shared/notification/notification_service.dart`（通知スケジュール）
 - `lib/app/router.dart`（redirect ロジック）
