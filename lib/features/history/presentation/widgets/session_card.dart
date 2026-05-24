@@ -51,17 +51,10 @@ class SessionCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            category?.name ?? '不明なカテゴリ',
-                            style: theme.textTheme.titleSmall,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        _InputMethodBadge(method: session.inputMethod),
-                      ],
+                    Text(
+                      category?.name ?? '不明なカテゴリ',
+                      style: theme.textTheme.titleSmall,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -115,37 +108,3 @@ class SessionCard extends StatelessWidget {
   }
 }
 
-class _InputMethodBadge extends StatelessWidget {
-  const _InputMethodBadge({required this.method});
-
-  final WorkSessionInputMethod method;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isTimer = method == WorkSessionInputMethod.timer;
-    final label = isTimer ? 'タイマー' : '手動';
-    final icon = isTimer ? Icons.timer_outlined : Icons.edit_outlined;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: theme.colorScheme.outline),
-          const SizedBox(width: 3),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.outline,
-              fontSize: 10,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
