@@ -75,4 +75,90 @@ void main() {
       expect(LearningPeriod.oneYear.days, 360);
     });
   });
+
+  group('GoalQuestionnaireResult.isHardCombo', () {
+    // 高頻度（毎日 / 平日）× 高強度（じっくり / しっかり）× 長期（半年 / 1年）
+    // の 8 通りで true。それ以外は false。
+    test('毎日 + じっくり + 1年 → true', () {
+      const r = GoalQuestionnaireResult(
+        frequency: LearningFrequency.daily,
+        sessionLength: LearningSessionLength.deep,
+        period: LearningPeriod.oneYear,
+      );
+      expect(r.isHardCombo, isTrue);
+    });
+
+    test('平日 + しっかり + 半年 → true', () {
+      const r = GoalQuestionnaireResult(
+        frequency: LearningFrequency.weekday,
+        sessionLength: LearningSessionLength.focused,
+        period: LearningPeriod.sixMonths,
+      );
+      expect(r.isHardCombo, isTrue);
+    });
+
+    test('週末 + じっくり + 1年 → false (頻度が低い)', () {
+      const r = GoalQuestionnaireResult(
+        frequency: LearningFrequency.weekend,
+        sessionLength: LearningSessionLength.deep,
+        period: LearningPeriod.oneYear,
+      );
+      expect(r.isHardCombo, isFalse);
+    });
+
+    test('毎日 + スキマ + 1年 → false (強度が低い)', () {
+      const r = GoalQuestionnaireResult(
+        frequency: LearningFrequency.daily,
+        sessionLength: LearningSessionLength.spare,
+        period: LearningPeriod.oneYear,
+      );
+      expect(r.isHardCombo, isFalse);
+    });
+
+    test('毎日 + じっくり + 1ヶ月 → false (短期)', () {
+      const r = GoalQuestionnaireResult(
+        frequency: LearningFrequency.daily,
+        sessionLength: LearningSessionLength.deep,
+        period: LearningPeriod.oneMonth,
+      );
+      expect(r.isHardCombo, isFalse);
+    });
+  });
+
+  group('GoalQuestionnaireResult.annualTargetAmount', () {
+    test('1年期間: 累計 = 年間累計', () {
+      const r = GoalQuestionnaireResult(
+        frequency: LearningFrequency.daily,
+        sessionLength: LearningSessionLength.deep,
+        period: LearningPeriod.oneYear,
+      );
+      // 累計: 7 × 2.5 × 30 × 12 × 1000 = 6,300,000
+      // 月間: 6,300,000 / 12 = 525,000 / 年間: × 12 = 6,300,000
+      expect(r.annualTargetAmount(1000), 6300000);
+    });
+
+    test('半年期間: 月間 × 12 が年間累計', () {
+      const r = GoalQuestionnaireResult(
+        frequency: LearningFrequency.daily,
+        sessionLength: LearningSessionLength.deep,
+        period: LearningPeriod.sixMonths,
+      );
+      // 累計: 7 × 2.5 × 30 × 6 × 1000 = 3,150,000
+      // 月間: 3,150,000 / 6 = 525,000 / 年間: × 12 = 6,300,000
+      expect(r.annualTargetAmount(1000), 6300000);
+    });
+  });
+
+  group('LearningFrequency.phrase / LearningPeriod.phrase', () {
+    test('警告文用の短縮表記が定義されている', () {
+      expect(LearningFrequency.daily.phrase, '毎日');
+      expect(LearningFrequency.weekday.phrase, '平日');
+      expect(LearningFrequency.weekend.phrase, '週末');
+      expect(LearningFrequency.ownPace.phrase, '気が向いたとき');
+      expect(LearningPeriod.oneMonth.phrase, '1ヶ月');
+      expect(LearningPeriod.threeMonths.phrase, '3ヶ月');
+      expect(LearningPeriod.sixMonths.phrase, '半年');
+      expect(LearningPeriod.oneYear.phrase, '1年');
+    });
+  });
 }

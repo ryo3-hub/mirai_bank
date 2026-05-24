@@ -494,6 +494,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final cumulative = result.cumulativeTargetAmount(category.hourlyRate);
     final monthly = result.monthlyTargetAmount(category.hourlyRate);
     final deadline = _todayMidnight().add(Duration(days: period.days));
+    final isHard = result.isHardCombo;
+    final annualMan =
+        (result.annualTargetAmount(category.hourlyRate) / 10000).round();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -588,6 +591,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ),
           ),
         ),
+        if (isHard) ...[
+          const SizedBox(height: 16),
+          _HardComboHintCard(
+            hoursPerDay: length.hoursPerDay,
+            freqPhrase: freq.phrase,
+            periodPhrase: period.phrase,
+            annualMan: annualMan,
+          ),
+        ],
         const SizedBox(height: 24),
         FilledButton(
           onPressed: _saving ? null : _onGoalSave,
@@ -820,6 +832,80 @@ class _CategoryChip extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 飛ばしすぎ警告カード。issue #108 の継続支援メッセージ。
+///
+/// 高頻度 × 高強度 × 長期 の組み合わせを選んだときだけ表示される。
+class _HardComboHintCard extends StatelessWidget {
+  const _HardComboHintCard({
+    required this.hoursPerDay,
+    required this.freqPhrase,
+    required this.periodPhrase,
+    required this.annualMan,
+  });
+
+  final double hoursPerDay;
+  final String freqPhrase;
+  final String periodPhrase;
+  final int annualMan;
+
+  String _formatHours(double hours) {
+    // 2.5 → "2.5", 1.5 → "1.5"。小数点以下が 0 なら整数表記。
+    if (hours == hours.roundToDouble()) {
+      return hours.toInt().toString();
+    }
+    return hours.toString();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = Colors.orange.shade700;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accent.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.tips_and_updates_outlined,
+            color: accent,
+            size: 22,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '1日${_formatHours(hoursPerDay)}時間 × $freqPhrase × $periodPhraseは、'
+                  '年間累計 約$annualMan万円分 のすごい自己投資ペースです。',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'ただ、最初から飛ばしすぎると続かなくなることも。\n'
+                  '7割くらいの目標から始めて、慣れてきたら上げていくのもおすすめですよ。',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -53,6 +53,20 @@ enum LearningFrequency {
 
   /// 補足テキスト（週X日）。
   final String sub;
+
+  /// 警告文中で使う短い表記（毎日 / 平日 / 週末 / 気が向いたとき）。
+  String get phrase {
+    switch (this) {
+      case LearningFrequency.daily:
+        return '毎日';
+      case LearningFrequency.weekday:
+        return '平日';
+      case LearningFrequency.weekend:
+        return '週末';
+      case LearningFrequency.ownPace:
+        return '気が向いたとき';
+    }
+  }
 }
 
 /// Q2: 1 回あたりの作業時間（集中度）
@@ -140,6 +154,20 @@ enum LearningPeriod {
   final String label;
   final String emoji;
   final String sub;
+
+  /// 警告文中で使う短い表記（1ヶ月 / 3ヶ月 / 半年 / 1年）。
+  String get phrase {
+    switch (this) {
+      case LearningPeriod.oneMonth:
+        return '1ヶ月';
+      case LearningPeriod.threeMonths:
+        return '3ヶ月';
+      case LearningPeriod.sixMonths:
+        return '半年';
+      case LearningPeriod.oneYear:
+        return '1年';
+    }
+  }
 }
 
 /// 質問票への 3 つの回答を保持し、目標金額を算出する。
@@ -168,5 +196,26 @@ class GoalQuestionnaireResult {
   /// 月間目標金額 = 累計 ÷ 期間月数（端数四捨五入）。
   int monthlyTargetAmount(int hourlyRate) {
     return (cumulativeTargetAmount(hourlyRate) / period.months).round();
+  }
+
+  /// 年間累計目標金額 = 月間目標 × 12（端数四捨五入）。
+  /// 警告文の「年間累計 約◯万円」の算出に使う。
+  int annualTargetAmount(int hourlyRate) {
+    return monthlyTargetAmount(hourlyRate) * 12;
+  }
+
+  /// 「飛ばしすぎ」の組み合わせかどうか。
+  ///
+  /// 高頻度（毎日 / 平日）× 高強度（じっくり / しっかり）× 長期（半年 / 1年）の
+  /// 8 通りで true を返す。issue #108 の継続支援メッセージで使う。
+  bool get isHardCombo {
+    final highFreq = frequency == LearningFrequency.daily ||
+        frequency == LearningFrequency.weekday;
+    final highIntensity =
+        sessionLength == LearningSessionLength.deep ||
+            sessionLength == LearningSessionLength.focused;
+    final longTerm = period == LearningPeriod.sixMonths ||
+        period == LearningPeriod.oneYear;
+    return highFreq && highIntensity && longTerm;
   }
 }
