@@ -69,7 +69,37 @@ class _MiraiDatePickerSheetState extends State<MiraiDatePickerSheet> {
   }
 
   void _onPageChanged(DateTime focused) {
-    setState(() => _focusedDay = focused);
+    setState(() => _focusedDay = _clampToRange(focused));
+  }
+
+  /// `focusedDay` を `firstDate` 〜 `lastDate` の範囲内に強制する。
+  ///
+  /// table_calendar は `focusedDay < firstDay` で assertion failure を起こす。
+  /// 前月ボタンが「前月の 1 日」を渡すケースで、firstDate が月の途中
+  /// （例: 翌日 = 月の中頃）だと assertion を踏むため、`firstDate` 以前は
+  /// `firstDate` に丸める（次月側も同様）。
+  DateTime _clampToRange(DateTime d) {
+    final first = _dateOnly(widget.firstDate);
+    final last = _dateOnly(widget.lastDate);
+    if (d.isBefore(first)) return first;
+    if (d.isAfter(last)) return last;
+    return d;
+  }
+
+  bool get _canGoPrev {
+    final first = _dateOnly(widget.firstDate);
+    final prevMonthFirstDay =
+        DateTime(_focusedDay.year, _focusedDay.month - 1, 1);
+    final firstMonthFirstDay = DateTime(first.year, first.month, 1);
+    return !prevMonthFirstDay.isBefore(firstMonthFirstDay);
+  }
+
+  bool get _canGoNext {
+    final last = _dateOnly(widget.lastDate);
+    final nextMonthFirstDay =
+        DateTime(_focusedDay.year, _focusedDay.month + 1, 1);
+    final lastMonthFirstDay = DateTime(last.year, last.month, 1);
+    return !nextMonthFirstDay.isAfter(lastMonthFirstDay);
   }
 
   void _confirm() {
@@ -95,12 +125,24 @@ class _MiraiDatePickerSheetState extends State<MiraiDatePickerSheet> {
             ),
           _PickerHeader(
             month: _focusedDay,
-            onPrev: () => _onPageChanged(
-              DateTime(_focusedDay.year, _focusedDay.month - 1, 1),
-            ),
-            onNext: () => _onPageChanged(
-              DateTime(_focusedDay.year, _focusedDay.month + 1, 1),
-            ),
+            onPrev: _canGoPrev
+                ? () => _onPageChanged(
+                      DateTime(
+                        _focusedDay.year,
+                        _focusedDay.month - 1,
+                        1,
+                      ),
+                    )
+                : null,
+            onNext: _canGoNext
+                ? () => _onPageChanged(
+                      DateTime(
+                        _focusedDay.year,
+                        _focusedDay.month + 1,
+                        1,
+                      ),
+                    )
+                : null,
           ),
           TableCalendar<dynamic>(
             firstDay: widget.firstDate,
@@ -177,8 +219,10 @@ class _PickerHeader extends StatelessWidget {
   });
 
   final DateTime month;
-  final VoidCallback onPrev;
-  final VoidCallback onNext;
+
+  /// 範囲端では null（ボタンが disabled になる）。
+  final VoidCallback? onPrev;
+  final VoidCallback? onNext;
 
   @override
   Widget build(BuildContext context) {
