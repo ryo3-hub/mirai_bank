@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../shared/widgets/keyboard_done_bar.dart';
+import '../../../shared/widgets/save_action_button.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
@@ -267,7 +269,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               left: 0,
               right: 0,
               bottom: 0,
-              child: _KeyboardDoneBar(
+              child: KeyboardDoneBar(
                 onDone: () => FocusScope.of(context).unfocus(),
               ),
             ),
@@ -366,15 +368,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               onChanged: (code) => setState(() => _colorCode = code),
             ),
             const SizedBox(height: 32),
-            FilledButton(
+            SaveActionButton(
               onPressed: _saving ? null : _onCategoryStart,
-              child: _saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('始める'),
+              loading: _saving,
+              label: '始める',
+              icon: Icons.arrow_forward_rounded,
             ),
             const SizedBox(height: 8),
             TextButton(
@@ -604,15 +602,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           ),
         ],
         const SizedBox(height: 24),
-        FilledButton(
+        SaveActionButton(
           onPressed: _saving ? null : _onGoalSave,
-          child: _saving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('この目標で設定する'),
+          loading: _saving,
+          label: 'この目標で設定する',
         ),
         const SizedBox(height: 8),
         TextButton(
@@ -1079,29 +1072,3 @@ class _OnboardingPresetCard extends StatelessWidget {
   }
 }
 
-class _KeyboardDoneBar extends StatelessWidget {
-  const _KeyboardDoneBar({required this.onDone});
-
-  final VoidCallback onDone;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.surfaceContainerHigh,
-      child: SizedBox(
-        height: 44,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton(
-              onPressed: onDone,
-              child: const Text('完了'),
-            ),
-            const SizedBox(width: 4),
-          ],
-        ),
-      ),
-    );
-  }
-}

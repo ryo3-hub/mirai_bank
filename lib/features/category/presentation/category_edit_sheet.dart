@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../shared/widgets/keyboard_done_bar.dart';
+import '../../../shared/widgets/save_action_button.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../application/category_providers.dart';
 import '../domain/category.dart';
@@ -154,69 +156,79 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets;
+    final keyboardVisible = viewInsets.bottom > 0;
+    final isEdit = widget.initial != null;
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets.bottom),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              CategoryEditModeSelector(
-                mode: _mode,
-                onChanged: (m) {
-                  setState(() {
-                    _mode = m;
-                    // custom に切り替えたら master 紐付けを外す
-                    if (m == CategoryEditMode.custom) {
-                      _masterKey = null;
-                    }
-                  });
-                },
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  CategoryEditModeSelector(
+                    mode: _mode,
+                    onChanged: (m) {
+                      setState(() {
+                        _mode = m;
+                        // custom に切り替えたら master 紐付けを外す
+                        if (m == CategoryEditMode.custom) {
+                          _masterKey = null;
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  if (_mode == CategoryEditMode.preset) ...[
+                    _PresetSummaryCard(
+                      masterKey: _masterKey,
+                      onTap: _pickFromMaster,
+                      rateFormatter: _rateFormatter,
+                    ),
+                    const SizedBox(height: 20),
+                  ] else ...[
+                    CategoryNameField(controller: _nameController),
+                    const SizedBox(height: 8),
+                    CategoryHourlyRateField(controller: _rateController),
+                    const SizedBox(height: 24),
+                  ],
+                  const CategoryFormSectionLabel(text: 'アイコン'),
+                  const SizedBox(height: 8),
+                  CategoryIconPicker(
+                    selected: _iconCode,
+                    color: CategoryPresets.colorFor(_colorCode),
+                    onChanged: (code) => setState(() => _iconCode = code),
+                  ),
+                  const SizedBox(height: 24),
+                  const CategoryFormSectionLabel(text: 'カラー'),
+                  const SizedBox(height: 8),
+                  CategoryColorPicker(
+                    selected: _colorCode,
+                    onChanged: (code) => setState(() => _colorCode = code),
+                  ),
+                  const SizedBox(height: 28),
+                  SaveActionButton(
+                    onPressed: _onSave,
+                    loading: _saving,
+                    label: isEdit ? 'カテゴリを更新' : 'カテゴリを追加',
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              if (_mode == CategoryEditMode.preset) ...[
-                _PresetSummaryCard(
-                  masterKey: _masterKey,
-                  onTap: _pickFromMaster,
-                  rateFormatter: _rateFormatter,
-                ),
-                const SizedBox(height: 20),
-              ] else ...[
-                CategoryNameField(controller: _nameController),
-                const SizedBox(height: 8),
-                CategoryHourlyRateField(controller: _rateController),
-                const SizedBox(height: 24),
-              ],
-              const CategoryFormSectionLabel(text: 'アイコン'),
-              const SizedBox(height: 8),
-              CategoryIconPicker(
-                selected: _iconCode,
-                color: CategoryPresets.colorFor(_colorCode),
-                onChanged: (code) => setState(() => _iconCode = code),
-              ),
-              const SizedBox(height: 24),
-              const CategoryFormSectionLabel(text: 'カラー'),
-              const SizedBox(height: 8),
-              CategoryColorPicker(
-                selected: _colorCode,
-                onChanged: (code) => setState(() => _colorCode = code),
-              ),
-              const SizedBox(height: 28),
-              FilledButton(
-                onPressed: _saving ? null : _onSave,
-                child: _saving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('保存'),
-              ),
-            ],
+            ),
           ),
-        ),
+          if (keyboardVisible)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: KeyboardDoneBar(
+                onDone: () => FocusScope.of(context).unfocus(),
+              ),
+            ),
+        ],
       ),
     );
   }

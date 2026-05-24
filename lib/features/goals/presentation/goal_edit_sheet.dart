@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../shared/widgets/keyboard_done_bar.dart';
 import '../../../shared/widgets/mirai_date_picker_sheet.dart';
+import '../../../shared/widgets/save_action_button.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
@@ -205,85 +207,99 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets;
+    final keyboardVisible = viewInsets.bottom > 0;
     final categoriesAsync = ref.watch(categoriesListProvider);
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets.bottom),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            categoriesAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: LinearProgressIndicator(),
-              ),
-              error: (e, _) => Text('カテゴリの読み込みに失敗: $e'),
-              data: (categories) {
-                final canSave = _preset != null || _isCustom;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _CategorySelectField(
-                      categories: categories,
-                      selectedId: _categoryId,
-                      onChanged: (id) => setState(() => _categoryId = id),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      '目標を選ぶ',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    for (final preset in GoalPreset.values)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: _PresetCard(
-                          preset: preset,
-                          selected: _preset == preset,
-                          amount: _computeTargetAmount(preset, categories),
-                          deadline: _computeDeadline(preset),
-                          onTap: () => _selectPreset(preset),
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                categoriesAsync.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: LinearProgressIndicator(),
+                  ),
+                  error: (e, _) => Text('カテゴリの読み込みに失敗: $e'),
+                  data: (categories) {
+                    final canSave = _preset != null || _isCustom;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _CategorySelectField(
+                          categories: categories,
+                          selectedId: _categoryId,
+                          onChanged: (id) =>
+                              setState(() => _categoryId = id),
                         ),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: _CustomCard(
-                        selected: _isCustom,
-                        amountController: _customAmountController,
-                        amountError: _customAmountError,
-                        deadline: _customDeadline,
-                        deadlineError: _customDeadlineError,
-                        onTap: _selectCustom,
-                        onPickDate: _pickCustomDeadline,
-                        onAmountChanged: () {
-                          if (_customAmountError != null) {
-                            setState(() => _customAmountError = null);
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: (_saving || !canSave)
-                          ? null
-                          : () => _save(categories),
-                      child: _saving
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('保存'),
-                    ),
-                  ],
-                );
-              },
+                        const SizedBox(height: 20),
+                        Text(
+                          '目標を選ぶ',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        for (final preset in GoalPreset.values)
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 4),
+                            child: _PresetCard(
+                              preset: preset,
+                              selected: _preset == preset,
+                              amount:
+                                  _computeTargetAmount(preset, categories),
+                              deadline: _computeDeadline(preset),
+                              onTap: () => _selectPreset(preset),
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: _CustomCard(
+                            selected: _isCustom,
+                            amountController: _customAmountController,
+                            amountError: _customAmountError,
+                            deadline: _customDeadline,
+                            deadlineError: _customDeadlineError,
+                            onTap: _selectCustom,
+                            onPickDate: _pickCustomDeadline,
+                            onAmountChanged: () {
+                              if (_customAmountError != null) {
+                                setState(() => _customAmountError = null);
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        SaveActionButton(
+                          onPressed:
+                              canSave ? () => _save(categories) : null,
+                          loading: _saving,
+                          label: '目標を追加',
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          if (keyboardVisible)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: KeyboardDoneBar(
+                onDone: () => FocusScope.of(context).unfocus(),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -479,7 +495,6 @@ class _CustomCard extends StatelessWidget {
                       border: const OutlineInputBorder(),
                       suffixText: '円',
                       errorText: amountError,
-                      helperText: '1,000 〜 10,000,000 円',
                     ),
                     onChanged: (_) => onAmountChanged(),
                   ),
@@ -489,7 +504,6 @@ class _CustomCard extends StatelessWidget {
                       labelText: '達成予定日',
                       border: const OutlineInputBorder(),
                       errorText: deadlineError,
-                      helperText: '翌日 〜 10 年後まで',
                     ),
                     child: InkWell(
                       onTap: onPickDate,
