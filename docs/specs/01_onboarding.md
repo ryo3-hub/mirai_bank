@@ -90,48 +90,95 @@
 
 ## ステップ 2: 目標設定（カテゴリ作成後のみ）
 
-### UI 構成
+issue #108 で 3 問のウィザード形式に変更（Q1 → Q2 → Q3 → 結果）。
+各質問は 4 択。回答からその場で目標金額・期間を算出する。
+
+### UI 構成（共通）
 ```
 [Scaffold]
   body: SingleChildScrollView
-    - 左上：戻る IconButton（issue #106、Icons.arrow_back）
-    - 円形バッジ（Icons.flag_outlined + 薄い primary 背景）
-    - 「目標を選びましょう」ヘッドライン
-    - 「達成予定日と金額の目安を表示します。」
-    - 直前に作成したカテゴリのチップ（アイコン + 名前）
-    - プリセット 3 ボタン（縦並び）
-      - 短期目標 (7日間) / 中期目標 (30日間) / 長期目標 (90日間)
-      - 各カードに「達成予定: YYYY/M/d」と目標金額を表示
-      - 選択中はラジオアイコン + アクセント色枠
-    - FilledButton「設定する」（プリセット未選択時は無効）
-    - TextButton「あとで設定する」
+    - 上段：戻る IconButton + 進捗インジケータ「1/3」「2/3」「3/3」
+    - 中段：質問ヘッドライン + 4 つの選択肢カード（emoji + ラベル + 補足）
+    - 下段：TextButton「あとで設定する」
+  ※ 結果画面は別レイアウト（後述）
 ```
 
-### 戻る IconButton（issue #106）
-- 直前に作成したカテゴリをソフトデリート（`CategoryController.delete`）し、
-  `_step` を `category` に戻す（案 B: ロールバック方式）
-- フォームの入力値（カテゴリ名・時給・アイコン・カラー）は残るので、
-  再度「始める」を押せば新規カテゴリとして作り直される
+### Q1: 学習頻度（ライフスタイル）
+ヘッドライン: 「どんなペースで取り組みたいですか？」
+（カテゴリ名をサブヘッドで表示）
+
+| 選択肢 | 補足 | 計算で使う週稼働日数 |
+|---|---|---|
+| 🌱 毎日コツコツ続けたい | 週7日 | 7 |
+| 💼 平日中心にしっかりやりたい | 週5日 | 5 |
+| 🎯 週末メインで集中したい | 週2日 | 2 |
+| 🌊 自分のペースで気が向いたとき | 週3日想定 | 3 |
+
+### Q2: 1 回あたりの作業時間（集中度）
+ヘッドライン: 「1回あたりどれくらい取り組みたいですか？」
+
+| 選択肢 | 補足 | 計算で使う 1 日あたり時間 |
+|---|---|---|
+| ⏳ じっくり腰を据えて | 2時間以上 | 2.5h |
+| 🔥 しっかり集中して | 1〜2時間 | 1.5h |
+| ⚡ 短時間でテンポよく | 30分〜1時間 | 0.75h |
+| ☕ スキマ時間で少しずつ | 15〜30分 | 0.4h |
+
+### Q3: 取り組み期間（コミット度）
+ヘッドライン: 「どれくらいの期間続けたいですか？」
+
+| 選択肢 | 補足 | 計算で使う月数 |
+|---|---|---|
+| 🚀 短期集中で結果を出したい | 1ヶ月 | 1 |
+| 📈 中期的に身につけたい | 3ヶ月 | 3 |
+| 🌳 半年かけてじっくり | 半年 | 6 |
+| ♾️ 長期的に習慣にしたい | 1年以上 | 12 |
+
+### 結果画面
+```
+- 戻る IconButton（→ Q3 へ）
+- 円形バッジ（Icons.flag_outlined）
+- 「おすすめの目標」ヘッドライン
+- カテゴリチップ
+- カード:
+  - 「Xヶ月コース」/「半年コース」/「1年以上コース」
+  - 「達成予定: YYYY/M/d」
+  - 累計目標金額（大きく primary 色）
+  - 「月あたり Y 円」
+  - 区切り線
+  - ペース / 1 回あたり / 期間 の 3 行
+- FilledButton「この目標で設定する」
+- TextButton「あとで設定する」
+```
+
+### 金額計算式
+```
+累計目標金額 = 週稼働日数 × 1日あたり時間 × 30 × 期間月数 × 時給
+月間目標金額 = 累計目標金額 ÷ 期間月数
+```
+
+実装は `lib/features/onboarding/domain/goal_questionnaire.dart` の
+`GoalQuestionnaireResult.cumulativeTargetAmount(hourlyRate)`。
+
+例：時給 1,000 円 / 毎日 / じっくり / 1ヶ月 = 525,000 円
+例：時給 1,000 円 / 週末 / スキマ / 1ヶ月 = 24,000 円
+
+### 戻る IconButton（issue #106 / #108）
+- **Q1 の戻る**: 直前に作成したカテゴリをソフトデリートし、カテゴリステップへ復帰（案 B: ロールバック）
+- **Q2 / Q3 / 結果 の戻る**: 1 つ前の質問に戻る（カテゴリは保持）
 - 保存中（`_saving = true`）は無効化
 
-### プリセット金額計算
-- カテゴリ指定時（このステップは常に直前のカテゴリ固定）: `時給 × 7 / 30 / 90`
-- 達成予定日: 当日 0:00 + プリセット日数
+### Goal への保存
+- `type` = `GoalType.period`
+- `periodStart` = 当日 0:00
+- `periodEnd` = 当日 + 期間月数 × 30 日
+- `targetAmount` = 計算式の結果
+- `categoryId` = 直前に作ったカテゴリの id
 
-### アクション
-
-#### 設定する ボタン
-1. `GoalController.create(type: period, ...)` で目標作成
-   - `categoryId` = 直前に作ったカテゴリの id
-   - `periodStart` = 当日 0:00、`periodEnd` = 当日 + プリセット日数
-   - `targetAmount` = 時給 × プリセット日数
-2. `OnboardingState.markCompleted()`
-3. ルーター redirect により `/home` に遷移
-
-#### あとで設定する リンク
-1. `OnboardingState.markCompleted()` のみ実行
-2. `/home` に遷移
-3. ホームの目標 0 件カード「目標を追加」から後で設定できる
+### あとで設定する
+- 各質問画面 / 結果画面の TextButton「あとで設定する」
+- `OnboardingState.markCompleted()` のみ実行 → `/home` に遷移
+- ホームの目標 0 件カード「目標を追加」から後で設定できる
 
 ## 状態
 - **Loading**: 各ボタン押下中は `CircularProgressIndicator(strokeWidth: 2)` を表示し、両ボタンを無効化
@@ -148,6 +195,7 @@
 ## 関連ファイル
 - `lib/features/onboarding/presentation/onboarding_page.dart`
 - `lib/features/onboarding/application/onboarding_state.dart`
+- `lib/features/onboarding/domain/goal_questionnaire.dart`（質問票と計算式）
 - `lib/features/category/presentation/widgets/category_form_widgets.dart`
-- `lib/features/goals/domain/goal.dart`（`GoalPreset` enum）
+- `lib/features/goals/domain/goal.dart`
 - `lib/app/router.dart`（redirect ロジック）

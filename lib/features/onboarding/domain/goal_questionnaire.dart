@@ -1,0 +1,172 @@
+/// オンボーディング目標設定の質問票。issue #108 で導入。
+///
+/// 3 つの質問（学習頻度 / 1 回あたりの時間 / 期間）にユーザーが答えると、
+/// 累計目標金額を以下の式で算出する：
+///
+///   累計目標金額 = 週稼働日数 × 1日あたり時間 × 30 × 期間月数 × 時給
+///
+/// 月間目標は `累計目標金額 ÷ 期間月数` で導出可能。
+library;
+
+/// Q1: 学習頻度（ライフスタイル）
+enum LearningFrequency {
+  daily(
+    daysPerWeek: 7,
+    label: '毎日コツコツ続けたい',
+    emoji: '🌱',
+    sub: '週7日',
+  ),
+  weekday(
+    daysPerWeek: 5,
+    label: '平日中心にしっかりやりたい',
+    emoji: '💼',
+    sub: '週5日',
+  ),
+  weekend(
+    daysPerWeek: 2,
+    label: '週末メインで集中したい',
+    emoji: '🎯',
+    sub: '週2日',
+  ),
+  ownPace(
+    daysPerWeek: 3,
+    label: '自分のペースで気が向いたとき',
+    emoji: '🌊',
+    sub: '週3日想定',
+  );
+
+  const LearningFrequency({
+    required this.daysPerWeek,
+    required this.label,
+    required this.emoji,
+    required this.sub,
+  });
+
+  /// 計算式で使う 1 週間あたりの稼働日数。
+  final int daysPerWeek;
+
+  /// 選択肢のメインラベル。
+  final String label;
+
+  /// 選択肢の左に置く絵文字。
+  final String emoji;
+
+  /// 補足テキスト（週X日）。
+  final String sub;
+}
+
+/// Q2: 1 回あたりの作業時間（集中度）
+enum LearningSessionLength {
+  deep(
+    hoursPerDay: 2.5,
+    label: 'じっくり腰を据えて',
+    emoji: '⏳',
+    sub: '2時間以上',
+  ),
+  focused(
+    hoursPerDay: 1.5,
+    label: 'しっかり集中して',
+    emoji: '🔥',
+    sub: '1〜2時間',
+  ),
+  quick(
+    hoursPerDay: 0.75,
+    label: '短時間でテンポよく',
+    emoji: '⚡',
+    sub: '30分〜1時間',
+  ),
+  spare(
+    hoursPerDay: 0.4,
+    label: 'スキマ時間で少しずつ',
+    emoji: '☕',
+    sub: '15〜30分',
+  );
+
+  const LearningSessionLength({
+    required this.hoursPerDay,
+    required this.label,
+    required this.emoji,
+    required this.sub,
+  });
+
+  /// 計算式で使う 1 日あたりの想定時間（時間）。
+  final double hoursPerDay;
+
+  final String label;
+  final String emoji;
+  final String sub;
+}
+
+/// Q3: 取り組み期間（コミット度）
+enum LearningPeriod {
+  oneMonth(
+    months: 1,
+    label: '短期集中で結果を出したい',
+    emoji: '🚀',
+    sub: '1ヶ月',
+  ),
+  threeMonths(
+    months: 3,
+    label: '中期的に身につけたい',
+    emoji: '📈',
+    sub: '3ヶ月',
+  ),
+  sixMonths(
+    months: 6,
+    label: '半年かけてじっくり',
+    emoji: '🌳',
+    sub: '半年',
+  ),
+  oneYear(
+    months: 12,
+    label: '長期的に習慣にしたい',
+    emoji: '♾️',
+    sub: '1年以上',
+  );
+
+  const LearningPeriod({
+    required this.months,
+    required this.label,
+    required this.emoji,
+    required this.sub,
+  });
+
+  /// 計算式で使う期間（月）。
+  final int months;
+
+  /// `periodEnd - periodStart` に使う日数。1 ヶ月 = 30 日換算。
+  int get days => months * 30;
+
+  final String label;
+  final String emoji;
+  final String sub;
+}
+
+/// 質問票への 3 つの回答を保持し、目標金額を算出する。
+class GoalQuestionnaireResult {
+  const GoalQuestionnaireResult({
+    required this.frequency,
+    required this.sessionLength,
+    required this.period,
+  });
+
+  final LearningFrequency frequency;
+  final LearningSessionLength sessionLength;
+  final LearningPeriod period;
+
+  /// 累計目標金額 = 週稼働日数 × 1日あたり時間 × 30 × 期間月数 × 時給
+  /// 小数は四捨五入。
+  int cumulativeTargetAmount(int hourlyRate) {
+    final value = frequency.daysPerWeek *
+        sessionLength.hoursPerDay *
+        30 *
+        period.months *
+        hourlyRate;
+    return value.round();
+  }
+
+  /// 月間目標金額 = 累計 ÷ 期間月数（端数四捨五入）。
+  int monthlyTargetAmount(int hourlyRate) {
+    return (cumulativeTargetAmount(hourlyRate) / period.months).round();
+  }
+}
