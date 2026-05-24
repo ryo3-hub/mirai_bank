@@ -231,19 +231,24 @@ class _PresetChoiceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        for (var i = 0; i < presets.length; i++) ...[
-          if (i > 0) const SizedBox(width: 8),
-          Expanded(
-            child: _PresetChoiceCard(
-              preset: presets[i],
-              isSelected: presets[i].id == selectedId,
-              onTap: () => onSelected(presets[i]),
+    // IntrinsicHeight + stretch で、説明（label）が無いプリセットも他と高さが
+    // 揃うようにする（issue #119）。
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < presets.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(
+              child: _PresetChoiceCard(
+                preset: presets[i],
+                isSelected: presets[i].id == selectedId,
+                onTap: () => onSelected(presets[i]),
+              ),
             ),
-          ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -290,6 +295,7 @@ class _PresetChoiceCard extends StatelessWidget {
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text.rich(
               TextSpan(
