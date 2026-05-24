@@ -19,11 +19,16 @@ class CategoryEditSheet extends ConsumerStatefulWidget {
   final Category? initial;
 
   static Future<void> show(BuildContext context, {Category? initial}) {
+    // issue #117: AppShell の Scaffold (resizeToAvoidBottomInset: true) が
+    // viewInsets.bottom を消費してしまい、シート内では常に 0 になる。
+    // useRootNavigator: true でルート Navigator に push し、消費前の
+    // viewInsets を MediaQuery 経由で受け取れるようにする。
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
+      useRootNavigator: true,
       builder: (_) => CategoryEditSheet(initial: initial),
     );
   }
@@ -156,7 +161,6 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets;
-    final keyboardVisible = viewInsets.bottom > 0;
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets.bottom),
       child: Column(
@@ -224,10 +228,9 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
               ),
             ),
           ),
-          if (keyboardVisible)
-            KeyboardDoneBar(
-              onDone: () => FocusScope.of(context).unfocus(),
-            ),
+          KeyboardDoneBar(
+            onDone: () => FocusScope.of(context).unfocus(),
+          ),
         ],
       ),
     );

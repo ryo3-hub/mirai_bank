@@ -22,11 +22,16 @@ class GoalEditSheet extends ConsumerStatefulWidget {
   const GoalEditSheet({super.key});
 
   static Future<void> show(BuildContext context) {
+    // issue #117: AppShell の Scaffold (resizeToAvoidBottomInset: true) が
+    // viewInsets.bottom を消費してしまい、シート内では常に 0 になる。
+    // useRootNavigator: true でルート Navigator に push し、消費前の
+    // viewInsets を MediaQuery 経由で受け取れるようにする。
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
+      useRootNavigator: true,
       builder: (_) => const GoalEditSheet(),
     );
   }
@@ -207,7 +212,6 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets;
-    final keyboardVisible = viewInsets.bottom > 0;
     final categoriesAsync = ref.watch(categoriesListProvider);
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets.bottom),
@@ -288,10 +292,9 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
               ),
             ),
           ),
-          if (keyboardVisible)
-            KeyboardDoneBar(
-              onDone: () => FocusScope.of(context).unfocus(),
-            ),
+          KeyboardDoneBar(
+            onDone: () => FocusScope.of(context).unfocus(),
+          ),
         ],
       ),
     );

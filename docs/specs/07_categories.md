@@ -111,10 +111,15 @@
   - 新規時のラベル: 「カテゴリを追加」 / 編集時のラベル: 「カテゴリを更新」
   - 保存中は `CircularProgressIndicator` に差し替え、押下不可
 
-### キーボード完了バー（issue #114）
+### キーボード完了バー（issue #114, #117）
 時給フィールド（number キーボード）にはキーボード上の「return」が無いので、
 キーボード表示中（`MediaQuery.viewInsetsOf(context).bottom > 0`）にのみ
 シート最下段に共通 `KeyboardDoneBar` を表示する。タップで `unfocus()`。
+
+シートは `showModalBottomSheet(useRootNavigator: true)` で開く（issue #117）。
+`AppShell` の `Scaffold` が `resizeToAvoidBottomInset: true` で
+`viewInsets.bottom` を消費してしまうため、ルート Navigator に push しないと
+シート内の `MediaQuery.viewInsets.bottom` が常に 0 になり、完了バーが描画されない。
 
 ### 削除
 このシートには削除ボタンはない（削除はカテゴリ一覧の trailing IconButton から実行）。
