@@ -117,6 +117,25 @@ class _CalendarCard extends StatelessWidget {
     return 0.10 + ratio * 0.15;
   }
 
+  /// TableCalendar の高さを 6 行分で固定する。
+  ///
+  /// `Column(mainAxisSize: min)` 内で TableCalendar を unbounded vertical
+  /// constraint 下に置くと、内部 PageView が前月遷移時に巨大なサイズを要求し
+  /// `RenderFlex overflowed by 99533 pixels` を引き起こすケースがある（issue
+  /// の再現）。6 行分の固定枠 + `shouldFillViewport: true` で常に同じ高さに
+  /// 揃え、月をまたぐ row 数の差で発生するレイアウト不安定を抑える。
+  static const double _calendarHeight = 6 * 56 + 28 + 8;
+
+  static final DateTime _firstDay = DateTime(2020, 1, 1);
+  static final DateTime _lastDay =
+      DateTime(DateTime.now().year + 5, 12, 31);
+
+  DateTime _clamp(DateTime d) {
+    if (d.isBefore(_firstDay)) return _firstDay;
+    if (d.isAfter(_lastDay)) return _lastDay;
+    return d;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -125,86 +144,91 @@ class _CalendarCard extends StatelessWidget {
         _CalendarHeader(
           month: focusedDay,
           onPrev: () => onPageChanged(
-            DateTime(focusedDay.year, focusedDay.month - 1, 1),
+            _clamp(DateTime(focusedDay.year, focusedDay.month - 1, 1)),
           ),
           onNext: () => onPageChanged(
-            DateTime(focusedDay.year, focusedDay.month + 1, 1),
+            _clamp(DateTime(focusedDay.year, focusedDay.month + 1, 1)),
           ),
         ),
-        TableCalendar(
-          firstDay: DateTime(2020, 1, 1),
-          lastDay: DateTime(DateTime.now().year + 5, 12, 31),
-          focusedDay: focusedDay,
-          selectedDayPredicate: (day) => isSameDay(day, selectedDay),
-          onDaySelected: onDaySelected,
-          onPageChanged: onPageChanged,
-          calendarFormat: CalendarFormat.month,
-          availableCalendarFormats: const {CalendarFormat.month: 'Month'},
-          locale: 'ja_JP',
-          startingDayOfWeek: StartingDayOfWeek.sunday,
-          headerVisible: false,
-          rowHeight: 56,
-          daysOfWeekHeight: 28,
-          calendarBuilders: CalendarBuilders<dynamic>(
-            dowBuilder: (context, day) {
-              final label = DateFormat.E('ja').format(day);
-              final color = weekdayColor(context, day.weekday);
-              return Center(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: color ??
-                        Theme.of(context).colorScheme.onSurfaceVariant,
+        SizedBox(
+          height: _calendarHeight,
+          child: TableCalendar(
+            firstDay: _firstDay,
+            lastDay: _lastDay,
+            focusedDay: focusedDay,
+            selectedDayPredicate: (day) => isSameDay(day, selectedDay),
+            onDaySelected: onDaySelected,
+            onPageChanged: onPageChanged,
+            calendarFormat: CalendarFormat.month,
+            availableCalendarFormats: const {CalendarFormat.month: 'Month'},
+            locale: 'ja_JP',
+            startingDayOfWeek: StartingDayOfWeek.sunday,
+            headerVisible: false,
+            rowHeight: 56,
+            daysOfWeekHeight: 28,
+            pageJumpingEnabled: true,
+            shouldFillViewport: true,
+            calendarBuilders: CalendarBuilders<dynamic>(
+              dowBuilder: (context, day) {
+                final label = DateFormat.E('ja').format(day);
+                final color = weekdayColor(context, day.weekday);
+                return Center(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: color ??
+                          Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-              );
-            },
-            defaultBuilder: (context, day, _) {
-              final stats = dailyStats[_dateOnly(day)];
-              return _DayCell(
-                day: day,
-                amount: stats?.amount ?? 0,
-                dominantColor: _dominantColorFor(day),
-                bgAlpha: _alphaFor(stats?.amount ?? 0),
-                isToday: false,
-                isSelected: false,
-              );
-            },
-            todayBuilder: (context, day, _) {
-              final stats = dailyStats[_dateOnly(day)];
-              return _DayCell(
-                day: day,
-                amount: stats?.amount ?? 0,
-                dominantColor: _dominantColorFor(day),
-                bgAlpha: _alphaFor(stats?.amount ?? 0),
-                isToday: true,
-                isSelected: false,
-              );
-            },
-            selectedBuilder: (context, day, _) {
-              final stats = dailyStats[_dateOnly(day)];
-              return _DayCell(
-                day: day,
-                amount: stats?.amount ?? 0,
-                dominantColor: _dominantColorFor(day),
-                bgAlpha: _alphaFor(stats?.amount ?? 0),
-                isToday: isSameDay(day, DateTime.now()),
-                isSelected: true,
-              );
-            },
-            outsideBuilder: (context, day, _) {
-              return _DayCell(
-                day: day,
-                amount: 0,
-                dominantColor: null,
-                bgAlpha: 0,
-                isToday: false,
-                isSelected: false,
-                isOutside: true,
-              );
-            },
+                );
+              },
+              defaultBuilder: (context, day, _) {
+                final stats = dailyStats[_dateOnly(day)];
+                return _DayCell(
+                  day: day,
+                  amount: stats?.amount ?? 0,
+                  dominantColor: _dominantColorFor(day),
+                  bgAlpha: _alphaFor(stats?.amount ?? 0),
+                  isToday: false,
+                  isSelected: false,
+                );
+              },
+              todayBuilder: (context, day, _) {
+                final stats = dailyStats[_dateOnly(day)];
+                return _DayCell(
+                  day: day,
+                  amount: stats?.amount ?? 0,
+                  dominantColor: _dominantColorFor(day),
+                  bgAlpha: _alphaFor(stats?.amount ?? 0),
+                  isToday: true,
+                  isSelected: false,
+                );
+              },
+              selectedBuilder: (context, day, _) {
+                final stats = dailyStats[_dateOnly(day)];
+                return _DayCell(
+                  day: day,
+                  amount: stats?.amount ?? 0,
+                  dominantColor: _dominantColorFor(day),
+                  bgAlpha: _alphaFor(stats?.amount ?? 0),
+                  isToday: isSameDay(day, DateTime.now()),
+                  isSelected: true,
+                );
+              },
+              outsideBuilder: (context, day, _) {
+                return _DayCell(
+                  day: day,
+                  amount: 0,
+                  dominantColor: null,
+                  bgAlpha: 0,
+                  isToday: false,
+                  isSelected: false,
+                  isOutside: true,
+                );
+              },
+            ),
           ),
         ),
       ],
