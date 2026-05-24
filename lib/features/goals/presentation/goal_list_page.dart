@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/widgets/add_action_fab.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/reorder_proxy_decorator.dart';
 import '../../../shared/widgets/top_toast.dart';
@@ -67,10 +68,9 @@ class GoalListPage extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: AddActionFab(
+        label: '目標を追加',
         onPressed: () => GoalEditSheet.show(context),
-        tooltip: '目標を追加',
-        child: const Icon(Icons.add),
       ),
     );
   }

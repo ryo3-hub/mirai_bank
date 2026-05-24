@@ -15,7 +15,8 @@
   `onReorder` = `HapticFeedback.lightImpact()`
 - カテゴリピッカー（タイマー / 手動入力時）も同じ並び順で表示される
   （`watchAll` を通すので自動で反映）
-- FAB「カテゴリを追加」（円形、GitHub Green、CategoryEditSheet を開く）
+- 共通 `AddActionFab`（Extended FAB、`Icons.add` + 「カテゴリを追加」ラベル、
+  primary 色塗り、角丸 16、issue #123 で円形 FAB から差し替え）
 - 各カテゴリカード: アイコン / 名前 / 時給 / 削除 IconButton
 - 削除前に `showDeleteConfirmDialog` で確認
 
