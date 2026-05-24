@@ -3,54 +3,55 @@ import 'package:mirai_bank/features/onboarding/domain/goal_questionnaire.dart';
 
 void main() {
   group('GoalQuestionnaireResult.cumulativeTargetAmount', () {
-    test('日次 + じっくり + 1ヶ月 + 時給1000 = 525,000', () {
-      // 週稼働日数=7 × 時間/日=2.5 × 30 × 期間月数=1 × 時給=1000
+    // 計算式: (期間月数 × 30) × (週稼働日数 / 7) × 1日あたり時間 × 時給
+    test('毎日 + じっくり + 1ヶ月 + 時給1000 = 75,000', () {
+      // 30 × 7/7 × 2.5 × 1000 = 75,000
       const result = GoalQuestionnaireResult(
         frequency: LearningFrequency.daily,
         sessionLength: LearningSessionLength.deep,
         period: LearningPeriod.oneMonth,
       );
-      expect(result.cumulativeTargetAmount(1000), 525000);
+      expect(result.cumulativeTargetAmount(1000), 75000);
     });
 
-    test('週末 + スキマ + 1ヶ月 + 時給1000 = 24,000', () {
-      // 2 × 0.4 × 30 × 1 × 1000 = 24,000
+    test('週末 + スキマ + 1ヶ月 + 時給1000 ≈ 3,429', () {
+      // 30 × 2/7 × 0.4 × 1000 ≈ 3428.57 → 3429
       const result = GoalQuestionnaireResult(
         frequency: LearningFrequency.weekend,
         sessionLength: LearningSessionLength.spare,
         period: LearningPeriod.oneMonth,
       );
-      expect(result.cumulativeTargetAmount(1000), 24000);
+      expect(result.cumulativeTargetAmount(1000), 3429);
     });
 
-    test('平日 + しっかり + 3ヶ月 + 時給2000 = 1,350,000', () {
-      // 5 × 1.5 × 30 × 3 × 2000 = 1,350,000
+    test('平日 + しっかり + 3ヶ月 + 時給2000 ≈ 192,857', () {
+      // 90 × 5/7 × 1.5 × 2000 ≈ 192857.14 → 192857
       const result = GoalQuestionnaireResult(
         frequency: LearningFrequency.weekday,
         sessionLength: LearningSessionLength.focused,
         period: LearningPeriod.threeMonths,
       );
-      expect(result.cumulativeTargetAmount(2000), 1350000);
+      expect(result.cumulativeTargetAmount(2000), 192857);
     });
 
-    test('自分のペース + 短時間 + 半年 + 時給1500 = 607,500', () {
-      // 3 × 0.75 × 30 × 6 × 1500 = 607,500
+    test('自分のペース + 短時間 + 半年 + 時給1500 ≈ 86,786', () {
+      // 180 × 3/7 × 0.75 × 1500 ≈ 86785.71 → 86786
       const result = GoalQuestionnaireResult(
         frequency: LearningFrequency.ownPace,
         sessionLength: LearningSessionLength.quick,
         period: LearningPeriod.sixMonths,
       );
-      expect(result.cumulativeTargetAmount(1500), 607500);
+      expect(result.cumulativeTargetAmount(1500), 86786);
     });
 
-    test('1年期間でも算出できる', () {
-      // 7 × 2.5 × 30 × 12 × 1000 = 6,300,000
+    test('毎日 + じっくり + 1年 + 時給1000 = 900,000', () {
+      // 360 × 7/7 × 2.5 × 1000 = 900,000
       const result = GoalQuestionnaireResult(
         frequency: LearningFrequency.daily,
         sessionLength: LearningSessionLength.deep,
         period: LearningPeriod.oneYear,
       );
-      expect(result.cumulativeTargetAmount(1000), 6300000);
+      expect(result.cumulativeTargetAmount(1000), 900000);
     });
   });
 
@@ -61,9 +62,9 @@ void main() {
         sessionLength: LearningSessionLength.deep,
         period: LearningPeriod.threeMonths,
       );
-      // 累計: 7 × 2.5 × 30 × 3 × 1000 = 1,575,000
-      // 月間: 1,575,000 ÷ 3 = 525,000
-      expect(result.monthlyTargetAmount(1000), 525000);
+      // 累計: 90 × 7/7 × 2.5 × 1000 = 225,000
+      // 月間: 225,000 ÷ 3 = 75,000
+      expect(result.monthlyTargetAmount(1000), 75000);
     });
   });
 
@@ -132,9 +133,9 @@ void main() {
         sessionLength: LearningSessionLength.deep,
         period: LearningPeriod.oneYear,
       );
-      // 累計: 7 × 2.5 × 30 × 12 × 1000 = 6,300,000
-      // 月間: 6,300,000 / 12 = 525,000 / 年間: × 12 = 6,300,000
-      expect(r.annualTargetAmount(1000), 6300000);
+      // 累計: 360 × 7/7 × 2.5 × 1000 = 900,000
+      // 月間: 900,000 / 12 = 75,000 / 年間: × 12 = 900,000
+      expect(r.annualTargetAmount(1000), 900000);
     });
 
     test('半年期間: 月間 × 12 が年間累計', () {
@@ -143,9 +144,9 @@ void main() {
         sessionLength: LearningSessionLength.deep,
         period: LearningPeriod.sixMonths,
       );
-      // 累計: 7 × 2.5 × 30 × 6 × 1000 = 3,150,000
-      // 月間: 3,150,000 / 6 = 525,000 / 年間: × 12 = 6,300,000
-      expect(r.annualTargetAmount(1000), 6300000);
+      // 累計: 180 × 7/7 × 2.5 × 1000 = 450,000
+      // 月間: 450,000 / 6 = 75,000 / 年間: × 12 = 900,000
+      expect(r.annualTargetAmount(1000), 900000);
     });
   });
 

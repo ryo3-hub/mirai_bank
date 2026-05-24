@@ -3,7 +3,9 @@
 /// 3 つの質問（学習頻度 / 1 回あたりの時間 / 期間）にユーザーが答えると、
 /// 累計目標金額を以下の式で算出する：
 ///
-///   累計目標金額 = 週稼働日数 × 1日あたり時間 × 30 × 期間月数 × 時給
+///   期間日数       = 期間月数 × 30
+///   総稼働日数     = 期間日数 × (週稼働日数 ÷ 7)
+///   累計目標金額   = 総稼働日数 × 1日あたり時間 × 時給
 ///
 /// 月間目標は `累計目標金額 ÷ 期間月数` で導出可能。
 library;
@@ -195,15 +197,15 @@ class GoalQuestionnaireResult {
   final LearningSessionLength sessionLength;
   final LearningPeriod period;
 
-  /// 累計目標金額 = 週稼働日数 × 1日あたり時間 × 30 × 期間月数 × 時給
+  /// 累計目標金額 = 総稼働日数 × 1日あたり時間 × 時給
+  ///
+  /// 総稼働日数 = 期間日数(=月数×30) × (週稼働日数 ÷ 7)
   /// 小数は四捨五入。
   int cumulativeTargetAmount(int hourlyRate) {
-    final value = frequency.daysPerWeek *
-        sessionLength.hoursPerDay *
-        30 *
-        period.months *
-        hourlyRate;
-    return value.round();
+    final periodDays = period.months * 30;
+    final activeDays = periodDays * frequency.daysPerWeek / 7;
+    final totalHours = activeDays * sessionLength.hoursPerDay;
+    return (totalHours * hourlyRate).round();
   }
 
   /// 月間目標金額 = 累計 ÷ 期間月数（端数四捨五入）。
