@@ -17,10 +17,11 @@ class TimerPresetRepositoryImpl implements TimerPresetRepository {
   SimpleSelectStatement<$TimerPresetsTable, TimerPresetRow> _activeQuery() {
     return _db.select(_table)
       ..where((p) => p.deletedAt.isNull())
-      // 表示順は minutes 昇順、同分数は sortOrder で安定化。
+      // 表示順は sortOrder のみ（issue #120 でドラッグ&ドロップ並び替えに対応）。
+      // 同じ sortOrder が混入したら minutes で安定化。
       ..orderBy([
-        (p) => OrderingTerm.asc(p.minutes),
         (p) => OrderingTerm.asc(p.sortOrder),
+        (p) => OrderingTerm.asc(p.minutes),
       ]);
   }
 
@@ -91,6 +92,20 @@ class TimerPresetRepositoryImpl implements TimerPresetRepository {
         updatedAt: Value(now),
       ),
     );
+  }
+
+  @override
+  Future<void> reorder(List<String> orderedIds) async {
+    final now = DateTime.now();
+    await _db.transaction(() async {
+      for (var i = 0; i < orderedIds.length; i++) {
+        await (_db.update(_table)..where((p) => p.id.equals(orderedIds[i])))
+            .write(TimerPresetsCompanion(
+          sortOrder: Value(i),
+          updatedAt: Value(now),
+        ));
+      }
+    });
   }
 
   TimerPreset _toEntity(TimerPresetRow row) {

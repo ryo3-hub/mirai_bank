@@ -20,7 +20,8 @@
 ### TimerPresetListPage (`/settings/timer-presets`)
 ```
 [AppBar] "タイマープリセット" + 戻る
-[ListView]
+[ReorderableListView]
+  - ヘッダー: 「プリセット N件 / 長押しで並び替え」ガイド
   - 各プリセット行 (TimerPresetCard)
     - 円形バッジ（数字大字、primaryContainer 背景）
     - title: ラベル（空のときは "N分集中"）
@@ -29,7 +30,15 @@
 [FAB] "+" → TimerPresetEditSheet.show()
 ```
 
-並び順は `minutes ASC, sortOrder ASC`（短い順）。
+並び順は **`sortOrder` のみ**（issue #120 でドラッグ&ドロップ並び替えに対応。
+カテゴリ管理 / 目標設定と同じ UX）。同 sortOrder が混入したら `minutes` で安定化。
+
+並べ替え操作:
+- 長押し → ドラッグ&ドロップで任意の順序に変更可能
+- `onReorderStart` = `HapticFeedback.mediumImpact()`
+- `onReorder` = `HapticFeedback.heavyImpact()` ＋ `TimerPresetController.reorder()`
+- ローカル state で順序を先に更新してからリポジトリへ反映（ちらつき防止、
+  カテゴリ管理 issue #70 と同じパターン）
 
 ### TimerPresetEditSheet
 ```
@@ -61,7 +70,7 @@
 | id | TEXT PK | UUID |
 | minutes | INTEGER | 5..480 |
 | label | TEXT | 説明文、空可 |
-| sortOrder | INTEGER | 同分数時の安定化用 |
+| sortOrder | INTEGER | 表示順（ユーザーがドラッグ&ドロップで変更可、issue #120） |
 | isDefault | BOOL | シード由来かユーザー追加か |
 | createdAt | DATETIME | |
 | updatedAt | DATETIME | |
@@ -72,7 +81,8 @@
 ## ホームとの連動
 ホームのタイマーカード（`HomePage`）も同じ `timerPresetListProvider`
 を購読し、先頭から **最大 3 件** をプリセットカードとしてインライン表示する。
-追加 / 削除は `watchAll` 経由で即時反映。
+追加 / 削除 / 並べ替えは `watchAll` 経由で即時反映（並び替えで先頭 3 件が
+入れ替わるとホームの表示も自動で追従、issue #120）。
 
 カード 3 枚は `IntrinsicHeight` + `CrossAxisAlignment.stretch` で常に同じ高さに揃える
 （issue #119）。説明（label）の有無でカード高さが変わらないよう、内部の Column は
