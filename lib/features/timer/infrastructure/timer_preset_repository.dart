@@ -13,4 +13,8 @@ abstract interface class TimerPresetRepository {
   });
 
   Future<void> softDelete(String id);
+
+  /// `orderedIds` の順番で sortOrder を 0..n-1 に振り直す（issue #120）。
+  /// アクティブなプリセットのみを対象とする想定。
+  Future<void> reorder(List<String> orderedIds);
 }

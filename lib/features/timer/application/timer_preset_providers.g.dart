@@ -43,7 +43,7 @@ final timerPresetListProvider =
 // ignore: unused_element
 typedef TimerPresetListRef = AutoDisposeStreamProviderRef<List<TimerPreset>>;
 String _$timerPresetControllerHash() =>
-    r'b70304a15847478b12ef4dd7de7843941e10443b';
+    r'714872c7d551ae37ad819a7820e3d9ffaa045a31';
 
 /// See also [TimerPresetController].
 @ProviderFor(TimerPresetController)

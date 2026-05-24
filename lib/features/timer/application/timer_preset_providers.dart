@@ -35,4 +35,9 @@ class TimerPresetController extends _$TimerPresetController {
   Future<void> delete(String id) {
     return ref.read(timerPresetRepositoryProvider).softDelete(id);
   }
+
+  /// 並べ替え（issue #120）。引数は新しい並び順の id 列。
+  Future<void> reorder(List<String> orderedIds) {
+    return ref.read(timerPresetRepositoryProvider).reorder(orderedIds);
+  }
 }
