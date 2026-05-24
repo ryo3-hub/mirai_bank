@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/widgets/add_action_fab.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/reorder_proxy_decorator.dart';
 import '../../../shared/widgets/top_toast.dart';
@@ -27,10 +28,9 @@ class TimerPresetListPage extends ConsumerWidget {
           return _PresetReorderableList(presets: presets);
         },
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: AddActionFab(
+        label: 'プリセットを追加',
         onPressed: () => TimerPresetEditSheet.show(context),
-        tooltip: 'プリセットを追加',
-        child: const Icon(Icons.add),
       ),
     );
   }

@@ -25,14 +25,14 @@
 
 ### カテゴリ管理（/settings/categories）
 - `CategoryListPage`
-- 一覧 + FAB「カテゴリを追加」（円形、GitHub Green、CategoryEditSheet を開く）
+- 一覧 + 共通 `AddActionFab`「カテゴリを追加」（Extended FAB、primary 色、角丸 16、issue #123）
 - 各カテゴリカード: アイコン / 名前 / 時給 / 削除 IconButton（テーマ色）
 - 削除前に `showDeleteConfirmDialog` で確認
 
 ### 目標設定（/settings/goals）
 - `GoalListPage`
 - アクティブな目標一覧 + 達成済み（折りたたみセクション）
-- FAB「目標を追加」（円形、GitHub Green、GoalEditSheet を開く）
+- 共通 `AddActionFab`「目標を追加」（Extended FAB、primary 色、角丸 16、issue #123）
 - 各目標カード（GoalCard）: 種別 / カテゴリ / 進捗バー / % / 金額
 
 ### 履歴（/settings/history）

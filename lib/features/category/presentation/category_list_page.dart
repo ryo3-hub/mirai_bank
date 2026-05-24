@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../shared/widgets/add_action_fab.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/reorder_proxy_decorator.dart';
 import '../../../shared/widgets/top_toast.dart';
@@ -31,10 +32,9 @@ class CategoryListPage extends ConsumerWidget {
           return _CategoryReorderableList(categories: categories);
         },
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: AddActionFab(
+        label: 'カテゴリを追加',
         onPressed: () => CategoryEditSheet.show(context),
-        tooltip: '追加',
-        child: const Icon(Icons.add),
       ),
     );
   }

@@ -27,7 +27,8 @@
     - title: ラベル（空のときは "N分集中"）
     - subtitle: "N 分"
     - 削除 IconButton (showDeleteConfirmDialog)
-[FAB] "+" → TimerPresetEditSheet.show()
+[AddActionFab] アイコン + 「プリセットを追加」 → TimerPresetEditSheet.show()
+  ※ Extended FAB、primary 色、角丸 16（issue #123）
 ```
 
 並び順は **`sortOrder` のみ**（issue #120 でドラッグ&ドロップ並び替えに対応。
