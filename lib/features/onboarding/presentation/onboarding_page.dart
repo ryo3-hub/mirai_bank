@@ -250,7 +250,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Stack(
@@ -264,15 +263,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   : _buildGoalStep(context),
             ),
           ),
-          if (keyboardVisible)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: KeyboardDoneBar(
-                onDone: () => FocusScope.of(context).unfocus(),
-              ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: KeyboardDoneBar(
+              onDone: () => FocusScope.of(context).unfocus(),
             ),
+          ),
         ],
       ),
     );

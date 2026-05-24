@@ -212,7 +212,6 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets;
-    final keyboardVisible = viewInsets.bottom > 0;
     final categoriesAsync = ref.watch(categoriesListProvider);
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets.bottom),
@@ -293,10 +292,9 @@ class _GoalEditSheetState extends ConsumerState<GoalEditSheet> {
               ),
             ),
           ),
-          if (keyboardVisible)
-            KeyboardDoneBar(
-              onDone: () => FocusScope.of(context).unfocus(),
-            ),
+          KeyboardDoneBar(
+            onDone: () => FocusScope.of(context).unfocus(),
+          ),
         ],
       ),
     );

@@ -161,7 +161,6 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets;
-    final keyboardVisible = viewInsets.bottom > 0;
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets.bottom),
       child: Column(
@@ -229,10 +228,9 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
               ),
             ),
           ),
-          if (keyboardVisible)
-            KeyboardDoneBar(
-              onDone: () => FocusScope.of(context).unfocus(),
-            ),
+          KeyboardDoneBar(
+            onDone: () => FocusScope.of(context).unfocus(),
+          ),
         ],
       ),
     );
