@@ -155,22 +155,21 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final viewInsets = MediaQuery.of(context).viewInsets;
     final isEdit = widget.initial != null;
-    // issue #114 リファイン: オンボーディングと同じ Scaffold + Stack パターンで
-    // 完了バーを確実にキーボード直上に配置する。
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+    // issue #114 リファイン: KeyboardDoneOverlay (OverlayPortal) で
+    // root overlay に完了バーを描画し、モーダルボトムシート内でも確実に
+    // キーボード直上に表示する。
+    return KeyboardDoneOverlay(
+      child: Padding(
+        padding: EdgeInsets.only(bottom: viewInsets.bottom),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
                   CategoryEditModeSelector(
                     mode: _mode,
                     onChanged: (m) {
@@ -221,18 +220,8 @@ class _CategoryEditSheetState extends ConsumerState<CategoryEditSheet> {
               ),
             ),
           ),
-          if (keyboardVisible)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: KeyboardDoneBar(
-                onDone: () => FocusScope.of(context).unfocus(),
-              ),
-            ),
-        ],
-      ),
-    );
+        ),
+      );
   }
 }
 
