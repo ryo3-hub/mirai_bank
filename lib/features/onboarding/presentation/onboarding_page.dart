@@ -428,6 +428,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           labelOf: (e) => e.label,
           emojiOf: (e) => e.emoji,
           subOf: (e) => e.sub,
+          recommendedOf: (e) => e.isRecommended,
           selected: _ansFrequency,
           onTap: (e) {
             setState(() {
@@ -445,6 +446,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           labelOf: (e) => e.label,
           emojiOf: (e) => e.emoji,
           subOf: (e) => e.sub,
+          recommendedOf: (e) => e.isRecommended,
           selected: _ansSessionLength,
           onTap: (e) {
             setState(() {
@@ -462,6 +464,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           labelOf: (e) => e.label,
           emojiOf: (e) => e.emoji,
           subOf: (e) => e.sub,
+          recommendedOf: (e) => e.isRecommended,
           selected: _ansPeriod,
           onTap: (e) {
             setState(() {
@@ -655,6 +658,7 @@ class _QuestionView<T> extends StatelessWidget {
     required this.labelOf,
     required this.emojiOf,
     required this.subOf,
+    required this.recommendedOf,
     required this.selected,
     required this.onTap,
     required this.onSkip,
@@ -666,6 +670,7 @@ class _QuestionView<T> extends StatelessWidget {
   final String Function(T) labelOf;
   final String Function(T) emojiOf;
   final String Function(T) subOf;
+  final bool Function(T) recommendedOf;
   final T? selected;
   final ValueChanged<T> onTap;
   final VoidCallback? onSkip;
@@ -702,6 +707,7 @@ class _QuestionView<T> extends StatelessWidget {
               label: labelOf(opt),
               emoji: emojiOf(opt),
               sub: subOf(opt),
+              recommended: recommendedOf(opt),
               selected: opt == selected,
               onTap: () => onTap(opt),
             ),
@@ -721,6 +727,7 @@ class _QuestionOptionCard extends StatelessWidget {
     required this.label,
     required this.emoji,
     required this.sub,
+    required this.recommended,
     required this.selected,
     required this.onTap,
   });
@@ -728,6 +735,7 @@ class _QuestionOptionCard extends StatelessWidget {
   final String label;
   final String emoji;
   final String sub;
+  final bool recommended;
   final bool selected;
   final VoidCallback onTap;
 
@@ -763,11 +771,22 @@ class _QuestionOptionCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      label,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            label,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (recommended) ...[
+                          const SizedBox(width: 6),
+                          const _RecommendedBadge(),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -785,6 +804,34 @@ class _QuestionOptionCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 続けやすい選択肢につける小さな「おすすめ」バッジ。
+class _RecommendedBadge extends StatelessWidget {
+  const _RecommendedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = Colors.green.shade700;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: accent.withValues(alpha: 0.4), width: 1),
+      ),
+      child: Text(
+        'おすすめ',
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: accent,
+          fontWeight: FontWeight.w700,
+          fontSize: 10,
+          height: 1.2,
         ),
       ),
     );

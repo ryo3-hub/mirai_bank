@@ -161,4 +161,27 @@ void main() {
       expect(LearningPeriod.oneYear.phrase, '1年');
     });
   });
+
+  group('isRecommended', () {
+    test('LearningFrequency は weekday のみ true', () {
+      expect(LearningFrequency.daily.isRecommended, isFalse);
+      expect(LearningFrequency.weekday.isRecommended, isTrue);
+      expect(LearningFrequency.weekend.isRecommended, isFalse);
+      expect(LearningFrequency.ownPace.isRecommended, isFalse);
+    });
+
+    test('LearningSessionLength は quick のみ true', () {
+      expect(LearningSessionLength.deep.isRecommended, isFalse);
+      expect(LearningSessionLength.focused.isRecommended, isFalse);
+      expect(LearningSessionLength.quick.isRecommended, isTrue);
+      expect(LearningSessionLength.spare.isRecommended, isFalse);
+    });
+
+    test('LearningPeriod は threeMonths のみ true', () {
+      expect(LearningPeriod.oneMonth.isRecommended, isFalse);
+      expect(LearningPeriod.threeMonths.isRecommended, isTrue);
+      expect(LearningPeriod.sixMonths.isRecommended, isFalse);
+      expect(LearningPeriod.oneYear.isRecommended, isFalse);
+    });
+  });
 }

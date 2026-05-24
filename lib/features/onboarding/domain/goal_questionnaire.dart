@@ -67,6 +67,10 @@ enum LearningFrequency {
         return '気が向いたとき';
     }
   }
+
+  /// 「続けやすい」推奨選択肢かどうか。
+  /// 毎日だと負担、週末のみだと習慣化しにくい — 平日中心が習慣形成のスイートスポット。
+  bool get isRecommended => this == LearningFrequency.weekday;
 }
 
 /// Q2: 1 回あたりの作業時間（集中度）
@@ -109,6 +113,10 @@ enum LearningSessionLength {
   final String label;
   final String emoji;
   final String sub;
+
+  /// 「続けやすい」推奨選択肢かどうか。
+  /// じっくりは負担、スキマは効果が薄い — 30〜60 分が定番の続けやすい長さ。
+  bool get isRecommended => this == LearningSessionLength.quick;
 }
 
 /// Q3: 取り組み期間（コミット度）
@@ -168,6 +176,11 @@ enum LearningPeriod {
         return '1年';
     }
   }
+
+  /// 「続けやすい」推奨選択肢かどうか。
+  /// 1ヶ月だと習慣化しきらない、半年・1年はコミット負担が大きい —
+  /// 3ヶ月が習慣形成に必要十分な期間。
+  bool get isRecommended => this == LearningPeriod.threeMonths;
 }
 
 /// 質問票への 3 つの回答を保持し、目標金額を算出する。
