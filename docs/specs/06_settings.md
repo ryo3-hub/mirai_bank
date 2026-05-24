@@ -44,7 +44,7 @@
 - 構成：
   - SwitchListTile「学習リマインダー」（指定時刻に通知）
   - ListTile「リマインダー時刻」（リマインダー有効時のみタップ可能、`MiraiTimePickerSheet` / ドラムロール）
-  - 通知する曜日（独自 `_WeekdayCell` を `Row` + `Expanded` で 1 行に。日始まり。0 件選択時は赤の警告文）
+  - 通知する曜日（共通 `WeekdayPicker` を `Row` + `Expanded` で 1 行に。日始まり。0 件選択時は赤の警告文。`lib/shared/widgets/weekday_picker.dart`、issue #121 で共通化）
   - SwitchListTile「達成通知」（目標達成・連続学習の節目で通知）
 
 #### 学習リマインダー
@@ -57,9 +57,10 @@
 - リマインダー OFF のときはグレーアウト
 
 #### 通知する曜日
-- **日〜土** の 7 セルを `Row` + `Expanded` で均等割りで 1 行に並べる
-  （日曜始まり、issue #88）
-- 各セルは独自 `_WeekdayCell`（角丸 12px、高さ 44px、白背景 + 枠線スタイル）
+- 共通 `WeekdayPicker`（`lib/shared/widgets/weekday_picker.dart`、issue #121 で
+  オンボーディングと共通化）を使い、**日〜土** の 7 セルを `Row` + `Expanded` で
+  均等割りで 1 行に並べる（日曜始まり、issue #88）
+- 各セルは角丸 12px、高さ 44px、白背景 + 枠線スタイル
 - 選択時の枠線・テキスト色は曜日色に連動：日曜=赤、土曜=青、平日=primary（水色）
 - 値は `DateTime.weekday` 形式（1=月..7=日）で保存、表示順だけ日始まりに
 - 複数選択可、リマインダー OFF のときは操作不可

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../shared/widgets/keyboard_done_bar.dart';
 import '../../../shared/widgets/save_action_button.dart';
 import '../../../shared/widgets/top_toast.dart';
+import '../../../shared/widgets/weekday_picker.dart';
 import '../../category/application/category_providers.dart';
 import '../../category/domain/category.dart';
 import '../../category/domain/category_master.dart';
@@ -14,6 +15,8 @@ import '../../category/presentation/widgets/category_edit_mode_selector.dart';
 import '../../category/presentation/widgets/category_form_widgets.dart';
 import '../../goals/application/goal_providers.dart';
 import '../../goals/domain/goal.dart';
+import '../../settings/application/setting_providers.dart';
+import '../../settings/domain/app_setting.dart';
 import '../application/onboarding_state.dart';
 import '../domain/goal_questionnaire.dart';
 
@@ -21,7 +24,8 @@ import '../domain/goal_questionnaire.dart';
 ///
 /// issue #102: カテゴリを実際に作成したユーザーには、続けて目標設定もさせる
 /// 2 ステップ構成。issue #108 で目標ステップを 3 問の質問票化（Q1→Q2→Q3→結果）。
-enum _OnboardingStep { category, goal }
+/// issue #121 で目標設定後にリマインダー曜日選択ステップを追加。
+enum _OnboardingStep { category, goal, reminder }
 
 /// 目標ステップ内の小ステップ。issue #108 で導入。
 enum _GoalSubStep { q1Frequency, q2SessionLength, q3Period, result }
@@ -53,6 +57,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   LearningFrequency? _ansFrequency;
   LearningSessionLength? _ansSessionLength;
   LearningPeriod? _ansPeriod;
+
+  /// リマインダーで通知する曜日（issue #121）。デフォルトは全 7 曜日。
+  /// DateTime.weekday 形式（1=月 .. 7=日）。
+  final Set<int> _selectedWeekdays = AppSetting.allWeekdays.toSet();
 
   bool _saving = false;
 
@@ -146,8 +154,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     }
   }
 
-  /// 結果画面の「設定する」。質問票の回答から計算した金額で目標を作成し、
-  /// オンボーディング完了フラグを立てる。
+  /// 結果画面の「この目標で設定する」。質問票の回答から計算した金額で目標を
+  /// 作成し、リマインダーステップへ遷移する（issue #121）。オンボーディング完了
+  /// フラグはリマインダーステップで立てる。
   Future<void> _onGoalSave() async {
     final category = _createdCategory;
     final freq = _ansFrequency;
@@ -173,6 +182,58 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             periodStart: start,
             periodEnd: end,
           );
+      if (!mounted) return;
+      setState(() {
+        _step = _OnboardingStep.reminder;
+        _saving = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        TopToast.show(
+          context,
+          message: '保存に失敗しました: $e',
+          isError: true,
+        );
+      }
+    }
+  }
+
+  /// リマインダーステップの「設定する」。選んだ曜日を保存しリマインダーを
+  /// 有効化する。通知許可が拒否された場合もオンボーディングは完了させる
+  /// （設定画面からあとで再設定できるため）。
+  Future<void> _onReminderSave() async {
+    if (_selectedWeekdays.isEmpty) {
+      TopToast.show(
+        context,
+        message: '曜日を 1 つ以上選んでください',
+        isError: true,
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    final controller = ref.read(settingControllerProvider.notifier);
+    try {
+      // 先に曜日を保存（reminderEnabled が false でも DB には残る）
+      await controller.setReminderWeekdays(_selectedWeekdays);
+      // リマインダー有効化（通知許可が拒否されると StateError がスロー
+      // される。catch してオンボーディングは続行）
+      try {
+        await controller.setReminderEnabled(
+          enabled: true,
+          time: AppSetting.defaults.reminderTimeOfDay,
+          weekdays: _selectedWeekdays,
+        );
+      } catch (e) {
+        if (mounted) {
+          TopToast.show(
+            context,
+            message:
+                '通知の許可が得られなかったため、リマインダーはオフのままです。設定画面からあとで有効化できます。',
+            isError: true,
+          );
+        }
+      }
       await ref.read(onboardingStateProvider.notifier).markCompleted();
     } catch (e) {
       if (mounted) {
@@ -184,6 +245,32 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         );
       }
     }
+  }
+
+  /// リマインダーステップの「あとで設定する」。設定変更はせずオンボーディング
+  /// 完了フラグだけを立てる。
+  Future<void> _onReminderSkip() async {
+    setState(() => _saving = true);
+    try {
+      await ref.read(onboardingStateProvider.notifier).markCompleted();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        TopToast.show(
+          context,
+          message: '初期化に失敗しました: $e',
+          isError: true,
+        );
+      }
+    }
+  }
+
+  /// リマインダーステップの戻る → 結果画面へ。
+  void _onReminderBack() {
+    setState(() {
+      _step = _OnboardingStep.goal;
+      _goalSubStep = _GoalSubStep.result;
+    });
   }
 
   Future<void> _onGoalSkip() async {
@@ -258,9 +345,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             behavior: HitTestBehavior.opaque,
             onTap: () => FocusScope.of(context).unfocus(),
             child: SafeArea(
-              child: _step == _OnboardingStep.category
-                  ? _buildCategoryStep(context)
-                  : _buildGoalStep(context),
+              child: switch (_step) {
+                _OnboardingStep.category => _buildCategoryStep(context),
+                _OnboardingStep.goal => _buildGoalStep(context),
+                _OnboardingStep.reminder => _buildReminderStep(context),
+              },
             ),
           ),
           Positioned(
@@ -269,6 +358,109 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             bottom: 0,
             child: KeyboardDoneBar(
               onDone: () => FocusScope.of(context).unfocus(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// issue #121: リマインダーで通知する曜日を選ぶステップ。
+  /// デフォルトは全曜日選択 + リマインダー時刻 21:00（[AppSetting.defaults]）。
+  /// 「設定する」で `reminderWeekdays` を保存しリマインダーを有効化、
+  /// 「あとで設定する」でスキップ。
+  Widget _buildReminderStep(BuildContext context) {
+    final theme = Theme.of(context);
+    final defaultTime = AppSetting.defaults.reminderTimeOfDay;
+    final timeLabel =
+        '${defaultTime.hour.toString().padLeft(2, '0')}:'
+        '${defaultTime.minute.toString().padLeft(2, '0')}';
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 16, 0),
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: _saving ? null : _onReminderBack,
+                  icon: const Icon(Icons.arrow_back),
+                  tooltip: '戻る',
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.notifications_active_outlined,
+                    size: 32,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  '学習する曜日は？',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '選んだ曜日の $timeLabel に\nリマインダー通知をお届けします。',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                WeekdayPicker(
+                  selected: _selectedWeekdays,
+                  onToggle: (w) {
+                    setState(() {
+                      if (_selectedWeekdays.contains(w)) {
+                        _selectedWeekdays.remove(w);
+                      } else {
+                        _selectedWeekdays.add(w);
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '時刻と通知の有無は設定画面からあとで変更できます。',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                SaveActionButton(
+                  label: 'リマインダーを設定する',
+                  icon: Icons.notifications_active_outlined,
+                  loading: _saving,
+                  onPressed: _onReminderSave,
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: _saving ? null : _onReminderSkip,
+                  child: const Text('あとで設定する'),
+                ),
+              ],
             ),
           ),
         ],

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../shared/utils/weekday_color.dart';
 import '../../../shared/widgets/mirai_time_picker_sheet.dart';
 import '../../../shared/widgets/top_toast.dart';
+import '../../../shared/widgets/weekday_picker.dart';
 import '../application/setting_providers.dart';
 import '../domain/app_setting.dart';
 
@@ -102,7 +102,7 @@ class _NotificationSection extends ConsumerWidget {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          child: _WeekdayPicker(
+          child: _WeekdayPickerSection(
             selected: setting.reminderWeekdays,
             enabled: setting.reminderEnabled,
             warn: weekdaysEmpty,
@@ -121,8 +121,12 @@ class _NotificationSection extends ConsumerWidget {
   }
 }
 
-class _WeekdayPicker extends StatelessWidget {
-  const _WeekdayPicker({
+/// 通知設定ページ用の曜日セクション。
+///
+/// 共通 `WeekdayPicker` をラップして、ヘッダーラベルと「曜日が空のとき」の
+/// 警告メッセージを付与する。
+class _WeekdayPickerSection extends StatelessWidget {
+  const _WeekdayPickerSection({
     required this.selected,
     required this.enabled,
     required this.warn,
@@ -133,18 +137,6 @@ class _WeekdayPicker extends StatelessWidget {
   final bool enabled;
   final bool warn;
   final ValueChanged<int> onToggle;
-
-  // 日曜始まりの並び（issue #88）。値は DateTime.weekday 形式
-  // （1=月 .. 7=日）のまま、表示順だけ変更。
-  static const _labels = <(int, String)>[
-    (7, '日'),
-    (1, '月'),
-    (2, '火'),
-    (3, '水'),
-    (4, '木'),
-    (5, '金'),
-    (6, '土'),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -159,24 +151,10 @@ class _WeekdayPicker extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        // 端末幅に依存せず常に 1 行に収まるよう、各曜日を Expanded で
-        // 均等割りした独自セルにする（issue #74）。Material の FilterChip は
-        // 最小幅が大きく狭い画面で折り返してしまうため使用しない。
-        Row(
-          children: [
-            for (var i = 0; i < _labels.length; i++) ...[
-              if (i > 0) const SizedBox(width: 4),
-              Expanded(
-                child: _WeekdayCell(
-                  weekday: _labels[i].$1,
-                  label: _labels[i].$2,
-                  isSelected: selected.contains(_labels[i].$1),
-                  enabled: enabled,
-                  onTap: () => onToggle(_labels[i].$1),
-                ),
-              ),
-            ],
-          ],
+        WeekdayPicker(
+          selected: selected,
+          enabled: enabled,
+          onToggle: onToggle,
         ),
         if (warn) ...[
           const SizedBox(height: 6),
@@ -188,73 +166,6 @@ class _WeekdayPicker extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _WeekdayCell extends StatelessWidget {
-  const _WeekdayCell({
-    required this.weekday,
-    required this.label,
-    required this.isSelected,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  final int weekday;
-  final String label;
-  final bool isSelected;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    // 土・日はそれぞれ青・赤、平日は primary 色を選択時の強調色に使う。
-    final accent = weekdayColor(context, weekday) ?? colorScheme.primary;
-
-    final Color bg;
-    final Color fg;
-    final Color border;
-    if (!enabled) {
-      bg = colorScheme.surfaceContainerLow;
-      fg = colorScheme.onSurfaceVariant.withValues(alpha: 0.5);
-      border = colorScheme.outlineVariant.withValues(alpha: 0.5);
-    } else if (isSelected) {
-      // 選択時は白背景 + アクセント色の枠線とテキスト（塗りつぶしはしない）
-      bg = colorScheme.surface;
-      fg = accent;
-      border = accent;
-    } else {
-      bg = colorScheme.surface;
-      fg = colorScheme.onSurfaceVariant;
-      border = colorScheme.outlineVariant;
-    }
-    return Semantics(
-      button: true,
-      selected: isSelected,
-      label: label,
-      child: InkWell(
-        onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: bg,
-            border: Border.all(color: border, width: isSelected ? 1.5 : 1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            label,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: fg,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
