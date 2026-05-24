@@ -75,10 +75,15 @@ issue #100 で「自由入力（種別 / 金額 / 期間）方式」から本プ
 - 保存後、`GoalAchievementChecker.checkAndMark()` で達成判定 → `achievedAt` を更新
 - 保存ボタンは共通 `SaveActionButton`（高さ 54、角丸 16、アイコン + ラベル、横幅一杯、ラベル「目標を追加」）
 
-### キーボード完了バー（issue #114）
+### キーボード完了バー（issue #114, #117）
 カスタム金額入力時の number キーボードは「return」が無いので、キーボード表示中
 （`MediaQuery.viewInsetsOf(context).bottom > 0`）にのみシート最下段に共通
 `KeyboardDoneBar` を表示する。タップで `unfocus()`。
+
+シートは `showModalBottomSheet(useRootNavigator: true)` で開く（issue #117）。
+`AppShell` の `Scaffold` が `resizeToAvoidBottomInset: true` で
+`viewInsets.bottom` を消費してしまうため、ルート Navigator に push しないと
+シート内の `MediaQuery.viewInsets.bottom` が常に 0 になり、完了バーが描画されない。
 
 ### 削除
 編集機能は廃止。一覧画面の各目標カード右上の削除アイコンから削除する：
