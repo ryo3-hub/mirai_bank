@@ -25,7 +25,8 @@ import '../domain/goal_questionnaire.dart';
 /// issue #102: カテゴリを実際に作成したユーザーには、続けて目標設定もさせる
 /// 2 ステップ構成。issue #108 で目標ステップを 3 問の質問票化（Q1→Q2→Q3→結果）。
 /// issue #121 で目標設定後にリマインダー曜日選択ステップを追加。
-enum _OnboardingStep { category, goal, reminder }
+/// issue #125 で先頭にアプリ説明（intro）ステップを追加。
+enum _OnboardingStep { intro, category, goal, reminder }
 
 /// 目標ステップ内の小ステップ。issue #108 で導入。
 enum _GoalSubStep { q1Frequency, q2SessionLength, q3Period, result }
@@ -51,7 +52,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   String? _masterKey;
   CategoryEditMode _mode = CategoryEditMode.preset;
 
-  _OnboardingStep _step = _OnboardingStep.category;
+  _OnboardingStep _step = _OnboardingStep.intro;
   _GoalSubStep _goalSubStep = _GoalSubStep.q1Frequency;
   Category? _createdCategory;
   LearningFrequency? _ansFrequency;
@@ -346,6 +347,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             onTap: () => FocusScope.of(context).unfocus(),
             child: SafeArea(
               child: switch (_step) {
+                _OnboardingStep.intro => _buildIntroStep(context),
                 _OnboardingStep.category => _buildCategoryStep(context),
                 _OnboardingStep.goal => _buildGoalStep(context),
                 _OnboardingStep.reminder => _buildReminderStep(context),
@@ -463,6 +465,83 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// issue #125: 初回起動時のアプリ説明ページ。
+  /// 「自己投資の価値を見える化」のキャッチコピーと、3 つのコアバリュー
+  /// （CLAUDE.md 要件定義 §1.1〜1.3）を提示してから、カテゴリ設定に進ませる。
+  Widget _buildIntroStep(BuildContext context) {
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 8),
+          Center(
+            child: Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.savings_outlined,
+                size: 52,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+          const SizedBox(height: 28),
+          Text(
+            '自己投資の価値を、\n見える化しよう',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              height: 1.35,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '勉強やスキルアップは、未来の自分への自己投資。\n'
+            '積み上げた努力を金額で可視化して、続けるモチベーションに変えましょう。',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.6,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          _IntroPoint(
+            icon: Icons.category_outlined,
+            title: 'カテゴリごとに時給を決める',
+            description: 'プログラミングや英語など、学びの種類ごとに「自分の時間の価値」を設定。',
+          ),
+          const SizedBox(height: 16),
+          _IntroPoint(
+            icon: Icons.timer_outlined,
+            title: 'タイマーで集中時間を記録',
+            description: '計測した時間 × 時給で、その日の積み上げ金額を自動計算します。',
+          ),
+          const SizedBox(height: 16),
+          _IntroPoint(
+            icon: Icons.trending_up_outlined,
+            title: '積み上げを「資産」として実感',
+            description: '日々の頑張りが金額として見えるので、続けるほど自分への投資が楽しくなる。',
+          ),
+          const SizedBox(height: 36),
+          SaveActionButton(
+            label: 'はじめる',
+            icon: Icons.arrow_forward,
+            onPressed: () {
+              setState(() => _step = _OnboardingStep.category);
+            },
+          ),
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -1263,3 +1342,60 @@ class _OnboardingPresetCard extends StatelessWidget {
   }
 }
 
+
+/// イントロステップで使う「コア価値」の 1 行カード。
+/// 左にアイコンバッジ、右にタイトル + 説明テキスト（issue #125）。
+class _IntroPoint extends StatelessWidget {
+  const _IntroPoint({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: cs.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: Icon(icon, size: 20, color: cs.primary),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: cs.onSurfaceVariant,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
