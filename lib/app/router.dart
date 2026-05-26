@@ -9,6 +9,7 @@ import '../features/history/presentation/calendar_page.dart';
 import '../features/history/presentation/history_page.dart';
 import '../features/onboarding/application/onboarding_state.dart';
 import '../features/onboarding/presentation/onboarding_page.dart';
+import '../features/settings/presentation/about_page.dart';
 import '../features/settings/presentation/legal_document_page.dart';
 import '../features/settings/presentation/notification_settings_page.dart';
 import '../features/settings/presentation/settings_page.dart';
@@ -116,6 +117,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'terms',
                     builder: (context, state) => const TermsPage(),
+                  ),
+                  GoRoute(
+                    path: 'about',
+                    builder: (context, state) => const AboutPage(),
                   ),
                 ],
               ),
