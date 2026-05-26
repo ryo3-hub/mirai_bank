@@ -18,6 +18,7 @@
   - ListTile「通知設定」 → /settings/notifications
   - Divider
   - SectionHeader「その他」
+  - ListTile「アプリを評価する」 → AppReviewService.requestExplicit()   ← #141
   - ListTile「利用規約」 → /settings/terms             ← #140
   - ListTile「プライバシーポリシー」 → /settings/privacy   ← #139
 ```
@@ -42,6 +43,15 @@
 ### 履歴（/settings/history）
 - `HistoryPage`（詳細は [05_history.md](05_history.md)）
 - ボトムナビからは外れており、設定 → 履歴 経由でアクセスする
+
+### アプリを評価する（issue #141）
+- 設定 → 「アプリを評価する」タップで `AppReviewService.requestExplicit()` を呼ぶ
+- 利用可能なら `InAppReview.requestReview()`（iOS の SKStoreReviewController /
+  Android の Google Play In-App Review）。利用不可なら `openStoreListing` で
+  ストアアプリに遷移
+- 自動トリガー: 達成系の体験直後に `maybeRequestAfterAchievement()` を呼ぶ前提
+  （60 日のクールダウン付き、利用不可ならノーオペ）
+- DSN や App Store ID は `--dart-define=APP_STORE_ID=...` で渡す想定
 
 ### 利用規約（/settings/terms、issue #140）
 - `TermsPage`（`LegalDocumentPage` の共通実装をラップ）

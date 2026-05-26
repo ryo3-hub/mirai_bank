@@ -2,8 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/services/app_review_service.dart';
+import '../../../shared/widgets/top_toast.dart';
+
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
+
+  Future<void> _requestReview(BuildContext context) async {
+    try {
+      await AppReviewService().requestExplicit();
+    } catch (e) {
+      if (context.mounted) {
+        TopToast.show(
+          context,
+          message: 'レビュー画面を開けませんでした: $e',
+          isError: true,
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,6 +68,12 @@ class SettingsPage extends ConsumerWidget {
             ),
             const Divider(height: 24),
             const _SectionHeader(label: 'その他'),
+            ListTile(
+              leading: const Icon(Icons.star_outline),
+              title: const Text('アプリを評価する'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _requestReview(context),
+            ),
             ListTile(
               leading: const Icon(Icons.description_outlined),
               title: const Text('利用規約'),
