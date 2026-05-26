@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/services/app_review_service.dart';
+import '../../../shared/services/contact_service.dart';
 import '../../../shared/widgets/top_toast.dart';
 
 class SettingsPage extends ConsumerWidget {
@@ -16,6 +17,20 @@ class SettingsPage extends ConsumerWidget {
         TopToast.show(
           context,
           message: 'レビュー画面を開けませんでした: $e',
+          isError: true,
+        );
+      }
+    }
+  }
+
+  Future<void> _openInquiry(BuildContext context) async {
+    try {
+      await ContactService().openInquiryMail();
+    } catch (e) {
+      if (context.mounted) {
+        TopToast.show(
+          context,
+          message: 'メールアプリを開けませんでした: $e',
           isError: true,
         );
       }
@@ -68,6 +83,12 @@ class SettingsPage extends ConsumerWidget {
             ),
             const Divider(height: 24),
             const _SectionHeader(label: 'その他'),
+            ListTile(
+              leading: const Icon(Icons.mail_outline),
+              title: const Text('お問い合わせ'),
+              trailing: const Icon(Icons.open_in_new),
+              onTap: () => _openInquiry(context),
+            ),
             ListTile(
               leading: const Icon(Icons.star_outline),
               title: const Text('アプリを評価する'),
