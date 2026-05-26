@@ -18,6 +18,7 @@
   - ListTile「通知設定」 → /settings/notifications
   - Divider
   - SectionHeader「その他」
+  - ListTile「お問い合わせ」 → ContactService.openInquiryMail()   ← #142
   - ListTile「アプリを評価する」 → AppReviewService.requestExplicit()   ← #141
   - ListTile「利用規約」 → /settings/terms             ← #140
   - ListTile「プライバシーポリシー」 → /settings/privacy   ← #139
@@ -43,6 +44,16 @@
 ### 履歴（/settings/history）
 - `HistoryPage`（詳細は [05_history.md](05_history.md)）
 - ボトムナビからは外れており、設定 → 履歴 経由でアクセスする
+
+### お問い合わせ（issue #142）
+- 設定 → 「お問い合わせ」タップで `ContactService.openInquiryMail()` を呼ぶ
+- `mailto:` URI を組み立てて `url_launcher` で既定メールアプリを起動
+- 件名: `[mirai_bank] お問い合わせ`
+- 本文末尾に `package_info_plus` / `device_info_plus` で取得した
+  アプリバージョン / OS / 端末モデルを自動付与
+- 送信先メールアドレスは `--dart-define=SUPPORT_EMAIL=...` で注入（既定値は
+  プレースホルダー `support@example.com`）
+- 失敗時はエラートースト
 
 ### アプリを評価する（issue #141）
 - 設定 → 「アプリを評価する」タップで `AppReviewService.requestExplicit()` を呼ぶ
