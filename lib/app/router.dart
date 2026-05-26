@@ -113,6 +113,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: 'privacy',
                     builder: (context, state) => const PrivacyPolicyPage(),
                   ),
+                  GoRoute(
+                    path: 'terms',
+                    builder: (context, state) => const TermsPage(),
+                  ),
                 ],
               ),
             ],

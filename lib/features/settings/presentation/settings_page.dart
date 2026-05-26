@@ -52,6 +52,12 @@ class SettingsPage extends ConsumerWidget {
             const Divider(height: 24),
             const _SectionHeader(label: 'その他'),
             ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: const Text('利用規約'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/settings/terms'),
+            ),
+            ListTile(
               leading: const Icon(Icons.privacy_tip_outlined),
               title: const Text('プライバシーポリシー'),
               trailing: const Icon(Icons.chevron_right),
