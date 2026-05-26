@@ -491,6 +491,15 @@ class _CustomCard extends StatelessWidget {
                       border: const OutlineInputBorder(),
                       suffixText: '円',
                       errorText: amountError,
+                      // issue #134: エラー時にラベル文字色まで赤になるのを抑止。
+                      // floating / not-floating 両方に明示的なスタイルを指定して、
+                      // errorText が立っているときも onSurfaceVariant のまま保つ。
+                      labelStyle: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      floatingLabelStyle: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     onChanged: (_) => onAmountChanged(),
                   ),
