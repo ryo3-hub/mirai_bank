@@ -9,7 +9,7 @@ class LegalTexts {
   const LegalTexts._();
 
   /// プライバシーポリシー最終更新日（ストア掲載・規約改定通知の参照に使う）。
-  static const String privacyPolicyUpdatedAt = '2026年5月26日';
+  static const String privacyPolicyUpdatedAt = '2026年5月26日（Sentry 追加）';
 
   /// 利用規約最終更新日。
   static const String termsUpdatedAt = '2026年5月26日';
@@ -52,9 +52,24 @@ class LegalTexts {
     ]),
     LegalSection.heading('4. 第三者サービス'),
     LegalSection.paragraph(
-      '本アプリは、現時点でアナリティクスサービス、広告ネットワーク、'
-      'クラッシュレポート等の第三者サービスを利用していません。'
-      '将来的にこれらを導入する場合は、本ポリシーを更新してお知らせします。',
+      '本アプリでは、アプリの安定性向上を目的として、クラッシュレポート'
+      'サービス Sentry（Functional Software, Inc.、米国）を利用しています。'
+      '本アプリがクラッシュした場合に、以下の情報が Sentry に送信されます。',
+    ),
+    LegalSection.bullets([
+      'クラッシュ時のスタックトレース',
+      'アプリのバージョン / ビルド番号',
+      'OS の種類とバージョン',
+      '端末のモデル名',
+    ]),
+    LegalSection.paragraph(
+      'ユーザーを個人として特定する情報（氏名・メールアドレス・IP アドレス'
+      '等）は送信されません。Sentry のプライバシーポリシーは Sentry 社の'
+      'Web サイトをご確認ください。',
+    ),
+    LegalSection.paragraph(
+      '広告ネットワーク・アナリティクス等の他の第三者サービスは利用して'
+      'いません。将来的に追加する場合は、本ポリシーを更新してお知らせします。',
     ),
     LegalSection.heading('5. 子どもの利用について'),
     LegalSection.paragraph(
