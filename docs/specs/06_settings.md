@@ -67,6 +67,18 @@
   - ListTile「OSS ライセンス」（タップで Flutter 標準の `showLicensePage`）
 - 著作権表示は `applicationLegalese: '© 2026 ryo3-hub'`
 
+### クラッシュレポート（issue #145、運用）
+- `sentry_flutter` を `lib/main.dart` で初期化（`SentryFlutter.init` でラップ）
+- DSN は `--dart-define=SENTRY_DSN=...` で注入（リポジトリにはコミットしない）
+- DSN 未指定（ローカル開発・テスト）ではクラッシュ送信を完全スキップ
+- `tracesSampleRate`: 本番 0.1 / 開発 1.0
+- `environment`: `kReleaseMode` で production / development を切替
+- `sendDefaultPii = false`（IP / Cookie 等を送らない）
+- 既知の bootstrap 失敗は `Sentry.captureException` で明示送信
+- プライバシーポリシー（issue #139）の「第三者サービス」節に Sentry 利用を
+  明記（送信される情報: スタックトレース / アプリバージョン / OS / 端末モデル、
+  個人特定情報は送信しない）
+
 ### お問い合わせ（issue #142）
 - 設定 → 「お問い合わせ」タップで `ContactService.openInquiryMail()` を呼ぶ
 - `mailto:` URI を組み立てて `url_launcher` で既定メールアプリを起動
