@@ -72,6 +72,13 @@ class SettingsPage extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/settings/timer-presets'),
             ),
+            ListTile(
+              leading: const Icon(Icons.save_alt_outlined),
+              title: const Text('データ管理'),
+              subtitle: const Text('エクスポート・復元'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/settings/data'),
+            ),
             const Divider(height: 24),
             const _SectionHeader(label: '通知'),
             ListTile(
