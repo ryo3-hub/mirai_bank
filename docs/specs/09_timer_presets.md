@@ -47,7 +47,7 @@
   - "プリセットを追加" (titleLarge)
   - 時間 CupertinoPicker（5..480 分、5 分刻み、ドラムロール）
   - 説明 TextField（任意、30 文字以内）
-  - 「追加」FilledButton
+  - 「プリセットを追加」SaveActionButton（カテゴリ / 目標と同じ共通ボタン、issue #135）
 ```
 
 編集機能は MVP では実装しない（削除 → 再作成で対応）。

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../shared/widgets/save_action_button.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../application/timer_preset_providers.dart';
 import '../domain/timer_preset.dart';
@@ -155,18 +156,13 @@ class _TimerPresetEditSheetState
               ],
             ),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _saving ? null : _save,
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: _saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('追加', style: TextStyle(fontSize: 16)),
+            // issue #135: カテゴリ追加 / 目標追加と同じ SaveActionButton で
+            // トーン統一。アイコン + ラベル、角丸 16、高さ 54。
+            SaveActionButton(
+              label: 'プリセットを追加',
+              icon: Icons.add_circle_outline,
+              loading: _saving,
+              onPressed: _save,
             ),
           ],
         ),
