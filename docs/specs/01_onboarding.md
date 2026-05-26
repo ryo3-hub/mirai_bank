@@ -256,7 +256,8 @@ UI はオレンジ系のアクセントカラー枠 + `Icons.tips_and_updates_ou
 ## ステップ 3: リマインダー曜日選択（目標設定後のみ）
 
 issue #121 で追加。目標を「この目標で設定する」で確定したあとに表示する。
-学習する曜日を選択 → デフォルト時刻 21:00 のリマインダーを有効化する流れ。
+学習する曜日と時刻を選択してリマインダーを有効化する流れ。
+時刻はその場で変更可能（issue #133）。
 
 ### UI 構成
 ```
@@ -265,11 +266,15 @@ issue #121 で追加。目標を「この目標で設定する」で確定した
     - 戻る IconButton（→ 結果画面へ）
     - 円形バッジ（Icons.notifications_active_outlined + 薄い primary 背景）
     - 「学習する曜日は？」ヘッドライン
-    - 「選んだ曜日の 21:00 にリマインダー通知をお届けします。」
+    - 「学習する曜日と時刻を選ぶと、リマインダー通知をお届けします。」
     - WeekdayPicker（共通ウィジェット、日曜始まり）
       - 初期値: 全 7 曜日が選択済み
       - 1 つ以上選んでないと「設定する」押下時にエラートースト
-    - 補足: 「時刻と通知の有無は設定画面からあとで変更できます。」
+    - リマインダー時刻ロウ（`_ReminderTimeRow`、issue #133）
+      - 「リマインダー時刻 HH:mm ✎」のレイアウト、タップで
+        `MiraiTimePickerSheet` を開いて変更
+      - 初期値は `AppSetting.defaults.reminderTimeOfDay`（= 21:00）
+    - 補足: 「設定はあとから変更できます。」
     - SaveActionButton「リマインダーを設定する」（issue #114 で共通化）
     - TextButton「あとで設定する」
 ```
@@ -277,11 +282,12 @@ issue #121 で追加。目標を「この目標で設定する」で確定した
 ### 「リマインダーを設定する」アクション
 1. 選択曜日が 0 件のときはエラートースト（保存しない）
 2. `SettingController.setReminderWeekdays(_selectedWeekdays)` で曜日 DB 保存
-3. `SettingController.setReminderEnabled(enabled: true, time: 21:00, weekdays: _selectedWeekdays)`
+3. `SettingController.setReminderTime(_selectedTime)` で時刻 DB 保存（issue #133）
+4. `SettingController.setReminderEnabled(enabled: true, time: _selectedTime, weekdays: _selectedWeekdays)`
    - 内部で `NotificationService.requestPermissions()` を呼び、許可ダイアログを出す
    - 拒否されると `StateError` がスロー → catch してエラートーストだけ出し、リマインダーは
-     オフのままにする（曜日選択は保持）。オンボーディングは続行
-4. `OnboardingState.markCompleted()` でオンボード完了 → `/home` 遷移
+     オフのままにする（曜日 / 時刻は保持）。オンボーディングは続行
+5. `OnboardingState.markCompleted()` でオンボード完了 → `/home` 遷移
 
 ### 「あとで設定する」アクション
 - 設定変更なしで `OnboardingState.markCompleted()` のみ → `/home` 遷移

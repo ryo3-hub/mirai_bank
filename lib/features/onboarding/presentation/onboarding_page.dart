@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../shared/widgets/keyboard_done_bar.dart';
+import '../../../shared/widgets/mirai_time_picker_sheet.dart';
 import '../../../shared/widgets/save_action_button.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../../../shared/widgets/weekday_picker.dart';
@@ -62,6 +63,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// リマインダーで通知する曜日（issue #121）。デフォルトは全 7 曜日。
   /// DateTime.weekday 形式（1=月 .. 7=日）。
   final Set<int> _selectedWeekdays = AppSetting.allWeekdays.toSet();
+
+  /// リマインダー通知の時刻（issue #133）。デフォルトは [AppSetting.defaults]
+  /// の 21:00。ユーザーがその場で変更できる。
+  TimeOfDay _selectedTime = AppSetting.defaults.reminderTimeOfDay;
 
   bool _saving = false;
 
@@ -217,12 +222,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     try {
       // 先に曜日を保存（reminderEnabled が false でも DB には残る）
       await controller.setReminderWeekdays(_selectedWeekdays);
+      // 選んだ時刻を先に保存しておく（issue #133）
+      await controller.setReminderTime(_selectedTime);
       // リマインダー有効化（通知許可が拒否されると StateError がスロー
       // される。catch してオンボーディングは続行）
       try {
         await controller.setReminderEnabled(
           enabled: true,
-          time: AppSetting.defaults.reminderTimeOfDay,
+          time: _selectedTime,
           weekdays: _selectedWeekdays,
         );
       } catch (e) {
@@ -263,6 +270,18 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           isError: true,
         );
       }
+    }
+  }
+
+  /// リマインダー時刻をピッカーで変更（issue #133）。
+  Future<void> _pickReminderTime() async {
+    final picked = await MiraiTimePickerSheet.show(
+      context,
+      initialTime: _selectedTime,
+      title: 'リマインダー時刻',
+    );
+    if (picked != null && mounted) {
+      setState(() => _selectedTime = picked);
     }
   }
 
@@ -373,10 +392,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// 「あとで設定する」でスキップ。
   Widget _buildReminderStep(BuildContext context) {
     final theme = Theme.of(context);
-    final defaultTime = AppSetting.defaults.reminderTimeOfDay;
     final timeLabel =
-        '${defaultTime.hour.toString().padLeft(2, '0')}:'
-        '${defaultTime.minute.toString().padLeft(2, '0')}';
+        '${_selectedTime.hour.toString().padLeft(2, '0')}:'
+        '${_selectedTime.minute.toString().padLeft(2, '0')}';
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(
@@ -422,7 +440,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '選んだ曜日の $timeLabel に\nリマインダー通知をお届けします。',
+                  '学習する曜日と時刻を選ぶと、\nリマインダー通知をお届けします。',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     height: 1.5,
@@ -442,9 +460,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                     });
                   },
                 ),
+                const SizedBox(height: 16),
+                _ReminderTimeRow(
+                  timeLabel: timeLabel,
+                  enabled: !_saving,
+                  onTap: _pickReminderTime,
+                ),
                 const SizedBox(height: 12),
                 Text(
-                  '時刻と通知の有無は設定画面からあとで変更できます。',
+                  '設定はあとから変更できます。',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -1396,6 +1420,65 @@ class _IntroPoint extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// リマインダーステップで時刻を選ぶ行（issue #133）。
+/// 時計アイコン + 「リマインダー時刻」ラベル + 現在の時刻 + 編集アイコン、
+/// タップで `MiraiTimePickerSheet` を開く想定。設定画面の ListTile に
+/// 見た目を寄せつつ、囲み枠で独立して見えるようにしている。
+class _ReminderTimeRow extends StatelessWidget {
+  const _ReminderTimeRow({
+    required this.timeLabel,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String timeLabel;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    return Material(
+      color: cs.surface,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            border: Border.all(color: cs.outlineVariant),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.schedule, color: cs.onSurfaceVariant, size: 20),
+              const SizedBox(width: 12),
+              Text(
+                'リマインダー時刻',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                timeLabel,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.edit_outlined, color: cs.outline, size: 18),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
