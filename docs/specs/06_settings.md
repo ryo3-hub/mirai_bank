@@ -22,6 +22,7 @@
   - ListTile「アプリを評価する」 → AppReviewService.requestExplicit()   ← #141
   - ListTile「利用規約」 → /settings/terms             ← #140
   - ListTile「プライバシーポリシー」 → /settings/privacy   ← #139
+  - ListTile「アプリについて」 → /settings/about       ← #143
 ```
 
 本ページに直接の入力フィールドはなく、各 ListTile タップで子ページに遷移する。
@@ -44,6 +45,15 @@
 ### 履歴（/settings/history）
 - `HistoryPage`（詳細は [05_history.md](05_history.md)）
 - ボトムナビからは外れており、設定 → 履歴 経由でアクセスする
+
+### アプリについて（/settings/about、issue #143）
+- `AboutPage`
+- 表示内容:
+  - アイコン円（savings_outlined、primary 12% 背景）
+  - アプリ名（`package_info_plus` の `appName`）
+  - 「バージョン X.Y.Z (BUILD)」
+  - ListTile「OSS ライセンス」（タップで Flutter 標準の `showLicensePage`）
+- 著作権表示は `applicationLegalese: '© 2026 ryo3-hub'`
 
 ### お問い合わせ（issue #142）
 - 設定 → 「お問い合わせ」タップで `ContactService.openInquiryMail()` を呼ぶ
