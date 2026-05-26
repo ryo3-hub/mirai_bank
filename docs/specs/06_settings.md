@@ -13,6 +13,7 @@
   - ListTile「目標設定」 → /settings/goals
   - ListTile「履歴」 → /settings/history       ← #54
   - ListTile「タイマープリセット」 → /settings/timer-presets  ← #95
+  - ListTile「データ管理」 → /settings/data              ← #144
   - Divider
   - SectionHeader「通知」
   - ListTile「通知設定」 → /settings/notifications
@@ -45,6 +46,17 @@
 ### 履歴（/settings/history）
 - `HistoryPage`（詳細は [05_history.md](05_history.md)）
 - ボトムナビからは外れており、設定 → 履歴 経由でアクセスする
+
+### データ管理（/settings/data、issue #144）
+- `DataManagementPage`
+- 「データをエクスポート」: `BackupService.exportToFile()` で全テーブルを
+  JSON にシリアライズ → 一時ファイル作成 → `share_plus` で共有シートを開く
+- 「データを復元」: `file_picker` で JSON を選択 → 確認ダイアログ →
+  `BackupService.importFromFile(file)` でトランザクション内で全件上書き
+- ファイル名: `mirai_bank_backup_YYYYMMDD_HHmm.json`
+- JSON 形式バージョン (`schemaVersion = 6`) が現アプリと不一致なら
+  `BackupFormatException` でエラートースト
+- 機種変時はユーザーが iCloud Drive / Google Drive 等を経由してファイルを移す
 
 ### アプリについて（/settings/about、issue #143）
 - `AboutPage`
