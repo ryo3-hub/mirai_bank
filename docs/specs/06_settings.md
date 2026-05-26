@@ -16,6 +16,9 @@
   - Divider
   - SectionHeader「通知」
   - ListTile「通知設定」 → /settings/notifications
+  - Divider
+  - SectionHeader「その他」
+  - ListTile「プライバシーポリシー」 → /settings/privacy   ← #139
 ```
 
 本ページに直接の入力フィールドはなく、各 ListTile タップで子ページに遷移する。
@@ -38,6 +41,14 @@
 ### 履歴（/settings/history）
 - `HistoryPage`（詳細は [05_history.md](05_history.md)）
 - ボトムナビからは外れており、設定 → 履歴 経由でアクセスする
+
+### プライバシーポリシー（/settings/privacy、issue #139）
+- `PrivacyPolicyPage`（`LegalDocumentPage` の共通実装をラップ）
+- 本文は `lib/features/settings/domain/legal_texts.dart` の
+  `LegalTexts.privacyPolicy`（`LegalSection` の配列）にバンドルされており、
+  外部 URL ホスティングなしでアプリ内表示
+- 改訂時はアプリのバージョンアップで配信。最終更新日も同ファイルに定義
+- 取得データは端末ローカルのみ・第三者送信なし、を明記
 
 ### 通知設定（/settings/notifications）
 - `NotificationSettingsPage`
