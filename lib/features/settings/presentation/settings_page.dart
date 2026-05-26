@@ -107,6 +107,12 @@ class SettingsPage extends ConsumerWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/settings/privacy'),
             ),
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: const Text('アプリについて'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/settings/about'),
+            ),
           ],
         ),
       ),
