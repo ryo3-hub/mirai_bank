@@ -18,6 +18,7 @@
   - ListTile「通知設定」 → /settings/notifications
   - Divider
   - SectionHeader「その他」
+  - ListTile「利用規約」 → /settings/terms             ← #140
   - ListTile「プライバシーポリシー」 → /settings/privacy   ← #139
 ```
 
@@ -41,6 +42,13 @@
 ### 履歴（/settings/history）
 - `HistoryPage`（詳細は [05_history.md](05_history.md)）
 - ボトムナビからは外れており、設定 → 履歴 経由でアクセスする
+
+### 利用規約（/settings/terms、issue #140）
+- `TermsPage`（`LegalDocumentPage` の共通実装をラップ）
+- 本文は `LegalTexts.terms`
+- 「アプリ表示金額はモチベ用の参考値で、実際の収入を保証しない」「金融商品ではない」
+  といった免責が中心。準拠法・裁判管轄も記載
+- 改訂はアプリ更新で配信
 
 ### プライバシーポリシー（/settings/privacy、issue #139）
 - `PrivacyPolicyPage`（`LegalDocumentPage` の共通実装をラップ）
