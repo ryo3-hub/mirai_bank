@@ -46,7 +46,11 @@ dependencies:
   in_app_review: ^2.0.12
   url_launcher: ^6.3.2
   package_info_plus: ^9.0.1
-  device_info_plus: ^12.4.0
+  # 12.4.0 は isiOSAppOnVision セレクタを使っており、現在の Xcode SDK では
+  # ビルドが通らない（visionOS 検知。「No visible @interface for
+  # 'NSProcessInfo' declares the selector 'isiOSAppOnVision'」）。
+  # Xcode 更新待ちのため 11.x 系に固定（issue #142 / #145 の追従修正）。
+  device_info_plus: ^11.3.0
   share_plus: ^12.0.2
   file_picker: ^11.0.2
   sentry_flutter: ^9.20.0
