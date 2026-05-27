@@ -5,7 +5,6 @@ import '../../../../shared/utils/duration_formatter.dart';
 import '../../../../shared/widgets/animated_amount.dart';
 import '../../../history/application/streak_providers.dart';
 import '../../../history/application/summary_providers.dart';
-import '../../domain/streak_messages.dart';
 
 class TodayAmountCard extends ConsumerWidget {
   const TodayAmountCard({super.key});
@@ -103,9 +102,10 @@ class _StreakFooter extends StatelessWidget {
     final cs = theme.colorScheme;
     final accent = _streakAccent(days, cs);
     final label = _milestoneLabel(days);
-    // 日付ベースで決定論的に選ばれる励ましメッセージ（毎日変わる）
-    final message = pickStreakMessage(days);
 
+    // 励ましメッセージはホーム上部の `DailyEncouragementBanner` に分離した
+    // （作業前に見えるように、issue: 作業前にやる気が欲しい）。
+    // ここでは「連続日数 + 節目ラベル」だけを表示する。
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -140,18 +140,6 @@ class _StreakFooter extends StatelessWidget {
             ],
           ],
         ),
-        if (message.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Text(
-            message,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: cs.onSurfaceVariant,
-              fontStyle: FontStyle.italic,
-              height: 1.4,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
       ],
     );
   }
