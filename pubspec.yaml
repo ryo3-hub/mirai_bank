@@ -82,21 +82,21 @@ flutter:
 # `python3 tool/generate_logo.py`) run:
 #   dart run flutter_native_splash:create
 flutter_native_splash:
-  # Light mode: pure white background to match the in-app light theme.
+  # Brand image has white outer corners, so we keep the splash background
+  # white in both light and dark mode — this avoids a visible seam between
+  # the rounded-square artwork and the surrounding color (issue #167).
   color: "#FFFFFF"
-  # Dark mode: deep indigo (close to ColorScheme.fromSeed dark surface).
-  color_dark: "#1E1B4B"
+  color_dark: "#FFFFFF"
 
-  # Logo (transparent PNG). Light variant uses Indigo on transparent;
-  # dark variant uses white on transparent.
+  # Logo is the MIRAI BANK brand image (sky→teal→green gradient with
+  # sprout). Light and dark slots use the same artwork.
   image: assets/splash/logo.png
   image_dark: assets/splash/logo_dark.png
 
-  # Android 12+ uses a separate splash; mirror the colors above and
-  # use the same logos as the icon.
+  # Android 12+ uses a separate splash; mirror the same colors / image.
   android_12:
     color: "#FFFFFF"
-    color_dark: "#1E1B4B"
+    color_dark: "#FFFFFF"
     image: assets/splash/logo.png
     image_dark: assets/splash/logo_dark.png
 
@@ -116,6 +116,9 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   # Android: legacy + adaptive icons.
   android: "launcher_icon"
-  adaptive_icon_background: "#4F46E5"
+  # Solid white background — matches the brand image's outer ring so the
+  # rounded-square artwork blends seamlessly under circular / squircle
+  # launcher masks (issue #167).
+  adaptive_icon_background: "assets/icon/icon_background.png"
   adaptive_icon_foreground: "assets/icon/icon_foreground.png"
   min_sdk_android: 21
