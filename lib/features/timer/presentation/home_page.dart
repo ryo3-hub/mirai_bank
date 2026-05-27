@@ -17,6 +17,7 @@ import '../application/timer_providers.dart';
 import '../domain/active_timer.dart';
 import '../domain/amount_calculator.dart';
 import '../domain/timer_preset.dart';
+import 'widgets/daily_encouragement_banner.dart';
 import 'widgets/dashboard_goals_section.dart';
 import 'widgets/today_amount_card.dart';
 
@@ -34,7 +35,10 @@ class HomePage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const TodayAmountCard(),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+              // 作業前にやる気を出してもらうための励ましのひとこと。
+              // アプリ起動ごとにランダム選択。タイマーカード直前に置く。
+              const DailyEncouragementBanner(),
               activeTimerAsync.when(
                 loading: () => const Padding(
                   padding: EdgeInsets.symmetric(vertical: 24),

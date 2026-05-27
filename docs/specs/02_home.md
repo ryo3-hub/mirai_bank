@@ -9,11 +9,12 @@
 ```
 [SafeArea]  ← AppBar は削除済み (issue #56)
 [SingleChildScrollView]
-  1. TodayAmountCard — 今日の積み上げ（連続学習日数フッターを含む）
-  2. (空き 12px)
-  3. Timer card — タイマー（idle / running / no category）
-  4. (空き 12px)
-  5. DashboardGoalsSection — 目標進捗（最大 5 件）
+  1. TodayAmountCard — 今日の積み上げ（連続日数フッターを含む）
+  2. (空き 16px)
+  3. DailyEncouragementBanner — 励ましのひとこと（作業前のモチベ用）
+  4. Timer card — タイマー（idle / running / no category）
+  5. (空き 12px)
+  6. DashboardGoalsSection — 目標進捗（最大 5 件）
 ```
 
 ### 1. TodayAmountCard
@@ -28,12 +29,19 @@
   - 節目ラベル：3「3日達成！」/ 7「1週間達成！」/ 30「1ヶ月達成！」/
     100「100日達成！」/ 365「1年達成！」
   - 旧 `StreakBadge`（ピル型）は廃止 → カード内フッターに統合
-  - **励ましメッセージ**（issue #122 フォロー、`streak_messages.dart`）：
-    日数表示の下に italic / `onSurfaceVariant` 色の小さなメッセージを並べる。
-    1–2 / 3–6 / 7–29 / 30–99 / 100–364 / 365+ の 6 ティア × 30 件のレパートリーから、
-    `pickStreakMessage(days, now)` がローカル日付で決定論的に 1 つ選ぶ。
-    同じ日は何度開いても同じ文言、翌日には変わる（1 ティア最大 30 種類なので
-    1 ヶ月分の変化を確保）。
+
+### 2. DailyEncouragementBanner（励ましのひとこと）
+- `TodayAmountCard` とタイマーカードの間に置く小さなバナー。
+  作業前にやる気を出してもらう目的。
+- `pickRandomEncouragement(days)` でランダムに 1 つ選ぶ
+  （`dailyEncouragementProvider` が `keepAlive: true` でセッション中はキャッシュ）。
+  **アプリ再起動ごとに別の文言が出る**。
+- 連続日数で 7 ティアに分岐:
+  tier0 (0日, 30 件) / tier1 (1–2日) / tier2 (3–6日) / tier3 (7–29日) /
+  tier4 (30–99日) / tier5 (100–364日) / tier6 (365+日)
+- 連続 0 日でも tier0 から表示される（旧仕様の「日数 > 0 のみ」を撤廃）
+- レイアウト: `Icons.format_quote_outlined` + italic / `onSurfaceVariant` テキスト
+- 旧 `_StreakFooter` 内の同じメッセージ表示は撤去
 
 ### 3. Timer card（カウントダウン式、issue #95）
 状態により 3 つに分岐：
