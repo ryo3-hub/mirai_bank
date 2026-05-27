@@ -5,6 +5,7 @@ import '../../../../shared/utils/duration_formatter.dart';
 import '../../../../shared/widgets/animated_amount.dart';
 import '../../../history/application/streak_providers.dart';
 import '../../../history/application/summary_providers.dart';
+import '../../application/encouragement_providers.dart';
 
 class TodayAmountCard extends ConsumerWidget {
   const TodayAmountCard({super.key});
@@ -16,7 +17,7 @@ class TodayAmountCard extends ConsumerWidget {
     final summaryAsync = ref.watch(summaryProvider(SummaryPeriod.today));
     final amount = summaryAsync.value?.amount ?? 0;
     final durationSec = summaryAsync.value?.durationSec ?? 0;
-    // issue #122: 連続学習日数を本カードのフッターとして統合表示する。
+    // issue #122: 連続学習日数 + ひとことメッセージを本カードのフッターに統合。
     final streakDays = ref.watch(currentStreakProvider).valueOrNull ?? 0;
 
     return Card(
@@ -54,10 +55,8 @@ class TodayAmountCard extends ConsumerWidget {
                 ),
               ),
             ),
-            if (streakDays > 0) ...[
-              const SizedBox(height: 20),
-              _StreakFooter(days: streakDays),
-            ],
+            const SizedBox(height: 20),
+            _StreakFooter(days: streakDays),
           ],
         ),
       ),
@@ -68,8 +67,9 @@ class TodayAmountCard extends ConsumerWidget {
 /// issue #122: ホームの「今日の積み上げ」カード下部に表示する連続学習日数。
 ///
 /// 旧 `StreakBadge` のピル型から、カード内フッター（divider + 炎アイコン +
-/// 日数 + milestone ラベル）に再設計した。色は段階別（[_streakAccent]）。
-class _StreakFooter extends StatelessWidget {
+/// 日数 + milestone ラベル + ひとことメッセージ）に再設計。
+/// 0 日のときは「N 日連続」行は出さずひとことメッセージのみ表示する。
+class _StreakFooter extends ConsumerWidget {
   const _StreakFooter({required this.days});
 
   final int days;
@@ -97,49 +97,63 @@ class _StreakFooter extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final accent = _streakAccent(days, cs);
     final label = _milestoneLabel(days);
+    // アプリ起動ごとにランダムに 1 つ選ぶ励ましメッセージ。
+    // dailyEncouragementProvider はストリーク数を待ってから引くので、
+    // ティアと整合する。ここでは AsyncValue を取り出して表示する。
+    final message = ref.watch(dailyEncouragementProvider).valueOrNull ?? '';
 
-    // 励ましメッセージはホーム上部の `DailyEncouragementBanner` に分離した
-    // （作業前に見えるように、issue: 作業前にやる気が欲しい）。
-    // ここでは「連続日数 + 節目ラベル」だけを表示する。
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Divider(color: cs.outlineVariant, height: 1),
         const SizedBox(height: 14),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.local_fire_department,
-              size: 20,
-              color: accent,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '$days 日連続',
-              style: theme.textTheme.titleSmall?.copyWith(
+        if (days > 0) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.local_fire_department,
+                size: 20,
                 color: accent,
-                fontWeight: FontWeight.w700,
-                fontFeatures: const [FontFeature.tabularFigures()],
               ),
-            ),
-            if (label != null) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Text(
-                label,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: accent.withValues(alpha: 0.85),
-                  fontWeight: FontWeight.w600,
+                '$days 日連続',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w700,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
+              if (label != null) ...[
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: accent.withValues(alpha: 0.85),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ],
-          ],
-        ),
+          ),
+          if (message.isNotEmpty) const SizedBox(height: 6),
+        ],
+        if (message.isNotEmpty)
+          Text(
+            message,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: cs.onSurfaceVariant,
+              fontStyle: FontStyle.italic,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
       ],
     );
   }
