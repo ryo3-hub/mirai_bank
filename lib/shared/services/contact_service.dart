@@ -17,7 +17,7 @@ class ContactService {
         _supportEmail = supportEmail ??
             const String.fromEnvironment(
               'SUPPORT_EMAIL',
-              defaultValue: 'support@example.com',
+              defaultValue: 'r357box.app@gmail.com',
             );
 
   final DeviceInfoPlugin _deviceInfo;

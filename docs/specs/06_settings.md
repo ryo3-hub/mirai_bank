@@ -85,8 +85,8 @@
 - 件名: `[mirai_bank] お問い合わせ`
 - 本文末尾に `package_info_plus` / `device_info_plus` で取得した
   アプリバージョン / OS / 端末モデルを自動付与
-- 送信先メールアドレスは `--dart-define=SUPPORT_EMAIL=...` で注入（既定値は
-  プレースホルダー `support@example.com`）
+- 送信先メールアドレスは `--dart-define=SUPPORT_EMAIL=...` で上書き可能。
+  既定値は `r357box.app@gmail.com`（issue #162 で確定）
 - 失敗時はエラートースト
 
 ### アプリを評価する（issue #141）
