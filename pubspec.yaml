@@ -82,23 +82,22 @@ flutter:
 # `python3 tool/generate_logo.py`) run:
 #   dart run flutter_native_splash:create
 flutter_native_splash:
-  # Brand image has white outer corners, so we keep the splash background
-  # white in both light and dark mode — this avoids a visible seam between
-  # the rounded-square artwork and the surrounding color (issue #167).
-  color: "#FFFFFF"
-  color_dark: "#FFFFFF"
-
-  # Logo is the MIRAI BANK brand image (sky→teal→green gradient with
-  # sprout). Light and dark slots use the same artwork.
+  # Portrait brand artwork (issue #167 follow-up). Displayed as a centered
+  # logo; `color` matches the artwork's top-edge deep blue so the visible
+  # background frame blends with the upper portion of the design.
+  color: "#01497D"
+  color_dark: "#01497D"
   image: assets/splash/logo.png
   image_dark: assets/splash/logo_dark.png
 
-  # Android 12+ uses a separate splash; mirror the same colors / image.
   android_12:
-    color: "#FFFFFF"
-    color_dark: "#FFFFFF"
-    image: assets/splash/logo.png
-    image_dark: assets/splash/logo_dark.png
+    # Android 12+'s new splash API renders a square icon centered on the
+    # BG color. Point it at the square brand icon (full-bleed, no white
+    # ring) to keep parity with the launcher icon.
+    color: "#01497D"
+    color_dark: "#01497D"
+    image: assets/icon/icon.png
+    image_dark: assets/icon/icon.png
 
   # Platforms to generate native assets for.
   android: true
