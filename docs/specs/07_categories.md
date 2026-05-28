@@ -52,15 +52,15 @@
 - 新規 → **プリセットから選ぶ**（初心者向け、時給の相場を提示）
 - 編集 → 既存カテゴリに `masterKey` があれば **プリセット**、無ければ **自分で設定**
 
-### CategoryMasterPickerSheet（issue #97）
+### CategoryMasterPickerSheet（issue #97 / 刷新 issue #169）
 プリセット選択用の独立シート。`showModalBottomSheet` で別シートとして開き、
 内部で大カテゴリ → 小カテゴリの 2 ステップ。
-- ステップ 1: 14 個の大カテゴリを 2 列グリッドで表示（五十音順）
-- ステップ 2: 選んだ大カテゴリの小カテゴリ一覧（五十音順）+ 推奨時給
+- ステップ 1: 15 個の大カテゴリを 2 列グリッドで表示（`docs/category_master.csv` 順）
+- ステップ 2: 選んだ大カテゴリの小カテゴリ一覧（CSV 順）+ 推奨時給
 - 小カテゴリをタップすると `CategoryMasterMinor` を返してシートを閉じる
 - 編集モードで開いた場合は `initialMajorKey` で該当 major のステップ 2 から開始
 - マスタデータは `lib/features/category/domain/category_master.dart` に const 定義
-  （14 大カテゴリ × 計 55 小カテゴリ）
+  （15 大カテゴリ × 計 68 小カテゴリ）。仕様の正は `docs/category_master.csv`
 
 ### プリセット選択後の挙動
 - カテゴリ名・時給・アイコン・カラーが master に基づいて自動入力される
@@ -142,5 +142,6 @@
 - `lib/shared/widgets/keyboard_done_bar.dart`（共通キーボード完了バー）
 - `lib/features/category/application/category_providers.dart`
 - `lib/features/category/domain/category.dart`
-- `lib/features/category/domain/category_master.dart`（プリセット master 55 件）
+- `lib/features/category/domain/category_master.dart`（プリセット master 68 件）
 - `lib/features/category/domain/category_presets.dart`
+- `docs/category_master.csv`（プリセット master の仕様ファイル、issue #169）
