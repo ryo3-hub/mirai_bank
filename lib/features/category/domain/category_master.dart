@@ -54,7 +54,7 @@ class CategoryMasterMinor {
 class CategoryMaster {
   const CategoryMaster._();
 
-  /// 全 15 大カテゴリ。並びは `docs/category_master.csv` の登場順。
+  /// 全 14 大カテゴリ。並びは `docs/category_master.csv` の登場順。
   static const List<CategoryMasterMajor> majors = [
     CategoryMasterMajor(
       key: 'language',
@@ -117,12 +117,6 @@ class CategoryMaster {
       colorCode: '#D32F2F',
     ),
     CategoryMasterMajor(
-      key: 'health',
-      name: '健康管理',
-      iconCode: 'self_improvement',
-      colorCode: '#0097A7',
-    ),
-    CategoryMasterMajor(
       key: 'self_dev',
       name: '自己啓発・マインド',
       iconCode: 'self_improvement',
@@ -149,7 +143,7 @@ class CategoryMaster {
     ),
   ];
 
-  /// 全 68 小カテゴリ（key で一意）。並びは `docs/category_master.csv` の
+  /// 全 65 小カテゴリ（key で一意）。並びは `docs/category_master.csv` の
   /// 登場順をそのまま採用。
   static const List<CategoryMasterMinor> minors = [
     // 語学学習
@@ -458,26 +452,6 @@ class CategoryMaster {
       majorKey: 'exercise',
       name: 'スポーツ・武道',
       recommendedRate: 1100,
-    ),
-
-    // 健康管理
-    CategoryMasterMinor(
-      key: 'cooking_health',
-      majorKey: 'health',
-      name: '食事・自炊',
-      recommendedRate: 800,
-    ),
-    CategoryMasterMinor(
-      key: 'sleep',
-      majorKey: 'health',
-      name: '睡眠・休養',
-      recommendedRate: 700,
-    ),
-    CategoryMasterMinor(
-      key: 'meditation',
-      majorKey: 'health',
-      name: '瞑想・マインドフルネス',
-      recommendedRate: 800,
     ),
 
     // 自己啓発・マインド
