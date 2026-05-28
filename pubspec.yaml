@@ -82,18 +82,19 @@ flutter:
 # `python3 tool/generate_logo.py`) run:
 #   dart run flutter_native_splash:create
 flutter_native_splash:
-  # Portrait brand artwork (issue #167 follow-up). Displayed as a centered
-  # logo; `color` matches the artwork's top-edge deep blue so the visible
-  # background frame blends with the upper portion of the design.
-  color: "#01497D"
-  color_dark: "#01497D"
-  image: assets/splash/logo.png
-  image_dark: assets/splash/logo_dark.png
+  # Portrait brand artwork covers the entire screen via `background_image`
+  # (iOS's `LaunchBackground` view uses `scaleToFill`, Android's launch
+  # drawable uses `android:gravity="fill"`). Per package docs `color` and
+  # `background_image` cannot both be set at the top level, so we use
+  # `background_image` here and provide a fallback `color` only inside the
+  # `android_12` block (where the new API needs a solid color BG).
+  background_image: assets/splash/logo.png
+  background_image_dark: assets/splash/logo_dark.png
 
   android_12:
-    # Android 12+'s new splash API renders a square icon centered on the
-    # BG color. Point it at the square brand icon (full-bleed, no white
-    # ring) to keep parity with the launcher icon.
+    # Android 12+'s new splash API ignores `background_image` and only
+    # supports a centered icon on a solid color BG. Use the square brand
+    # icon there to keep parity with the launcher.
     color: "#01497D"
     color_dark: "#01497D"
     image: assets/icon/icon.png
