@@ -9,7 +9,7 @@ class LegalTexts {
   const LegalTexts._();
 
   /// プライバシーポリシー最終更新日（ストア掲載・規約改定通知の参照に使う）。
-  static const String privacyPolicyUpdatedAt = '2026年5月26日（Sentry 追加）';
+  static const String privacyPolicyUpdatedAt = '2026年5月26日';
 
   /// 利用規約最終更新日。
   static const String termsUpdatedAt = '2026年5月26日';

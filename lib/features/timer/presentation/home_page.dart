@@ -138,7 +138,7 @@ class _TimerIdleCardState extends ConsumerState<_TimerIdleCard> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'タイマーで学習を始める',
+                  'タイマーで作業を始める',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 12),
