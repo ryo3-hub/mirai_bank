@@ -1,24 +1,32 @@
 #!/usr/bin/env python3
-"""Generate splash logos and app icons for mirai_bank.
+"""Generate splash logos and app icons for mirai_bank from brand images.
 
-Design concept:
-  Three ascending rounded bars representing accumulated value over time,
-  topped with a yen (¥) symbol above the tallest bar. Communicates the
-  core app concept of "time invested → future money".
+Sources of truth:
+  assets/source/brand_icon.png    — square MIRAI BANK brand artwork
+                                    (rounded-square design with a white
+                                    outer ring).
+  assets/source/brand_splash.png  — portrait splash artwork (full-bleed,
+                                    no rounded corners).
 
-Outputs:
-  Splash (1024x1024, transparent background):
-    assets/splash/logo.png       — indigo symbols (for white BG)
-    assets/splash/logo_dark.png  — white symbols   (for dark indigo BG)
+The icon source has rounded internal corners that, when combined with the
+OS-level corner mask (iOS auto-rounds, Android adaptive icons are masked
+by the launcher), used to leave a visible white ring at the icon edges.
+We solve that by **cropping to the inscribed square** inside the
+rounded-square design (issue #167 follow-up) before writing the icon
+outputs — diagonally scanning from each corner gives us the rounded-corner
+extent, from which we derive the safe inner margin.
 
-  App icon (1024x1024):
-    assets/icon/icon.png             — solid indigo BG + white symbols (no alpha)
-    assets/icon/icon_foreground.png  — white symbols on transparent
-                                       (Android adaptive icon foreground;
-                                        scaled smaller to fit inside the safe
-                                        zone of the 108dp adaptive canvas)
+Outputs (all 1024×1024 unless noted; splash variants keep portrait aspect):
+  Splash (from brand_splash.png, RGBA):
+    assets/splash/logo.png       — light splash logo
+    assets/splash/logo_dark.png  — dark splash logo (same artwork)
 
-Re-run this script after design changes, then regenerate native assets:
+  App icon (from brand_icon.png, inscribed-square cropped):
+    assets/icon/icon.png             — opaque RGB, full-bleed brand design
+    assets/icon/icon_foreground.png  — Android adaptive foreground
+    assets/icon/icon_background.png  — Android adaptive background (white)
+
+Re-run after changing source images:
   python3 tool/generate_logo.py
   dart run flutter_native_splash:create
   dart run flutter_launcher_icons
@@ -26,170 +34,131 @@ Re-run this script after design changes, then regenerate native assets:
 
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+import numpy as np
+from PIL import Image
 
 CANVAS = 1024
+SPLASH_LONG_EDGE = 2048  # native splash artwork is portrait; this caps
+                         # the long edge to keep flutter_native_splash happy
 ROOT = Path(__file__).resolve().parent.parent
+ICON_SOURCE = ROOT / "assets" / "source" / "brand_icon.png"
+SPLASH_SOURCE = ROOT / "assets" / "source" / "brand_splash.png"
 SPLASH_DIR = ROOT / "assets" / "splash"
 ICON_DIR = ROOT / "assets" / "icon"
 
-INDIGO = (79, 70, 229)  # #4F46E5
-WHITE = (255, 255, 255)
 
-# Splash logo geometry (in canvas pixels). The splash sits on a full-screen
-# canvas so it can use most of the 1024 region.
-SPLASH_BAR_WIDTH = 150
-SPLASH_BAR_GAP = 44
-SPLASH_BAR_RADIUS = 38
-SPLASH_BAR_HEIGHTS = (260, 420, 560)  # short, medium, tall
-SPLASH_BASELINE_OFFSET = 160
-SPLASH_YEN_TOP = 80
-SPLASH_YEN_SIZE = 240
-
-# App icon geometry: scaled down to fit within the iOS / Android safe zones.
-# Foreground variant is scaled even smaller because Android's adaptive icon
-# may crop ~33% of the foreground at the edges (108dp canvas, 66dp safe).
-ICON_BAR_WIDTH = 110
-ICON_BAR_GAP = 34
-ICON_BAR_RADIUS = 28
-ICON_BAR_HEIGHTS = (200, 320, 440)
-ICON_BASELINE_OFFSET = 220
-ICON_YEN_TOP = 200
-ICON_YEN_SIZE = 200
-
-ICON_FG_BAR_WIDTH = 90
-ICON_FG_BAR_GAP = 28
-ICON_FG_BAR_RADIUS = 22
-ICON_FG_BAR_HEIGHTS = (160, 260, 360)
-ICON_FG_BASELINE_OFFSET = 280
-ICON_FG_YEN_TOP = 260
-ICON_FG_YEN_SIZE = 160
-
-# macOS bundled fonts (try in order).
-FONT_CANDIDATES = (
-    "/System/Library/Fonts/HelveticaNeue.ttc",
-    "/System/Library/Fonts/Helvetica.ttc",
-    "/Library/Fonts/Arial.ttf",
-    "/System/Library/Fonts/SFNS.ttf",
-)
-
-
-def load_font(size: int) -> ImageFont.FreeTypeFont:
-    for path in FONT_CANDIDATES:
-        try:
-            return ImageFont.truetype(path, size)
-        except OSError:
-            continue
-    raise RuntimeError(
-        "No usable font found. Edit FONT_CANDIDATES in tool/generate_logo.py."
-    )
-
-
-def _draw_design(
-    draw: ImageDraw.ImageDraw,
-    fg_rgb: tuple[int, int, int],
-    *,
-    bar_width: int,
-    bar_gap: int,
-    bar_radius: int,
-    bar_heights: tuple[int, int, int],
-    baseline_offset: int,
-    yen_top: int,
-    yen_size: int,
-) -> None:
-    """Draw the bars + yen design centered horizontally."""
-    total_width = 3 * bar_width + 2 * bar_gap
-    start_x = (CANVAS - total_width) // 2
-    baseline_y = CANVAS - baseline_offset
-    fill = fg_rgb + (255,)
-
-    for i, h in enumerate(bar_heights):
-        x = start_x + i * (bar_width + bar_gap)
-        y_top = baseline_y - h
-        draw.rounded_rectangle(
-            ((x, y_top), (x + bar_width, baseline_y)),
-            radius=bar_radius,
-            fill=fill,
+def _load(path: Path) -> Image.Image:
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Brand source image not found at {path.relative_to(ROOT)}"
         )
+    img = Image.open(path)
+    if img.mode != "RGBA":
+        img = img.convert("RGBA")
+    return img
 
-    font = load_font(yen_size)
-    draw.text(
-        (CANVAS // 2, yen_top),
-        "¥",
-        font=font,
-        fill=fill,
-        anchor="mt",
+
+def _inscribed_square_crop(src: Image.Image, threshold: int = 240) -> Image.Image:
+    """Crop the largest axis-aligned square that fits entirely inside the
+    rounded-square design (i.e., no white ring at the edges).
+
+    Approach: scan diagonally from each image corner toward the center;
+    the first non-white pixel marks where the rounded curve begins. For
+    a quarter-circle of radius r, the curve intersects the diagonal at
+    distance r·(1 - 1/√2) ≈ 0.293r from the outer corner (along each
+    axis), so the diagonal step count `i` directly equals the safe inset
+    distance — cropping by `i + safety` pixels from each side places the
+    cropped corners inside the curve.
+
+    Returns the cropped image (centered around the design center).
+    """
+    arr = np.array(src.convert("RGB"))
+    h, w = arr.shape[:2]
+
+    def diag(cx: int, cy: int, dx: int, dy: int, steps: int = 500) -> int:
+        for i in range(steps):
+            x, y = cx + dx * i, cy + dy * i
+            if 0 <= x < w and 0 <= y < h:
+                if (arr[y, x] < threshold).any():
+                    return i
+        return 0
+
+    insets = (
+        diag(0, 0, 1, 1),
+        diag(w - 1, 0, -1, 1),
+        diag(0, h - 1, 1, -1),
+        diag(w - 1, h - 1, -1, -1),
     )
+    inset = max(insets) + 4  # small safety buffer so corners land inside curve
+
+    # Take a centered square crop so the design stays centered if the
+    # source image isn't perfectly square.
+    side = min(w, h) - 2 * inset
+    cx, cy = w // 2, h // 2
+    half = side // 2
+    return src.crop((cx - half, cy - half, cx + half, cy + half))
 
 
-def draw_splash_logo(out_path: Path, fg_rgb: tuple[int, int, int]) -> None:
-    img = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    _draw_design(
-        draw,
-        fg_rgb,
-        bar_width=SPLASH_BAR_WIDTH,
-        bar_gap=SPLASH_BAR_GAP,
-        bar_radius=SPLASH_BAR_RADIUS,
-        bar_heights=SPLASH_BAR_HEIGHTS,
-        baseline_offset=SPLASH_BASELINE_OFFSET,
-        yen_top=SPLASH_YEN_TOP,
-        yen_size=SPLASH_YEN_SIZE,
-    )
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    img.save(out_path)
-    print(f"  -> {out_path.relative_to(ROOT)}")
+def _save_rgba(img: Image.Image, out: Path) -> None:
+    out.parent.mkdir(parents=True, exist_ok=True)
+    img.save(out)
+    print(f"  -> {out.relative_to(ROOT)}")
 
 
-def draw_app_icon(out_path: Path) -> None:
-    """Solid Indigo background + white symbols. No alpha (iOS requirement)."""
-    img = Image.new("RGB", (CANVAS, CANVAS), INDIGO)
-    draw = ImageDraw.Draw(img)
-    _draw_design(
-        draw,
-        WHITE,
-        bar_width=ICON_BAR_WIDTH,
-        bar_gap=ICON_BAR_GAP,
-        bar_radius=ICON_BAR_RADIUS,
-        bar_heights=ICON_BAR_HEIGHTS,
-        baseline_offset=ICON_BASELINE_OFFSET,
-        yen_top=ICON_YEN_TOP,
-        yen_size=ICON_YEN_SIZE,
-    )
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    img.save(out_path)
-    print(f"  -> {out_path.relative_to(ROOT)}")
+def _save_rgb(img: Image.Image, out: Path, *, background: tuple = (255, 255, 255)) -> None:
+    """Flatten any alpha onto a solid background and save as RGB (iOS-safe)."""
+    if img.mode == "RGBA":
+        flat = Image.new("RGB", img.size, background)
+        flat.paste(img, mask=img.split()[3])
+        img = flat
+    elif img.mode != "RGB":
+        img = img.convert("RGB")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    img.save(out)
+    print(f"  -> {out.relative_to(ROOT)}")
 
 
-def draw_adaptive_foreground(out_path: Path) -> None:
-    """White symbols on transparent, scaled smaller to fit the adaptive
-    icon's safe zone (Android 8.0+ adaptive icons may crop ~33% off the
-    edges)."""
-    img = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    _draw_design(
-        draw,
-        WHITE,
-        bar_width=ICON_FG_BAR_WIDTH,
-        bar_gap=ICON_FG_BAR_GAP,
-        bar_radius=ICON_FG_BAR_RADIUS,
-        bar_heights=ICON_FG_BAR_HEIGHTS,
-        baseline_offset=ICON_FG_BASELINE_OFFSET,
-        yen_top=ICON_FG_YEN_TOP,
-        yen_size=ICON_FG_YEN_SIZE,
-    )
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    img.save(out_path)
-    print(f"  -> {out_path.relative_to(ROOT)}")
+def _resize_keeping_aspect(src: Image.Image, long_edge: int) -> Image.Image:
+    """Scale `src` so its longer side equals `long_edge`, preserving aspect."""
+    w, h = src.size
+    if max(w, h) == long_edge:
+        return src
+    scale = long_edge / max(w, h)
+    return src.resize((int(round(w * scale)), int(round(h * scale))), Image.LANCZOS)
 
 
 def main() -> None:
-    print("Generating splash logos...")
-    draw_splash_logo(SPLASH_DIR / "logo.png", INDIGO)
-    draw_splash_logo(SPLASH_DIR / "logo_dark.png", WHITE)
-    print("Generating app icons...")
-    draw_app_icon(ICON_DIR / "icon.png")
-    draw_adaptive_foreground(ICON_DIR / "icon_foreground.png")
+    # --- Splash: portrait full-bleed artwork --------------------------------
+    print("Writing splash logos...")
+    splash = _resize_keeping_aspect(_load(SPLASH_SOURCE), SPLASH_LONG_EDGE)
+    _save_rgba(splash, SPLASH_DIR / "logo.png")
+    # Dark variant is the same artwork; the splash BG is white in both modes
+    # (color / color_dark in pubspec.yaml) for consistency with the brand
+    # image's outer ring.
+    _save_rgba(splash, SPLASH_DIR / "logo_dark.png")
+
+    # --- Icon: inscribed-square crop + canvas resize -----------------------
+    print("Writing app icons...")
+    icon_src = _load(ICON_SOURCE)
+    inscribed = _inscribed_square_crop(icon_src)
+    canvas_sq = inscribed.resize((CANVAS, CANVAS), Image.LANCZOS)
+
+    # iOS / legacy Android icon: opaque RGB. The full-bleed cropped design
+    # has no white ring; OS-level corner masks (iOS / launcher) round it
+    # cleanly.
+    _save_rgb(canvas_sq, ICON_DIR / "icon.png")
+
+    # Android adaptive foreground: same full-bleed design. flutter_launcher_icons
+    # inset's it 16% at build time for the safe zone.
+    _save_rgba(canvas_sq, ICON_DIR / "icon_foreground.png")
+
+    # Adaptive background: a plain white square. The foreground is now
+    # full-bleed so the background only shows where the launcher mask
+    # crops outside the foreground extent — white keeps that area neutral.
+    white_bg = Image.new("RGB", (CANVAS, CANVAS), (255, 255, 255))
+    white_bg.save(ICON_DIR / "icon_background.png")
+    print(f"  -> {(ICON_DIR / 'icon_background.png').relative_to(ROOT)}")
+
     print("Done.")
 
 
