@@ -11,8 +11,8 @@
 - ヘッダー: 「カテゴリ N件 / 長押しで並び替え」ガイド
 - 並び順は `Category.sortOrder` で永続化（DB schemaVersion v4 で追加）
 - 新規追加カテゴリはアクティブカテゴリの末尾（max sortOrder + 1）に挿入される
-- 触覚フィードバック: `onReorderStart` = `HapticFeedback.selectionClick()`、
-  `onReorder` = `HapticFeedback.lightImpact()`
+- 触覚フィードバック: `onReorderStart` = `HapticFeedback.mediumImpact()`、
+  `onReorder` = `HapticFeedback.heavyImpact()`（タイマープリセットと同じ強度）
 - カテゴリピッカー（タイマー / 手動入力時）も同じ並び順で表示される
   （`watchAll` を通すので自動で反映）
 - 共通 `AddActionFab`（Extended FAB、`Icons.add` + 「カテゴリを追加」ラベル、
