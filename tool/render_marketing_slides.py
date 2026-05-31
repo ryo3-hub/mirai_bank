@@ -152,21 +152,20 @@ def draw_floating_dot(canvas, cx, cy, r, color, alpha=255):
 
 # ---------- 個別スライド ----------
 
-def slide_01_hero(home_path: Path, timer_path: Path) -> Image.Image:
-    """デュアル端末ヒーロー：ホーム + タイマー。"""
+def slide_01_hero(home_path: Path) -> Image.Image:
+    """シングル端末ヒーロー：ホーム + 上下にコピー。"""
     canvas = vgrad((219, 234, 254), (191, 219, 254))  # blue-100 → blue-200
-    # 上に大きな見出し
     draw = ImageDraw.Draw(canvas)
+    # 上に大きな見出し
     draw_multiline(draw, "学び時間が、\nお金として積み上がる。", W // 2, 200,
-                   font(108, bold=True), (12, 74, 110))  # sky-900
-    draw_multiline(draw, "時間 × 時給で、自己投資を見える化", W // 2, 470,
-                   font(46), (51, 65, 85))  # slate-700
+                   font(110, bold=True), (12, 74, 110))  # sky-900
+    draw_multiline(draw, "時間 × 時給で、自己投資を見える化",
+                   W // 2, 480, font(46), (51, 65, 85))
 
-    # 端末 2 台。左に Home（少し奥 / 後ろ）、右に Timer（手前 / 上）
-    home = shot(home_path, target_w=620)
-    timer = shot(timer_path, target_w=620)
-    place_tilted(canvas, home, cx=420, cy=1670, tilt=8.0, shadow_blur=70, shadow_opacity=160)
-    place_tilted(canvas, timer, cx=870, cy=1820, tilt=-6.0, shadow_blur=70, shadow_opacity=180)
+    # 中央に端末を 1 台、軽く右斜め
+    s = shot(home_path, target_w=820)
+    place_tilted(canvas, s, cx=W // 2, cy=1780, tilt=3.5,
+                 shadow_blur=80, shadow_opacity=180)
 
     # 下のラベル
     brand_font = font(40, bold=True)
@@ -231,25 +230,25 @@ def slide_03_stats(stats_path: Path) -> Image.Image:
     return canvas.convert("RGB")
 
 
-def slide_04_goals(goals_path: Path, timer_path: Path) -> Image.Image:
-    """目標：2 端末で進捗バー強調 + 上見出し。"""
+def slide_04_goals(goals_path: Path) -> Image.Image:
+    """目標：シングル端末を左斜めに + 右にコールアウトピル。"""
     canvas = vgrad((255, 237, 213), (254, 215, 170))  # orange-100 → orange-200
     draw = ImageDraw.Draw(canvas)
 
     draw_multiline(draw, "目標までの距離が、\n明確に。", W // 2, 200,
-                   font(108, bold=True), (124, 45, 18))  # orange-900
-    draw_multiline(draw, "短期・中期・長期で、進捗を可視化", W // 2, 470,
-                   font(46), (88, 28, 8))
+                   font(110, bold=True), (124, 45, 18))  # orange-900
+    draw_multiline(draw, "短期・中期・長期で、進捗を可視化",
+                   W // 2, 480, font(46), (88, 28, 8))
 
-    # 左に goals 端末、右に timer 端末。ちょっと小さめにして並べる
-    g = shot(goals_path, target_w=560)
-    t = shot(timer_path, target_w=560)
-    place_tilted(canvas, g, cx=390, cy=1720, tilt=-7.0, shadow_blur=60, shadow_opacity=160)
-    place_tilted(canvas, t, cx=900, cy=1850, tilt=5.0, shadow_blur=60, shadow_opacity=160)
+    # 端末を中央寄り、軽く左斜め
+    g = shot(goals_path, target_w=780)
+    place_tilted(canvas, g, cx=W // 2, cy=1760, tilt=-3.5,
+                 shadow_blur=80, shadow_opacity=180)
 
-    # 中央下にピル「70% 達成」みたいな抜き出し
-    draw_pill(draw, "短期目標 70% 達成中", W // 2, 2440,
-              font(46, bold=True), bg=(255, 255, 255), fg=(124, 45, 18))
+    # 下にピル風コールアウト
+    draw_pill(draw, "短期目標 70% 達成中", W // 2, 2480,
+              font(46, bold=True), bg=(255, 255, 255), fg=(124, 45, 18),
+              padding=(40, 20))
     return canvas.convert("RGB")
 
 
@@ -296,26 +295,27 @@ def slide_06_closing(home_path: Path) -> Image.Image:
                    W // 2, 730, font(50), (224, 242, 254))
 
     # 端末を中央下に小さめに
-    s = shot(home_path, target_w=560)
-    place_tilted(canvas, s, cx=W // 2, cy=1820, tilt=2.0,
+    s = shot(home_path, target_w=620)
+    place_tilted(canvas, s, cx=W // 2, cy=1880, tilt=2.0,
                  shadow_blur=80, shadow_opacity=200)
 
-    # CTA バッジ
-    cta_font = font(56, bold=True)
-    draw_pill(draw, "App Store にて配信予定", W // 2, 2480,
-              font(46, bold=True), bg=(15, 23, 42), fg=WHITE, padding=(40, 20))
+    # ブランド文字を下に
+    brand_font = font(56, bold=True)
+    bb = draw.textbbox((0, 0), "mirai_bank", font=brand_font)
+    draw.text(((W - (bb[2] - bb[0])) / 2, H - 180), "mirai_bank",
+              font=brand_font, fill=WHITE)
     return canvas.convert("RGB")
 
 
 # ---------- メイン ----------
 
 SLIDES_CFG = [
-    ("01_hero",            slide_01_hero,       ["01_home.png", "06_timer_running.png"]),
+    ("01_hero",            slide_01_hero,       ["01_home.png"]),
     ("02_calendar",        slide_02_calendar,   ["02_calendar.png"]),
     ("03_stats",           slide_03_stats,      ["03_statistics.png"]),
-    ("04_goals",           slide_04_goals,      ["04_goals.png", "06_timer_running.png"]),
+    ("04_goals",           slide_04_goals,      ["04_goals.png"]),
     ("05_categories",      slide_05_categories, ["05_categories.png"]),
-    ("06_closing",         slide_06_closing,    ["01_home.png"]),
+    ("06_closing",         slide_06_closing,    ["06_timer_running.png"]),
 ]
 
 
