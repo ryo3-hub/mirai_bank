@@ -4,6 +4,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'reminder_messages.dart';
+
 class NotificationService {
   NotificationService._();
 
@@ -242,10 +244,14 @@ class NotificationService {
       if (weekdays.isEmpty) return;
       for (final weekday in weekdays) {
         final scheduled = _nextOccurrenceOfWeekday(weekday, time);
+        // 文言は曜日タグ（平日 / 休日 / どちらでも）に合致するプールから
+        // 乱択する（issue #174）。アプリ起動ごとに本メソッドが呼ばれるので、
+        // 起動するたびに次の 1 週間ぶんの文言が refresh される。
+        final message = ReminderMessages.randomFor(weekday);
         await _plugin.zonedSchedule(
           _reminderNotificationIdBase + weekday,
-          '今日の学習を続けましょう',
-          '少しの時間でも、未来への投資になります',
+          message.title,
+          message.body,
           scheduled,
           const NotificationDetails(
             android: AndroidNotificationDetails(
