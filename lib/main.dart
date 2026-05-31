@@ -31,8 +31,8 @@ Future<void> main() async {
 }
 
 /// 自然初期化（〜1.5 秒）に上乗せしてブランドスプラッシュを少し長く見せる
-/// 追加ホールド時間（issue #172）。トータルで約 2.5〜3 秒の体感になる想定。
-const Duration _splashExtraHold = Duration(milliseconds: 1500);
+/// 追加ホールド時間（issue #172）。トータルで約 2〜2.5 秒の体感になる想定。
+const Duration _splashExtraHold = Duration(milliseconds: 1000);
 
 Future<void> _bootstrap() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
