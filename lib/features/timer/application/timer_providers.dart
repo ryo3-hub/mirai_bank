@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../infrastructure/database/database_provider.dart';
 import '../../../shared/notification/notification_service.dart';
 import '../../../shared/notification/post_session_notifier.dart';
+import '../../../shared/notification/reminder_scheduler.dart';
 import '../../category/application/category_providers.dart';
 import '../../history/application/work_session_providers.dart';
 import '../../history/domain/work_session.dart';
@@ -78,6 +79,8 @@ class TimerController extends _$TimerController {
         body: '${category.name} の作業時間が完了しました',
       );
     }
+    // 計測中になったので、今日のリマインダー通知を抑止する（issue #178）。
+    await ref.read(reminderSchedulerProvider).refresh();
   }
 
   Future<void> pause() async {
@@ -135,6 +138,9 @@ class TimerController extends _$TimerController {
     // 課金単位（5 分）未満は記録しない
     if (paidSec <= 0) {
       await ref.read(activeTimerRepositoryProvider).clear();
+      // 計測を辞めたが今日のセッションは作られていない → 今日のリマインダー
+      // 抑止の根拠が消えた可能性があるので再評価する（issue #178）。
+      await ref.read(reminderSchedulerProvider).refresh();
       return null;
     }
 
@@ -165,6 +171,9 @@ class TimerController extends _$TimerController {
 
     await ref.read(activeTimerRepositoryProvider).clear();
     await ref.read(postSessionNotifierProvider).runAfterSessionSave();
+    // 今日のセッションが新規作成されたので、今日のリマインダーは抑止する
+    // （issue #178）。refresh が skipToday=true を計算して反映する。
+    await ref.read(reminderSchedulerProvider).refresh();
     return session;
   }
 
