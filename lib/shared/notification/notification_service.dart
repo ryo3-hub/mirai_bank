@@ -15,8 +15,18 @@ class NotificationService {
   static const int _timerCompletionNotificationId = 1010;
   // Legacy single-id reminder（v1 互換、cancelDailyReminder で清掃する）。
   static const int _legacyReminderNotificationId = 1002;
-  // 曜日ごとに別 ID を使う：基底 + DateTime.weekday (1..7)
+  // [issue #174 以前] 曜日ごとに別 ID を使う weekly repeat：基底 + weekday (1..7)
+  // 新方式（one-shot 14 日先 forward、issue #178）に切替後は使われないが、
+  // 既存インストールに残ったスケジュールを清掃するため cancelDailyReminder で
+  // 触り続ける。
   static const int _reminderNotificationIdBase = 1100;
+  // [issue #178] 14 日先まで 1 通ずつ one-shot で予約する base。
+  // ID = base + 経過日数オフセット (0..13)。offset=0 が「今日」のスロット。
+  static const int _reminderOneShotIdBase = 1200;
+  /// 1 回の `scheduleDailyReminder` で予約する未来の最大日数。アプリ起動 /
+  /// 設定変更 / 状態遷移ごとに再スケジュールするので、最大 14 日先まで
+  /// カバーしていれば普通の利用で枯渇しない。
+  static const int _reminderHorizonDays = 14;
   static const int _achievementNotificationIdBase = 2000;
   static const int _streakNotificationIdBase = 3000;
 
@@ -229,27 +239,49 @@ class NotificationService {
     }
   }
 
-  /// 指定された曜日にリマインダーをスケジュールする。
-  /// [weekdays] は DateTime.weekday の値（1=月 .. 7=日）の集合。
-  /// 空集合の場合は何もスケジュールしない（実質 OFF）。
-  /// 内部で 7 曜日分の既存スケジュールを全てキャンセルしてから再登録する。
+  /// 指定された曜日にリマインダーをスケジュールする（issue #178 で
+  /// 14 日先までの one-shot 方式に変更）。
+  ///
+  /// - [weekdays] は DateTime.weekday の値（1=月..7=日）の集合
+  /// - 空集合の場合は何もスケジュールしない（実質 OFF）
+  /// - [skipToday] が true のときは今日（offset=0）のスロットを飛ばす。
+  ///   ReminderScheduler が「今日すでに作業した / タイマー計測中」を判定して
+  ///   true を渡してくる想定
+  /// - 既存スケジュール（旧 weekly + 新 one-shot 全 ID）は事前に全クリア
+  ///   してから再登録する
+  ///
+  /// アプリ起動 / 設定変更 / 状態遷移ごとに呼ばれて再スケジュールされるので、
+  /// 14 日先までキープされていれば普通の利用で通知が枯渇することはない。
   Future<void> scheduleDailyReminder(
     TimeOfDay time, {
     required Set<int> weekdays,
+    bool skipToday = false,
   }) async {
     if (!_initialized) return;
     try {
-      // 既存の全曜日スケジュール + legacy 単発 ID をクリーンアップ
+      // 既存スケジュール（legacy weekly + 新方式 one-shot）を一旦全クリア
       await cancelDailyReminder();
       if (weekdays.isEmpty) return;
-      for (final weekday in weekdays) {
-        final scheduled = _nextOccurrenceOfWeekday(weekday, time);
+
+      final now = tz.TZDateTime.now(tz.local);
+      for (var offset = 0; offset < _reminderHorizonDays; offset++) {
+        if (skipToday && offset == 0) continue;
+        final scheduled = tz.TZDateTime(
+          tz.local,
+          now.year,
+          now.month,
+          now.day,
+          time.hour,
+          time.minute,
+        ).add(Duration(days: offset));
+        if (!weekdays.contains(scheduled.weekday)) continue;
+        if (!scheduled.isAfter(now)) continue; // 今日の時刻を既に過ぎている
+
         // 文言は曜日タグ（平日 / 休日 / どちらでも）に合致するプールから
-        // 乱択する（issue #174）。アプリ起動ごとに本メソッドが呼ばれるので、
-        // 起動するたびに次の 1 週間ぶんの文言が refresh される。
-        final message = ReminderMessages.randomFor(weekday);
+        // 乱択（issue #174）。再スケジュールのたびに文言が refresh される。
+        final message = ReminderMessages.randomFor(scheduled.weekday);
         await _plugin.zonedSchedule(
-          _reminderNotificationIdBase + weekday,
+          _reminderOneShotIdBase + offset,
           message.title,
           message.body,
           scheduled,
@@ -264,9 +296,9 @@ class NotificationService {
             iOS: DarwinNotificationDetails(),
           ),
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
           uiLocalNotificationDateInterpretation:
               UILocalNotificationDateInterpretation.absoluteTime,
+          // matchDateTimeComponents は使わない：one-shot で予約する
         );
       }
     } catch (e, st) {
@@ -274,29 +306,29 @@ class NotificationService {
     }
   }
 
-  /// 指定された [weekday] (1=月 .. 7=日) の次の [time] を返す。
-  tz.TZDateTime _nextOccurrenceOfWeekday(int weekday, TimeOfDay time) {
-    final now = tz.TZDateTime.now(tz.local);
-    var candidate = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      time.hour,
-      time.minute,
-    );
-    while (candidate.weekday != weekday || !candidate.isAfter(now)) {
-      candidate = candidate.add(const Duration(days: 1));
+  /// 「今日のスロット」だけ静かにキャンセルする（issue #178）。
+  /// タイマー開始時 / セッション作成時に呼ぶ想定。明日以降の予約には触らない。
+  Future<void> cancelTodayReminder() async {
+    if (!_initialized) return;
+    try {
+      await _plugin.cancel(_reminderOneShotIdBase);
+    } catch (e, st) {
+      debugPrint('cancelTodayReminder failed: $e\n$st');
     }
-    return candidate;
   }
 
   Future<void> cancelDailyReminder() async {
     if (!_initialized) return;
     try {
+      // legacy 単発 ID（v1 互換）
       await _plugin.cancel(_legacyReminderNotificationId);
+      // legacy weekly base + 1..7（issue #178 で廃止された方式の残骸）
       for (var d = 1; d <= 7; d++) {
         await _plugin.cancel(_reminderNotificationIdBase + d);
+      }
+      // 新方式の one-shot 全スロット（offset 0..horizon-1）
+      for (var offset = 0; offset < _reminderHorizonDays; offset++) {
+        await _plugin.cancel(_reminderOneShotIdBase + offset);
       }
     } catch (e, st) {
       debugPrint('cancelDailyReminder failed: $e\n$st');

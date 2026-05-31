@@ -109,6 +109,20 @@ class WorkSessionRepositoryImpl implements WorkSessionRepository {
     );
   }
 
+  @override
+  Future<bool> hasSessionOn(DateTime day) async {
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+    final row = await (_db.selectOnly(_table)
+          ..addColumns([_table.id])
+          ..where(_table.deletedAt.isNull() &
+              _table.endTime.isBiggerOrEqualValue(start) &
+              _table.endTime.isSmallerThanValue(end))
+          ..limit(1))
+        .getSingleOrNull();
+    return row != null;
+  }
+
   WorkSession _toEntity(WorkSessionRow row) {
     return WorkSession(
       id: row.id,

@@ -6,8 +6,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'app/app.dart';
-import 'features/settings/application/setting_providers.dart';
 import 'shared/notification/notification_service.dart';
+import 'shared/notification/reminder_scheduler.dart';
 
 /// Sentry の DSN は `--dart-define=SENTRY_DSN=...` でビルド時注入する想定。
 /// 空文字（ローカル開発・テスト時）はクラッシュ送信を完全スキップする。
@@ -44,13 +44,9 @@ Future<void> _bootstrap() async {
   await NotificationService.instance.init();
   final container = ProviderContainer();
   try {
-    final setting = await container.read(settingRepositoryProvider).fetch();
-    if (setting.reminderEnabled) {
-      await NotificationService.instance.scheduleDailyReminder(
-        setting.reminderTimeOfDay,
-        weekdays: setting.reminderWeekdays,
-      );
-    }
+    // 設定 / 今日のセッション有無 / タイマー稼働状況を見て、
+    // skipToday 込みでリマインダーを再スケジュール（issue #178）。
+    await container.read(reminderSchedulerProvider).refresh();
   } catch (e, st) {
     debugPrint('Bootstrap error: $e\n$st');
     // 起動時の致命的でない失敗も Sentry に送っておく（DSN 設定時のみ送信される）
