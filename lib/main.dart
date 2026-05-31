@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -29,8 +30,16 @@ Future<void> main() async {
   );
 }
 
+/// 自然初期化（〜1.5 秒）に上乗せしてブランドスプラッシュを少し長く見せる
+/// 追加ホールド時間（issue #172）。トータルで約 2〜2.5 秒の体感になる想定。
+const Duration _splashExtraHold = Duration(milliseconds: 1000);
+
 Future<void> _bootstrap() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  // 通常 flutter_native_splash は最初の Flutter フレーム描画時に自動で
+  // dismiss されるが、preserve を呼ぶと remove するまでスプラッシュを
+  // ホールドする。下の Future.delayed と合わせて使う。
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await initializeDateFormatting('ja_JP');
   await NotificationService.instance.init();
   final container = ProviderContainer();
@@ -53,4 +62,9 @@ Future<void> _bootstrap() async {
       child: const MiraiBankApp(),
     ),
   );
+  // 最初のフレーム描画 + 追加ホールド後にスプラッシュを引っ込める。
+  // ホールド中も Flutter UI は裏で完成しているので、remove と同時に
+  // ホーム/オンボーディングへスムーズに切り替わる。
+  await Future<void>.delayed(_splashExtraHold);
+  FlutterNativeSplash.remove();
 }
