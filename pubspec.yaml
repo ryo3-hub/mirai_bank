@@ -55,6 +55,10 @@ dependencies:
   file_picker: ^11.0.2
   sentry_flutter: ^9.20.0
 
+  # Splash screen runtime API (preserve / remove). The codegen tool is the
+  # same package; runtime API lives under `flutter_native_splash.dart`.
+  flutter_native_splash: ^2.4.6
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -67,9 +71,6 @@ dev_dependencies:
   riverpod_generator: ^2.4.3
   riverpod_lint: ^2.3.13
   custom_lint: ^0.6.7
-
-  # Splash screen generation
-  flutter_native_splash: ^2.4.1
 
   # App launcher icon generation
   flutter_launcher_icons: ^0.14.1
