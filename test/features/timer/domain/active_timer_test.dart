@@ -99,4 +99,55 @@ void main() {
       expect(timer.isCompletedAt(start), true);
     });
   });
+
+  group('ActiveTimer.billableSecondsAt (issue #186)', () {
+    final start = DateTime(2026, 1, 1, 10, 0, 0);
+
+    test('equals elapsed while under target', () {
+      final timer = _running(startTime: start, targetMinutes: 15);
+      expect(
+        timer.billableSecondsAt(start.add(const Duration(minutes: 10))),
+        10 * 60,
+      );
+    });
+
+    test('equals elapsed exactly at target', () {
+      final timer = _running(startTime: start, targetMinutes: 15);
+      expect(
+        timer.billableSecondsAt(start.add(const Duration(minutes: 15))),
+        15 * 60,
+      );
+    });
+
+    test('caps at target when left running in background past target', () {
+      final timer = _running(startTime: start, targetMinutes: 15);
+      expect(
+        timer.billableSecondsAt(start.add(const Duration(hours: 2))),
+        15 * 60,
+      );
+    });
+
+    test('caps paused timer whose accumulated exceeds target', () {
+      final timer = _paused(
+        startTime: start,
+        targetMinutes: 15,
+        accumulatedSec: 60 * 60,
+      );
+      expect(timer.billableSecondsAt(start), 15 * 60);
+    });
+
+    test('no cap when targetDurationSec is 0', () {
+      final timer = ActiveTimer(
+        categoryId: 'c1',
+        startTime: start,
+        targetDurationSec: 0,
+        accumulatedSec: 0,
+        resumedAt: start,
+      );
+      expect(
+        timer.billableSecondsAt(start.add(const Duration(minutes: 40))),
+        40 * 60,
+      );
+    });
+  });
 }
