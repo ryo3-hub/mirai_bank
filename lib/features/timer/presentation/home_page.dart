@@ -597,7 +597,10 @@ class _TimerRunningCardState extends ConsumerState<_TimerRunningCard> {
               error: (_, __) => const SizedBox.shrink(),
               data: (category) => _AmountDisplay(
                 amount: AmountCalculator.calculatePaid(
-                  workedSec: elapsed,
+                  // 課金上限は目標時間（issue #186）。停止処理側のクランプと揃える
+                  workedSec: timer.targetDurationSec > 0
+                      ? elapsed.clamp(0, timer.targetDurationSec)
+                      : elapsed,
                   hourlyRate: category?.hourlyRate ?? 0,
                 ),
               ),

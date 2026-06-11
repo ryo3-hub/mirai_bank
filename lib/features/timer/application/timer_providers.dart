@@ -129,7 +129,7 @@ class TimerController extends _$TimerController {
     if (activeTimer == null) return null;
 
     final now = DateTime.now();
-    final workedSec = activeTimer.elapsedSecondsAt(now);
+    final workedSec = activeTimer.billableSecondsAt(now);
     final paidSec = AmountCalculator.paidDurationSec(workedSec);
 
     await NotificationService.instance.cancelTimerCompletion();

@@ -33,6 +33,16 @@ class ActiveTimer {
     return (accumulatedSec + sinceResume).clamp(0, 1 << 30);
   }
 
+  /// 課金対象となる累計経過秒数。
+  ///
+  /// カウントダウン式タイマーでは目標時間が課金の上限。バックグラウンド
+  /// 放置などで実経過が目標を超えても、超過分は課金しない（issue #186）。
+  int billableSecondsAt(DateTime now) {
+    final elapsed = elapsedSecondsAt(now);
+    if (targetDurationSec <= 0) return elapsed;
+    return elapsed.clamp(0, targetDurationSec);
+  }
+
   /// 残り秒数（負にはしない）。
   int remainingSecondsAt(DateTime now) {
     final remaining = targetDurationSec - elapsedSecondsAt(now);
