@@ -3,6 +3,10 @@ import '../domain/category.dart';
 abstract interface class CategoryRepository {
   Stream<List<Category>> watchAll();
 
+  /// ソフトデリート済みも含む全カテゴリ。削除済みカテゴリを参照する
+  /// 目標の表示用（issue #198）。
+  Stream<List<Category>> watchAllIncludingDeleted();
+
   Future<List<Category>> fetchAll();
 
   /// ソフトデリート済みも含む全カテゴリ。統計集計で削除済みカテゴリの

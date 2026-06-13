@@ -84,7 +84,9 @@ class GoalCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
-                                category!.name,
+                                category!.deletedAt != null
+                                    ? '（削除済み）${category!.name}'
+                                    : category!.name,
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
                                 style: theme.textTheme.bodySmall,

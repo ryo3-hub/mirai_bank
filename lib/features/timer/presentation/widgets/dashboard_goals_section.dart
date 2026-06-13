@@ -19,7 +19,9 @@ class DashboardGoalsSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final progressAsync = ref.watch(activeGoalsWithProgressProvider);
-    final categoriesAsync = ref.watch(categoriesListProvider);
+    // 削除済みカテゴリを指す目標がプリセットラベルにフォールバックして
+    // 画面間で表示が食い違わないよう、削除済みも含める（issue #198）。
+    final categoriesAsync = ref.watch(categoriesIncludingDeletedProvider);
     final categories = categoriesAsync.value ?? const <Category>[];
     final categoryMap = {for (final c in categories) c.id: c};
     final progresses = progressAsync.value ?? const <GoalProgress>[];
@@ -164,7 +166,12 @@ class _GoalProgressRow extends StatelessWidget {
         : theme.colorScheme.primary;
     final percent = (progress.ratio * 100).round();
     final preset = GoalPreset.fromGoal(goal);
-    final label = category?.name ??
+    final categoryName = category == null
+        ? null
+        : (category!.deletedAt != null
+            ? '（削除済み）${category!.name}'
+            : category!.name);
+    final label = categoryName ??
         preset?.label ??
         (goal.type == GoalType.cumulative ? '累計目標' : '期間目標');
     return Padding(

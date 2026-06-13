@@ -31,6 +31,18 @@ class CategoryRepositoryImpl implements CategoryRepository {
   }
 
   @override
+  Stream<List<Category>> watchAllIncludingDeleted() {
+    final query = _db.select(_table)
+      ..orderBy([
+        (c) => OrderingTerm.asc(c.sortOrder),
+        (c) => OrderingTerm.asc(c.createdAt),
+      ]);
+    return query.watch().map(
+          (rows) => rows.map(_toEntity).toList(growable: false),
+        );
+  }
+
+  @override
   Future<List<Category>> fetchAll() async {
     final rows = await _activeQuery().get();
     return rows.map(_toEntity).toList(growable: false);
