@@ -20,7 +20,9 @@ class LimitedSessionGroups {
   final int totalCount;
 
   /// 実際に [groups] に含めて表示しているセッション数。
-  /// 通常は min(totalCount, displayLimit)。
+  /// 通常は min(totalCount, displayLimit) だが、境界日の日計を正しく
+  /// 保つため境界日のセッションを全部含める分だけ上振れし得る
+  /// （issue #202）。
   final int displayedCount;
 
   /// 全件中、表示しきれていない件数があるか。
