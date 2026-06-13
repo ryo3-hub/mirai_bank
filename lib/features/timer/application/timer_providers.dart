@@ -159,17 +159,22 @@ class TimerController extends _$TimerController {
     // endTime は「startTime + 課金対象秒数」とする。実時間より短いが、
     // 履歴側で「課金対象に等しい duration」として保持するため整合させる。
     final endTime = activeTimer.startTime.add(Duration(seconds: paidSec));
-    final session = await ref.read(workSessionRepositoryProvider).create(
-          categoryId: activeTimer.categoryId,
-          startTime: activeTimer.startTime,
-          endTime: endTime,
-          durationSec: paidSec,
-          amount: amount,
-          memo: finalMemo,
-          inputMethod: WorkSessionInputMethod.timer,
-        );
-
-    await ref.read(activeTimerRepositoryProvider).clear();
+    // セッション作成と ActiveTimer クリアを同一トランザクションで行う。
+    // 別々の await にすると間でプロセスが死んだとき完了済み ActiveTimer が
+    // 残存し、再起動時の自動停止で同一作業が二重記録される（issue #188）。
+    final session = await ref.read(appDatabaseProvider).transaction(() async {
+      final created = await ref.read(workSessionRepositoryProvider).create(
+            categoryId: activeTimer.categoryId,
+            startTime: activeTimer.startTime,
+            endTime: endTime,
+            durationSec: paidSec,
+            amount: amount,
+            memo: finalMemo,
+            inputMethod: WorkSessionInputMethod.timer,
+          );
+      await ref.read(activeTimerRepositoryProvider).clear();
+      return created;
+    });
     await ref.read(postSessionNotifierProvider).runAfterSessionSave();
     // 今日のセッションが新規作成されたので、今日のリマインダーは抑止する
     // （issue #178）。refresh が skipToday=true を計算して反映する。
