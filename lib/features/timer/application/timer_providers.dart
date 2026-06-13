@@ -55,6 +55,13 @@ class TimerController extends _$TimerController {
     required int targetDurationSec,
     String? memo,
   }) async {
+    // カテゴリが見つからない場合はタイマーを開始しない。以前は通知だけ
+    // スキップしてタイマーが開始されてしまっていた（issue #204）。
+    final category =
+        await ref.read(categoryRepositoryProvider).findById(categoryId);
+    if (category == null) {
+      throw StateError('カテゴリが見つかりません');
+    }
     // 完了通知をきちんと届けるため、初回起動時にまだ要求していなければ
     // ここで通知権限を確認しておく（既に許可済みなら no-op）。
     await NotificationService.instance.requestPermissions();
@@ -65,20 +72,16 @@ class TimerController extends _$TimerController {
           targetDurationSec: targetDurationSec,
           memo: memo,
         );
-    final category =
-        await ref.read(categoryRepositoryProvider).findById(categoryId);
-    if (category != null) {
-      await NotificationService.instance.showOngoingTimer(
-        categoryName: category.name,
-        subtitle: '作業時間を計測中',
-      );
-      // 完了時の push 通知をスケジュール（一時停止 / 停止 / 完了時にキャンセル）
-      await NotificationService.instance.scheduleTimerCompletion(
-        fireAt: now.add(Duration(seconds: targetDurationSec)),
-        title: '⏰ タイマー完了！',
-        body: '${category.name} の作業時間が完了しました',
-      );
-    }
+    await NotificationService.instance.showOngoingTimer(
+      categoryName: category.name,
+      subtitle: '作業時間を計測中',
+    );
+    // 完了時の push 通知をスケジュール（一時停止 / 停止 / 完了時にキャンセル）
+    await NotificationService.instance.scheduleTimerCompletion(
+      fireAt: now.add(Duration(seconds: targetDurationSec)),
+      title: '⏰ タイマー完了！',
+      body: '${category.name} の作業時間が完了しました',
+    );
     // 計測中になったので、今日のリマインダー通知を抑止する（issue #178）。
     await ref.read(reminderSchedulerProvider).refresh();
   }
@@ -93,7 +96,9 @@ class TimerController extends _$TimerController {
 
   Future<void> resume() async {
     final timer = await ref.read(activeTimerRepositoryProvider).fetch();
-    if (timer == null) return;
+    // 一時停止中でないときは repository も no-op なので、完了通知の
+    // 再スケジュールも行わない（issue #204）
+    if (timer == null || !timer.isPaused) return;
     final now = DateTime.now();
     await ref.read(activeTimerRepositoryProvider).resume(now: now);
     // 残り時間に合わせて完了通知を再スケジュール
@@ -121,7 +126,7 @@ class TimerController extends _$TimerController {
 
   /// タイマーを終了してセッションを保存する。
   ///
-  /// 課金対象時間（15 分単位切り下げ）が 0 のときは記録を作らずに
+  /// 課金対象時間（5 分単位切り下げ）が 0 のときは記録を作らずに
   /// クリアだけ行い、`null` を返す（issue #95 案 B）。
   Future<WorkSession?> stop({String? memo}) async {
     final activeTimer =

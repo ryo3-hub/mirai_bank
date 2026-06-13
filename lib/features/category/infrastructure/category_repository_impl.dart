@@ -55,20 +55,25 @@ class CategoryRepositoryImpl implements CategoryRepository {
     final now = DateTime.now();
     final id = _uuid.v4();
     // 新規カテゴリはアクティブカテゴリの末尾に追加する（最大 sortOrder + 1）。
-    final nextSortOrder = await _computeNextSortOrder();
-    await _db.into(_table).insert(
-          CategoriesCompanion(
-            id: Value(id),
-            name: Value(name.trim()),
-            hourlyRate: Value(hourlyRate),
-            colorCode: Value(colorCode),
-            iconCode: Value(iconCode),
-            sortOrder: Value(nextSortOrder),
-            masterKey: Value(masterKey),
-            createdAt: Value(now),
-            updatedAt: Value(now),
-          ),
-        );
+    // sortOrder の採番と insert を同一トランザクションにして、同時 create
+    // による重複を防ぐ（issue #204）。
+    final nextSortOrder = await _db.transaction(() async {
+      final next = await _computeNextSortOrder();
+      await _db.into(_table).insert(
+            CategoriesCompanion(
+              id: Value(id),
+              name: Value(name.trim()),
+              hourlyRate: Value(hourlyRate),
+              colorCode: Value(colorCode),
+              iconCode: Value(iconCode),
+              sortOrder: Value(next),
+              masterKey: Value(masterKey),
+              createdAt: Value(now),
+              updatedAt: Value(now),
+            ),
+          );
+      return next;
+    });
     return Category(
       id: id,
       name: name.trim(),

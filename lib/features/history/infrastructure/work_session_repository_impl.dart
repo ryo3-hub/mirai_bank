@@ -35,7 +35,8 @@ class WorkSessionRepositoryImpl implements WorkSessionRepository {
 
   @override
   Future<WorkSession?> findById(String id) async {
-    final row = await (_db.select(_table)..where((s) => s.id.equals(id)))
+    final row = await (_db.select(_table)
+          ..where((s) => s.id.equals(id) & s.deletedAt.isNull()))
         .getSingleOrNull();
     if (row == null) return null;
     return _toEntity(row);
