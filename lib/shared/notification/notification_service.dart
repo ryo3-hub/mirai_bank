@@ -50,6 +50,11 @@ class NotificationService {
     if (_initialized) return;
     try {
       tz_data.initializeTimeZones();
+      // 通知の発火時刻は端末ローカルの DateTime（絶対時刻）から
+      // TZDateTime.from() で変換して渡すため、tz.local がどの地域でも
+      // 発火 instant は端末の壁時計と一致する（issue #200）。
+      // setLocalLocation は TZDateTime の表現用デフォルトを指定するだけ
+      // なので、Asia/Tokyo を選んでも海外端末で発火時刻はずれない。
       try {
         tz.setLocalLocation(tz.getLocation('Asia/Tokyo'));
       } catch (_) {
@@ -264,21 +269,25 @@ class NotificationService {
       await cancelDailyReminder();
       if (weekdays.isEmpty) return;
 
-      final now = tz.TZDateTime.now(tz.local);
+      // 端末ローカルの壁時計で発火スロットを組み立てる（issue #200）。
+      // 以前は Asia/Tokyo 固定の TZDateTime で組み立てていたため、
+      // 海外タイムゾーンの端末では設定時刻と無関係な時刻に発火していた。
+      // ローカル DateTime は絶対時刻として正しいので、zonedSchedule へは
+      // TZDateTime.from() で変換して渡す。
+      final now = DateTime.now();
       // 予約対象スロットを先に確定させる。最後のスロットだけ「アプリを
       // 開くとリマインダーが継続される」案内文言にするため（issue #199：
       // 14 日以上未起動で one-shot 予約が枯渇して完全停止する緩和策）。
-      final slots = <(int, tz.TZDateTime)>[];
+      final slots = <(int, DateTime)>[];
       for (var offset = 0; offset < _reminderHorizonDays; offset++) {
         if (skipToday && offset == 0) continue;
-        final scheduled = tz.TZDateTime(
-          tz.local,
+        final scheduled = DateTime(
           now.year,
           now.month,
-          now.day,
+          now.day + offset,
           time.hour,
           time.minute,
-        ).add(Duration(days: offset));
+        );
         if (!weekdays.contains(scheduled.weekday)) continue;
         if (!scheduled.isAfter(now)) continue; // 今日の時刻を既に過ぎている
         slots.add((offset, scheduled));
@@ -302,7 +311,7 @@ class NotificationService {
           _reminderOneShotIdBase + offset,
           message.title,
           message.body,
-          scheduled,
+          tz.TZDateTime.from(scheduled, tz.local),
           const NotificationDetails(
             android: AndroidNotificationDetails(
               _reminderChannelId,
