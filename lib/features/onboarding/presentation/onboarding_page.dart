@@ -181,6 +181,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final end = start.add(Duration(days: period.days));
     final amount = result.cumulativeTargetAmount(category.hourlyRate);
     try {
+      // リマインダーステップから戻って再度「設定する」を押した場合に
+      // 同一目標が重複作成されないよう、このフローで作成済みの目標を
+      // 先に削除してから作り直す（issue #191）。
+      await _deleteGoalsForCategory(category.id);
       await ref.read(goalControllerProvider.notifier).create(
             type: GoalType.period,
             targetAmount: amount,
@@ -321,6 +325,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         if (created == null) return;
         setState(() => _saving = true);
         try {
+          // カテゴリだけでなく、このフローで作成済みの目標も合わせて
+          // ロールバックする。残すと削除済みカテゴリを指す孤児目標になる
+          // （issue #191）。
+          await _deleteGoalsForCategory(created.id);
           await ref.read(categoryControllerProvider.notifier).delete(created.id);
           if (!mounted) return;
           setState(() {
@@ -347,6 +355,18 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         setState(() => _goalSubStep = _GoalSubStep.q2SessionLength);
       case _GoalSubStep.result:
         setState(() => _goalSubStep = _GoalSubStep.q3Period);
+    }
+  }
+
+  /// オンボーディングで作成したカテゴリに紐づくアクティブな目標を
+  /// すべてソフトデリートする（issue #191）。
+  Future<void> _deleteGoalsForCategory(String categoryId) async {
+    final goalRepo = ref.read(goalRepositoryProvider);
+    final goals = await goalRepo.fetchActive();
+    for (final goal in goals) {
+      if (goal.categoryId == categoryId) {
+        await goalRepo.delete(goal.id);
+      }
     }
   }
 
