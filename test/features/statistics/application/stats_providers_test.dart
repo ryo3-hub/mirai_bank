@@ -28,11 +28,12 @@ void main() {
       expect(r.granularity, BucketGranularity.month);
     });
 
-    test('all = unbounded, year buckets', () {
+    test('all = unbounded, month buckets', () {
+      // 仕様（docs/specs/04_statistics.md）：全期間は月バケット（issue #201）
       final r = statsDateRange(StatsPeriod.all);
       expect(r.start, isNull);
       expect(r.end, isNull);
-      expect(r.granularity, BucketGranularity.year);
+      expect(r.granularity, BucketGranularity.month);
     });
   });
 }
