@@ -333,17 +333,6 @@ class NotificationService {
     }
   }
 
-  /// 「今日のスロット」だけ静かにキャンセルする（issue #178）。
-  /// タイマー開始時 / セッション作成時に呼ぶ想定。明日以降の予約には触らない。
-  Future<void> cancelTodayReminder() async {
-    if (!_initialized) return;
-    try {
-      await _plugin.cancel(_reminderOneShotIdBase);
-    } catch (e, st) {
-      debugPrint('cancelTodayReminder failed: $e\n$st');
-    }
-  }
-
   Future<void> cancelDailyReminder() async {
     if (!_initialized) return;
     try {

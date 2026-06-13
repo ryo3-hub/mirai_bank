@@ -138,8 +138,11 @@ class GoalCard extends StatelessWidget {
                     Text(
                       preset != null
                           ? '達成予定: ${DateFormat('yyyy/M/d').format(goal.periodEnd!)}'
-                          : '${DateFormat('M/d').format(goal.periodStart!)} 〜 '
-                              '${DateFormat('M/d').format(goal.periodEnd!)}',
+                          // periodStart はスキーマ上 null 可のためガード（issue #204）
+                          : goal.periodStart == null
+                              ? '〜 ${DateFormat('M/d').format(goal.periodEnd!)}'
+                              : '${DateFormat('M/d').format(goal.periodStart!)} 〜 '
+                                  '${DateFormat('M/d').format(goal.periodEnd!)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

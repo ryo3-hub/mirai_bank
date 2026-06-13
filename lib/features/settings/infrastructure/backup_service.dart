@@ -23,11 +23,18 @@ class BackupService {
   /// そのファイルパスを返す。呼び出し側で `share_plus` 等に渡す想定。
   Future<File> exportToFile() async {
     final pkg = await PackageInfo.fromPlatform();
-    final categories = await _db.select(_db.categories).get();
-    final workSessions = await _db.select(_db.workSessions).get();
-    final timerPresets = await _db.select(_db.timerPresets).get();
-    final goals = await _db.select(_db.goals).get();
-    final settings = await _db.select(_db.settings).get();
+    // テーブル間で不整合なスナップショットにならないよう、読み出しは
+    // 同一トランザクションで行う（issue #204）。
+    final (categories, workSessions, timerPresets, goals, settings) =
+        await _db.transaction(() async {
+      return (
+        await _db.select(_db.categories).get(),
+        await _db.select(_db.workSessions).get(),
+        await _db.select(_db.timerPresets).get(),
+        await _db.select(_db.goals).get(),
+        await _db.select(_db.settings).get(),
+      );
+    });
 
     final payload = <String, dynamic>{
       'schemaVersion': _formatVersion,
