@@ -264,6 +264,10 @@ class NotificationService {
       if (weekdays.isEmpty) return;
 
       final now = tz.TZDateTime.now(tz.local);
+      // 予約対象スロットを先に確定させる。最後のスロットだけ「アプリを
+      // 開くとリマインダーが継続される」案内文言にするため（issue #199：
+      // 14 日以上未起動で one-shot 予約が枯渇して完全停止する緩和策）。
+      final slots = <(int, tz.TZDateTime)>[];
       for (var offset = 0; offset < _reminderHorizonDays; offset++) {
         if (skipToday && offset == 0) continue;
         final scheduled = tz.TZDateTime(
@@ -276,10 +280,23 @@ class NotificationService {
         ).add(Duration(days: offset));
         if (!weekdays.contains(scheduled.weekday)) continue;
         if (!scheduled.isAfter(now)) continue; // 今日の時刻を既に過ぎている
+        slots.add((offset, scheduled));
+      }
 
+      for (var i = 0; i < slots.length; i++) {
+        final (offset, scheduled) = slots[i];
+        final isLastSlot = i == slots.length - 1;
         // 文言は曜日タグ（平日 / 休日 / どちらでも）に合致するプールから
         // 乱択（issue #174）。再スケジュールのたびに文言が refresh される。
-        final message = ReminderMessages.randomFor(scheduled.weekday);
+        // 最終スロットだけは「アプリを開くとリマインダーが再開される」案内
+        // にする（issue #199）。
+        final message = isLastSlot
+            ? const ReminderMessage(
+                '🔔 リマインダー継続のお知らせ',
+                'しばらくアプリを開いていないようです。アプリを開くと、'
+                    '翌日以降のリマインダーが再開されます。',
+              )
+            : ReminderMessages.randomFor(scheduled.weekday);
         await _plugin.zonedSchedule(
           _reminderOneShotIdBase + offset,
           message.title,
