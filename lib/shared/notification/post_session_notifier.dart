@@ -31,29 +31,9 @@ class PostSessionNotifier {
     final pushEnabled = setting.achievementNotificationEnabled;
 
     final events = <AchievementEvent>[];
-
-    if (achievedIds.isNotEmpty) {
-      final goalRepo = _ref.read(goalRepositoryProvider);
-      final categoryRepo = _ref.read(categoryRepositoryProvider);
-      for (var i = 0; i < achievedIds.length; i++) {
-        final goal = await goalRepo.findById(achievedIds[i]);
-        if (goal == null) continue;
-        final categoryName = goal.categoryId == null
-            ? null
-            : (await categoryRepo.findById(goal.categoryId!))?.name;
-        events.add(GoalAchievedEvent(
-          goal: goal,
-          categoryName: categoryName,
-        ));
-        if (pushEnabled) {
-          await NotificationService.instance.showAchievement(
-            title: '🎉 目標達成！',
-            body: _achievementBody(goal, categoryName),
-            idOffset: i,
-          );
-        }
-      }
-    }
+    events.addAll(
+      await _goalAchievedEvents(achievedIds, pushEnabled: pushEnabled),
+    );
 
     final sessions =
         await _ref.read(workSessionRepositoryProvider).fetchAll();
@@ -68,6 +48,52 @@ class PostSessionNotifier {
     if (events.isNotEmpty) {
       _ref.read(achievementQueueProvider.notifier).enqueueAll(events);
     }
+  }
+
+  /// 目標の新規達成だけを演出キュー + プッシュ通知で知らせる。
+  ///
+  /// タイマー停止以外の経路（目標の作成・編集時に既存セッションだけで
+  /// 達成額に届いていたケース、issue #203）から呼ぶ。streak の節目判定は
+  /// 行わない（セッションは増えていないため）。
+  Future<void> notifyGoalsAchieved(List<String> achievedIds) async {
+    if (achievedIds.isEmpty) return;
+    final setting = await _ref.read(settingRepositoryProvider).fetch();
+    final events = await _goalAchievedEvents(
+      achievedIds,
+      pushEnabled: setting.achievementNotificationEnabled,
+    );
+    if (events.isNotEmpty) {
+      _ref.read(achievementQueueProvider.notifier).enqueueAll(events);
+    }
+  }
+
+  Future<List<AchievementEvent>> _goalAchievedEvents(
+    List<String> achievedIds, {
+    required bool pushEnabled,
+  }) async {
+    if (achievedIds.isEmpty) return const [];
+    final events = <AchievementEvent>[];
+    final goalRepo = _ref.read(goalRepositoryProvider);
+    final categoryRepo = _ref.read(categoryRepositoryProvider);
+    for (var i = 0; i < achievedIds.length; i++) {
+      final goal = await goalRepo.findById(achievedIds[i]);
+      if (goal == null) continue;
+      final categoryName = goal.categoryId == null
+          ? null
+          : (await categoryRepo.findById(goal.categoryId!))?.name;
+      events.add(GoalAchievedEvent(
+        goal: goal,
+        categoryName: categoryName,
+      ));
+      if (pushEnabled) {
+        await NotificationService.instance.showAchievement(
+          title: '🎉 目標達成！',
+          body: _achievementBody(goal, categoryName),
+          idOffset: i,
+        );
+      }
+    }
+    return events;
   }
 
   String _achievementBody(Goal goal, String? categoryName) {
