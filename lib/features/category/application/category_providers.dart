@@ -18,6 +18,13 @@ Stream<List<Category>> categoriesList(Ref ref) {
   return ref.watch(categoryRepositoryProvider).watchAll();
 }
 
+/// 削除済みも含む全カテゴリ。削除済みカテゴリを指す目標の表示用
+/// （issue #198）。コード生成を増やさないためマニュアル定義の Provider。
+final categoriesIncludingDeletedProvider =
+    StreamProvider<List<Category>>((ref) {
+  return ref.watch(categoryRepositoryProvider).watchAllIncludingDeleted();
+});
+
 @riverpod
 Future<Category?> categoryById(Ref ref, String id) {
   return ref.watch(categoryRepositoryProvider).findById(id);

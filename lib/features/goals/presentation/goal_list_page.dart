@@ -47,7 +47,9 @@ class GoalListPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeAsync = ref.watch(activeGoalsWithProgressProvider);
     final achievedAsync = ref.watch(achievedGoalsProvider);
-    final categoriesAsync = ref.watch(categoriesListProvider);
+    // 削除済みカテゴリを指す目標が「全カテゴリ」に化けないよう、削除済みも
+    // 含めた Map を使う（issue #198）。表示側で「（削除済み）」を付ける。
+    final categoriesAsync = ref.watch(categoriesIncludingDeletedProvider);
     final categories = categoriesAsync.value ?? const <Category>[];
     final categoryMap = {for (final c in categories) c.id: c};
 
