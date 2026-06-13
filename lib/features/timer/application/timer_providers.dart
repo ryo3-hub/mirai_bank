@@ -181,5 +181,8 @@ class TimerController extends _$TimerController {
     await ref.read(activeTimerRepositoryProvider).clear();
     await NotificationService.instance.cancelTimerCompletion();
     await NotificationService.instance.cancelOngoingTimer();
+    // 計測中でなくなったので「今日のリマインダー抑止」を再評価する。
+    // stop() の 5 分未満パスと対称にする（issue #196）。
+    await ref.read(reminderSchedulerProvider).refresh();
   }
 }
