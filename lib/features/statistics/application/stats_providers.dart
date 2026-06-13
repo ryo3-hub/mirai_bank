@@ -57,7 +57,10 @@ Stream<PeriodStats> periodStats(Ref ref, StatsPeriod period) async* {
   final categoryRepo = ref.watch(categoryRepositoryProvider);
 
   await for (final sessions in sessionRepo.watchAll()) {
-    final categories = await categoryRepo.fetchAll();
+    // 削除済みカテゴリのセッションも内訳に含める（issue #190）。除外すると
+    // 「期間サマリの合計 ≠ 内訳の合計」になり、円グラフの％も 100% に
+    // ならない。表示側で「（削除済み）」を付けて区別する。
+    final categories = await categoryRepo.fetchAllIncludingDeleted();
     final categoryMap = {for (final c in categories) c.id: c};
     final range = statsDateRange(period);
 

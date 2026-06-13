@@ -81,7 +81,8 @@ Stream<List<CategoryBreakdownItem>> categoryBreakdown(
   final categoryRepo = ref.watch(categoryRepositoryProvider);
 
   await for (final sessions in sessionRepo.watchAll()) {
-    final categories = await categoryRepo.fetchAll();
+    // 削除済みカテゴリのセッションも内訳に含める（issue #190 と同型）
+    final categories = await categoryRepo.fetchAllIncludingDeleted();
     final categoryMap = {for (final c in categories) c.id: c};
     final range = summaryDateRange(period);
 

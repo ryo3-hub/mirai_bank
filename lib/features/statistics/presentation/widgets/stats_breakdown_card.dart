@@ -97,7 +97,9 @@ class _LegendRow extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              share.category.name,
+              share.category.deletedAt != null
+                  ? '（削除済み）${share.category.name}'
+                  : share.category.name,
               style: theme.textTheme.bodyMedium,
               overflow: TextOverflow.ellipsis,
             ),
