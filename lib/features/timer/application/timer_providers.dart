@@ -89,6 +89,21 @@ class TimerController extends _$TimerController {
         .pause(now: DateTime.now());
     // 一時停止中は完了通知をキャンセル
     await NotificationService.instance.cancelTimerCompletion();
+    // 常駐通知もアプリ内表示と矛盾しないよう「一時停止中」に更新する
+    // （issue #193）
+    final timer = await ref.read(activeTimerRepositoryProvider).fetch();
+    if (timer != null) {
+      final category = await ref
+          .read(categoryRepositoryProvider)
+          .findById(timer.categoryId);
+      if (category != null) {
+        await NotificationService.instance.showOngoingTimer(
+          categoryName: category.name,
+          subtitle: 'タイマーは止まっています',
+          paused: true,
+        );
+      }
+    }
   }
 
   Future<void> resume() async {
@@ -96,13 +111,18 @@ class TimerController extends _$TimerController {
     if (timer == null) return;
     final now = DateTime.now();
     await ref.read(activeTimerRepositoryProvider).resume(now: now);
-    // 残り時間に合わせて完了通知を再スケジュール
-    final remaining = timer.targetDurationSec - timer.accumulatedSec;
-    if (remaining > 0) {
-      final category = await ref
-          .read(categoryRepositoryProvider)
-          .findById(timer.categoryId);
-      if (category != null) {
+    final category = await ref
+        .read(categoryRepositoryProvider)
+        .findById(timer.categoryId);
+    if (category != null) {
+      // 常駐通知を「計測中」に戻す（issue #193）
+      await NotificationService.instance.showOngoingTimer(
+        categoryName: category.name,
+        subtitle: '作業時間を計測中',
+      );
+      // 残り時間に合わせて完了通知を再スケジュール
+      final remaining = timer.targetDurationSec - timer.accumulatedSec;
+      if (remaining > 0) {
         await NotificationService.instance.scheduleTimerCompletion(
           fireAt: now.add(Duration(seconds: remaining)),
           title: '⏰ タイマー完了！',

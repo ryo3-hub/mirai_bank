@@ -126,12 +126,13 @@ class NotificationService {
   Future<void> showOngoingTimer({
     required String categoryName,
     String? subtitle,
+    bool paused = false,
   }) async {
     if (!_initialized) return;
     try {
       await _plugin.show(
         _timerNotificationId,
-        '計測中: $categoryName',
+        paused ? '一時停止中: $categoryName' : '計測中: $categoryName',
         subtitle,
         const NotificationDetails(
           android: AndroidNotificationDetails(
