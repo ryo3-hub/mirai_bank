@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../infrastructure/database/database_provider.dart';
+import '../../../shared/notification/notification_service.dart';
+import '../../../shared/notification/reminder_scheduler.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/top_toast.dart';
 import '../infrastructure/backup_service.dart';
@@ -71,6 +73,14 @@ class _DataManagementPageState extends ConsumerState<DataManagementPage> {
       final file = File(picked.files.single.path!);
       final service = BackupService(ref.read(appDatabaseProvider));
       await service.importFromFile(file);
+      // 復元後の状態に合わせて通知を再構築する（issue #195）。
+      // - 復元で ActiveTimer は消えるため、常駐「計測中」通知と予約済み
+      //   完了通知が残ると存在しないタイマーの通知が発火してしまう
+      // - リマインダーは取り込んだ設定で再スケジュールする（OFF を復元
+      //   した場合は旧予約のキャンセルになる）
+      await NotificationService.instance.cancelOngoingTimer();
+      await NotificationService.instance.cancelTimerCompletion();
+      await ref.read(reminderSchedulerProvider).refresh();
       if (mounted) {
         TopToast.show(context, message: 'データを復元しました');
       }
