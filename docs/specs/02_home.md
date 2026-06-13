@@ -85,6 +85,9 @@
   目標時間を超えても、`ActiveTimer.billableSecondsAt()` が `targetDurationSec`
   でクランプする。例: 15 分プリセットで 1 時間放置 → 15 分ぶんのみ課金
 - 例（時給 2000 円）: 4:59 = 0 円 / 5:00 = 167 円 / 9:59 = 167 円 / 15:00 = 500 円 / 30:00 = 1000 円
+- セッションの `endTime` は **実際の停止時刻**（issue #192）。一時停止や
+  課金単位の切り下げがあるため `startTime + durationSec ≠ endTime` になり得る。
+  `durationSec` / `amount` は課金対象の値を保持する
 
 ### 一時停止 / 再開
 - ActiveTimer に `accumulatedSec`（停止までの累積）+ `resumedAt`（直近で再開した時刻、null = 一時停止中）を保持

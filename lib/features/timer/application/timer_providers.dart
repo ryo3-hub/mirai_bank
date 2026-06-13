@@ -156,9 +156,11 @@ class TimerController extends _$TimerController {
         ? memo!.trim()
         : activeTimer.memo;
 
-    // endTime は「startTime + 課金対象秒数」とする。実時間より短いが、
-    // 履歴側で「課金対象に等しい duration」として保持するため整合させる。
-    final endTime = activeTimer.startTime.add(Duration(seconds: paidSec));
+    // endTime は実際の停止時刻とする（issue #192）。一時停止や課金単位の
+    // 切り下げがあるため startTime + durationSec ≠ endTime になり得るが、
+    // 「今日の積み上げ」・streak・リマインダー抑止・期間目標の境界判定は
+    // すべて endTime 基準のため、合成値（startTime + 課金秒数）にすると
+    // 日またぎセッションが前日に計上されてしまう。
     // セッション作成と ActiveTimer クリアを同一トランザクションで行う。
     // 別々の await にすると間でプロセスが死んだとき完了済み ActiveTimer が
     // 残存し、再起動時の自動停止で同一作業が二重記録される（issue #188）。
@@ -166,7 +168,7 @@ class TimerController extends _$TimerController {
       final created = await ref.read(workSessionRepositoryProvider).create(
             categoryId: activeTimer.categoryId,
             startTime: activeTimer.startTime,
-            endTime: endTime,
+            endTime: now,
             durationSec: paidSec,
             amount: amount,
             memo: finalMemo,
