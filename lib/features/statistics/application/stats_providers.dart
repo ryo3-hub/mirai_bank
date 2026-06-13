@@ -48,7 +48,9 @@ StatsDateRange statsDateRange(StatsPeriod period, {DateTime? now}) {
         granularity: BucketGranularity.month,
       );
     case StatsPeriod.all:
-      return const StatsDateRange(granularity: BucketGranularity.year);
+      // 仕様（docs/specs/04_statistics.md）は「最初の記録〜今日（月バケット）」
+      // （issue #201）
+      return const StatsDateRange(granularity: BucketGranularity.month);
   }
 }
 
