@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../infrastructure/database/database_provider.dart';
+import '../../../shared/notification/post_session_notifier.dart';
 import '../../history/application/work_session_providers.dart';
 import '../../history/domain/work_session.dart';
 import '../domain/goal.dart';
@@ -117,12 +118,18 @@ class GoalController extends _$GoalController {
           periodStart: periodStart,
           periodEnd: periodEnd,
         );
-    await ref.read(goalAchievementCheckerProvider).checkAndMark();
+    // 既存セッションだけで達成額に届いている場合も、無言で達成済みに
+    // 移動せず達成演出・通知を出す（issue #203）
+    final achievedIds =
+        await ref.read(goalAchievementCheckerProvider).checkAndMark();
+    await ref.read(postSessionNotifierProvider).notifyGoalsAchieved(achievedIds);
   }
 
   Future<void> updateGoal(Goal goal) async {
     await ref.read(goalRepositoryProvider).update(goal);
-    await ref.read(goalAchievementCheckerProvider).checkAndMark();
+    final achievedIds =
+        await ref.read(goalAchievementCheckerProvider).checkAndMark();
+    await ref.read(postSessionNotifierProvider).notifyGoalsAchieved(achievedIds);
   }
 
   Future<void> delete(String id) {
