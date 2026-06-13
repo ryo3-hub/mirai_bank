@@ -37,6 +37,17 @@ class CategoryRepositoryImpl implements CategoryRepository {
   }
 
   @override
+  Future<List<Category>> fetchAllIncludingDeleted() async {
+    final query = _db.select(_table)
+      ..orderBy([
+        (c) => OrderingTerm.asc(c.sortOrder),
+        (c) => OrderingTerm.asc(c.createdAt),
+      ]);
+    final rows = await query.get();
+    return rows.map(_toEntity).toList(growable: false);
+  }
+
+  @override
   Future<Category?> findById(String id) async {
     final row = await (_db.select(_table)..where((c) => c.id.equals(id)))
         .getSingleOrNull();

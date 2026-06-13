@@ -5,6 +5,10 @@ abstract interface class CategoryRepository {
 
   Future<List<Category>> fetchAll();
 
+  /// ソフトデリート済みも含む全カテゴリ。統計集計で削除済みカテゴリの
+  /// セッションを内訳に含めるために使う（issue #190）。
+  Future<List<Category>> fetchAllIncludingDeleted();
+
   Future<Category?> findById(String id);
 
   Future<Category> create({

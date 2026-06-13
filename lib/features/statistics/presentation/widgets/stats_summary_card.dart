@@ -82,7 +82,9 @@ class StatsSummaryCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            top.name,
+                            top.deletedAt != null
+                                ? '（削除済み）${top.name}'
+                                : top.name,
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
                             style: theme.textTheme.titleSmall?.copyWith(
