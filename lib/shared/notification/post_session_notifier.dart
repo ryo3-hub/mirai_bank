@@ -24,7 +24,11 @@ class PostSessionNotifier {
     final achievedIds =
         await _ref.read(goalAchievementCheckerProvider).checkAndMark();
     final setting = await _ref.read(settingRepositoryProvider).fetch();
-    if (!setting.achievementNotificationEnabled) return;
+    // 「達成通知」設定はプッシュ通知の ON/OFF のみを制御する。アプリ内の
+    // 達成ダイアログ・節目演出は設定に関係なく常に出す。OFF のときに演出
+    // までスキップすると、達成マークだけ付いて演出が永久に失われるため
+    // （issue #197）。
+    final pushEnabled = setting.achievementNotificationEnabled;
 
     final events = <AchievementEvent>[];
 
@@ -41,11 +45,13 @@ class PostSessionNotifier {
           goal: goal,
           categoryName: categoryName,
         ));
-        await NotificationService.instance.showAchievement(
-          title: '🎉 目標達成！',
-          body: _achievementBody(goal, categoryName),
-          idOffset: i,
-        );
+        if (pushEnabled) {
+          await NotificationService.instance.showAchievement(
+            title: '🎉 目標達成！',
+            body: _achievementBody(goal, categoryName),
+            idOffset: i,
+          );
+        }
       }
     }
 
@@ -54,7 +60,9 @@ class PostSessionNotifier {
     final milestone = StreakCalculator.milestoneIfFirstToday(sessions);
     if (milestone != null) {
       events.add(StreakMilestoneEvent(days: milestone));
-      await NotificationService.instance.showStreak(milestone);
+      if (pushEnabled) {
+        await NotificationService.instance.showStreak(milestone);
+      }
     }
 
     if (events.isNotEmpty) {
