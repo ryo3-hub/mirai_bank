@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../shared/services/current_day_provider.dart';
 import '../../category/application/category_providers.dart';
 import '../domain/session_summary.dart';
 import 'work_session_providers.dart';
@@ -59,8 +60,10 @@ SummaryDateRange summaryDateRange(SummaryPeriod period, {DateTime? now}) {
 
 @riverpod
 Stream<SessionSummary> summary(Ref ref, SummaryPeriod period) {
+  // 0:00 を跨いだとき / アプリ復帰時に期間境界を再評価する（issue #189）
+  final today = ref.watch(currentDayProvider);
   return ref.watch(workSessionRepositoryProvider).watchAll().map((sessions) {
-    final range = summaryDateRange(period);
+    final range = summaryDateRange(period, now: today);
     var amount = 0;
     var duration = 0;
     for (final s in sessions) {
@@ -77,13 +80,15 @@ Stream<List<CategoryBreakdownItem>> categoryBreakdown(
   Ref ref,
   SummaryPeriod period,
 ) async* {
+  // 0:00 を跨いだとき / アプリ復帰時に期間境界を再評価する（issue #189）
+  final today = ref.watch(currentDayProvider);
   final sessionRepo = ref.watch(workSessionRepositoryProvider);
   final categoryRepo = ref.watch(categoryRepositoryProvider);
 
   await for (final sessions in sessionRepo.watchAll()) {
     final categories = await categoryRepo.fetchAll();
     final categoryMap = {for (final c in categories) c.id: c};
-    final range = summaryDateRange(period);
+    final range = summaryDateRange(period, now: today);
 
     final byId = <String, ({int amount, int duration})>{};
     for (final s in sessions) {

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../shared/services/current_day_provider.dart';
 import '../../category/application/category_providers.dart';
 import '../../history/application/work_session_providers.dart';
 import '../domain/stats_data.dart';
@@ -53,13 +54,15 @@ StatsDateRange statsDateRange(StatsPeriod period, {DateTime? now}) {
 
 @riverpod
 Stream<PeriodStats> periodStats(Ref ref, StatsPeriod period) async* {
+  // 0:00 を跨いだとき / アプリ復帰時に期間境界を再評価する（issue #189）
+  final today = ref.watch(currentDayProvider);
   final sessionRepo = ref.watch(workSessionRepositoryProvider);
   final categoryRepo = ref.watch(categoryRepositoryProvider);
 
   await for (final sessions in sessionRepo.watchAll()) {
     final categories = await categoryRepo.fetchAll();
     final categoryMap = {for (final c in categories) c.id: c};
-    final range = statsDateRange(period);
+    final range = statsDateRange(period, now: today);
 
     final inRange = sessions.where((s) {
       if (range.start != null && s.endTime.isBefore(range.start!)) return false;
