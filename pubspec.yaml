@@ -2,7 +2,7 @@ name: mirai_bank
 description: "自己投資価値見える化アプリ"
 publish_to: 'none'
 
-version: 1.0.3+3
+version: 1.0.4+4
 
 environment:
   sdk: ^3.7.0
