@@ -51,4 +51,18 @@ class ActiveTimer {
 
   bool isCompletedAt(DateTime now) =>
       elapsedSecondsAt(now) >= targetDurationSec && targetDurationSec > 0;
+
+  /// このタイマーが目標時間に到達した瞬間（実完了時刻）。
+  ///
+  /// 通常停止（target 未満）や一時停止中（resumedAt == null）は \`null\` を返し、
+  /// 呼び出し側は実停止時刻を使う想定。overrun 時は実際に target を超えた
+  /// 瞬間を返すので、バックグラウンド放置で大幅に超過しても endTime が
+  /// 「アプリを開いた瞬間」にズレない（issue #224）。
+  DateTime? completionTimeBy(DateTime now) {
+    if (targetDurationSec <= 0) return null;
+    if (resumedAt == null) return null;
+    if (!isCompletedAt(now)) return null;
+    final secondsToComplete = targetDurationSec - accumulatedSec;
+    return resumedAt!.add(Duration(seconds: secondsToComplete));
+  }
 }

@@ -181,11 +181,12 @@ class TimerController extends _$TimerController {
         ? memo!.trim()
         : activeTimer.memo;
 
-    // endTime は実際の停止時刻とする（issue #192）。一時停止や課金単位の
-    // 切り下げがあるため startTime + durationSec ≠ endTime になり得るが、
-    // 「今日の積み上げ」・streak・リマインダー抑止・期間目標の境界判定は
-    // すべて endTime 基準のため、合成値（startTime + 課金秒数）にすると
-    // 日またぎセッションが前日に計上されてしまう。
+    // endTime は基本「実際の停止時刻」（issue #192）。ただし overrun
+    // （target を超過したまま放置）状態で auto-stop が走った場合は、
+    // 実際に target に到達した瞬間を使う（issue #224）。これにより
+    // バックグラウンド放置で何日も経ってから停止しても、セッションは
+    // 「タイマーが完了した日」に正しく計上される。
+    final endTime = activeTimer.completionTimeBy(now) ?? now;
     // セッション作成と ActiveTimer クリアを同一トランザクションで行う。
     // 別々の await にすると間でプロセスが死んだとき完了済み ActiveTimer が
     // 残存し、再起動時の自動停止で同一作業が二重記録される（issue #188）。
@@ -193,7 +194,7 @@ class TimerController extends _$TimerController {
       final created = await ref.read(workSessionRepositoryProvider).create(
             categoryId: activeTimer.categoryId,
             startTime: activeTimer.startTime,
-            endTime: now,
+            endTime: endTime,
             durationSec: paidSec,
             amount: amount,
             memo: finalMemo,

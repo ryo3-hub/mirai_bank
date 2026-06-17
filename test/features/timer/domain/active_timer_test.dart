@@ -150,4 +150,82 @@ void main() {
       );
     });
   });
+
+  group('ActiveTimer.completionTimeBy (issue #224)', () {
+    final start = DateTime(2026, 1, 1, 14, 0, 0);
+
+    test('returns null when still running and not completed yet', () {
+      final timer = _running(startTime: start, targetMinutes: 15);
+      expect(
+        timer.completionTimeBy(start.add(const Duration(minutes: 10))),
+        isNull,
+      );
+    });
+
+    test('returns null exactly at target completion', () {
+      // \`isCompletedAt\` is \`elapsed >= target\` なので、target ピッタリは
+      // 含むが、stop() の通常パス（target 未満で停止）と区別するため
+      // 厳密境界の挙動を固定化する。
+      final timer = _running(startTime: start, targetMinutes: 15);
+      expect(
+        timer.completionTimeBy(start.add(const Duration(minutes: 15))),
+        start.add(const Duration(minutes: 15)),
+      );
+    });
+
+    test('returns startTime+target for never-paused overrun', () {
+      // 14:00 開始の 5 分タイマーが、放置されて翌日 00:00 に検知された
+      // ケース。実完了時刻は 14:05 のはず。
+      final timer = _running(startTime: start, targetMinutes: 5);
+      final detected = start.add(const Duration(hours: 10));
+      expect(
+        timer.completionTimeBy(detected),
+        start.add(const Duration(minutes: 5)),
+      );
+    });
+
+    test('returns resumedAt + (target - accumulated) after resume overrun', () {
+      // 14:00 開始 30 分タイマー、14:10 で一時停止（accumulated=10 分）、
+      // 23:00 で resume してそのまま放置。
+      // 残り 20 分 → 実完了時刻は 23:20。
+      final resumedAt = start.add(const Duration(hours: 9));
+      final timer = _resumed(
+        startTime: start,
+        resumedAt: resumedAt,
+        targetMinutes: 30,
+        accumulatedSec: 10 * 60,
+      );
+      final detected = resumedAt.add(const Duration(hours: 2));
+      expect(
+        timer.completionTimeBy(detected),
+        resumedAt.add(const Duration(minutes: 20)),
+      );
+    });
+
+    test('returns null when paused (cannot overrun while paused)', () {
+      // paused 中は elapsed が進まないので overrun 経路に入らない想定。
+      // accumulated が target を超えていても、completionTimeBy は null を
+      // 返して呼び出し側に「now を使え」と伝える保険動作。
+      final paused = _paused(
+        startTime: start,
+        targetMinutes: 15,
+        accumulatedSec: 30 * 60,
+      );
+      expect(paused.completionTimeBy(start), isNull);
+    });
+
+    test('returns null when targetDurationSec is 0', () {
+      final timer = ActiveTimer(
+        categoryId: 'c1',
+        startTime: start,
+        targetDurationSec: 0,
+        accumulatedSec: 0,
+        resumedAt: start,
+      );
+      expect(
+        timer.completionTimeBy(start.add(const Duration(minutes: 40))),
+        isNull,
+      );
+    });
+  });
 }

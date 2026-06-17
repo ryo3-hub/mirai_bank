@@ -7,8 +7,14 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'app/app.dart';
 import 'features/category/application/category_providers.dart';
+import 'features/history/application/work_session_providers.dart';
+import 'features/history/domain/work_session.dart';
 import 'features/timer/application/timer_providers.dart';
+import 'features/timer/domain/active_timer.dart';
+import 'features/timer/domain/amount_calculator.dart';
+import 'infrastructure/database/database_provider.dart';
 import 'shared/notification/notification_service.dart';
+import 'shared/notification/post_session_notifier.dart';
 import 'shared/notification/reminder_scheduler.dart';
 
 /// Sentry の DSN は `--dart-define=SENTRY_DSN=...` でビルド時注入する想定。
@@ -74,8 +80,11 @@ Future<void> _bootstrap() async {
 ///
 /// - 稼働中（残り時間あり）: 常駐通知を再表示し、完了通知を再予約
 /// - 一時停止中: 常駐通知のみ再表示（完了通知は resume 時に予約される）
-/// - 目標超過（完了済み）: 通知を清掃する。セッションは HomePage の
-///   自動停止が保存する
+/// - 目標超過（完了済み）: セッションを実完了時刻で保存して ActiveTimer を
+///   クリアし、通知も清掃する（issue #224）。HomePage の auto-stop に
+///   任せると、ユーザーがホームを開かなかった日は ActiveTimer が放置されて
+///   翌日以降に「アプリを開いた日」へ計上されてしまうため、bootstrap で
+///   確定させる
 /// - タイマーなし: 残留している可能性のあるタイマー系通知を清掃
 Future<void> _restoreTimerNotifications(ProviderContainer container) async {
   final notification = NotificationService.instance;
@@ -87,6 +96,7 @@ Future<void> _restoreTimerNotifications(ProviderContainer container) async {
   }
   final now = DateTime.now();
   if (timer.isCompletedAt(now)) {
+    await _persistOverrunSession(container, timer, now);
     await notification.cancelOngoingTimer();
     await notification.cancelTimerCompletion();
     return;
@@ -109,4 +119,44 @@ Future<void> _restoreTimerNotifications(ProviderContainer container) async {
       );
     }
   }
+}
+
+/// 起動時に発見した overrun ActiveTimer を、実完了時刻で WorkSession に
+/// 確定して ActiveTimer をクリアする（issue #224）。
+Future<void> _persistOverrunSession(
+  ProviderContainer container,
+  ActiveTimer timer,
+  DateTime now,
+) async {
+  final paidSec = AmountCalculator.paidDurationSec(
+    timer.billableSecondsAt(now),
+  );
+  if (paidSec <= 0) {
+    await container.read(activeTimerRepositoryProvider).clear();
+    return;
+  }
+  final category = await container
+      .read(categoryRepositoryProvider)
+      .findById(timer.categoryId);
+  final hourlyRate = category?.hourlyRate ?? 0;
+  final amount = AmountCalculator.calculate(
+    durationSec: paidSec,
+    hourlyRate: hourlyRate,
+  );
+  final endTime = timer.completionTimeBy(now) ?? now;
+  await container.read(appDatabaseProvider).transaction(() async {
+    await container.read(workSessionRepositoryProvider).create(
+          categoryId: timer.categoryId,
+          startTime: timer.startTime,
+          endTime: endTime,
+          durationSec: paidSec,
+          amount: amount,
+          memo: timer.memo,
+          inputMethod: WorkSessionInputMethod.timer,
+        );
+    await container.read(activeTimerRepositoryProvider).clear();
+  });
+  // 達成・節目演出のキューと、リマインダー抑止の再評価
+  await container.read(postSessionNotifierProvider).runAfterSessionSave();
+  await container.read(reminderSchedulerProvider).refresh();
 }
